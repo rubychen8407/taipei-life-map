@@ -88,7 +88,7 @@ async def route(r):
     if 'interpreter' in u:
         q = urllib.parse.parse_qs(r.request.post_data or '').get('data', [''])[0]
         calls.append({'host': u.split('/')[2], 'ct': r.request.headers.get('content-type', ''), 'layers': [] if 'rel(' in q else layers_in(q), 'q': q})
-        if 'overpass-api.de' in u and 'school' in layers_in(q):
+        if '[\"highway\"]' in q and 'around:' in q:\n            m = re.search(r'around:([\\d.]+),([\\d.]+),([\\d.]+)', q)\n            radius, la, lo = map(float, m.groups())\n            geometry = [{'lat': la, 'lon': lo}, {'lat': la + 0.004, 'lon': lo}, {'lat': la + 0.004, 'lon': lo + 0.004}, {'lat': la, 'lon': lo + 0.004}, {'lat': la, 'lon': lo}]\n            return await r.fulfill(body=json.dumps({'elements': [{'type': 'way', 'id': 99001, 'tags': {'highway': 'residential'}, 'geometry': geometry}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})\n        if 'overpass-api.de' in u and 'school' in layers_in(q):
             return await r.fulfill(status=504, body='timeout')
         if any(l in MODE['fail'] for l in layers_in(q)):
             return await r.fulfill(status=429, body='busy')
@@ -257,6 +257,19 @@ async def baked_suite(b, errs):
         if await ev(f"state.active.has('{i}')"):
             await page.click(f'.chip[data-id={i}]')
     check('選擇你在意的設施' in await ev("document.getElementById('head').innerText") and not await ev("!!heat"), '全部取消時提示選擇類別')
+
+    # 10b. 使用者自訂生活圈：最多三個中心、獨立分析、共用步行時間與路網
+    await page.click('.life-chip')
+    await ev("map.fire('click',{latlng:L.latLng(25.0335,121.5436)})")
+    await ev("map.fire('click',{latlng:L.latLng(25.045,121.55)})")
+    await page.locator('[data-life-label="0"]').fill('住家')
+    await page.locator('[data-life-label="1"]').fill('公司')
+    await page.locator('#lifeMinutes').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}))}")
+    check(await ev("state.lifeCenters.length===2 && state.lifeCenters[0].label==='住家' && state.lifeCenters[1].label==='公司' && state.lifeMinutes===15"), '生活圈可新增兩個獨立中心、編輯名稱並共用步行時間')
+    await page.click('#lifeConfirm')
+    await page.wait_for_function("state.lifeResults.length===2 && state.lifeResults.every(r=>r.graph)", timeout=20000)
+    check(await ev("state.lifeResults[0].graph!==state.lifeResults[1].graph && document.querySelectorAll('.life-tabs button').length===2 && lifeLayer.getLayers().length>2"), '生活圈 A/B 分開計算並顯示各自的可步行路網')
+    check(await ev("document.querySelector('.life-tabs').innerText.includes('住家') && document.querySelector('.life-tabs').innerText.includes('公司')"), '生活圈比較標籤顯示使用者自訂名稱')
     await page.close()
 
     # 11. 桌機版面
