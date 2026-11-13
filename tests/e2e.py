@@ -88,7 +88,11 @@ async def route(r):
     if 'interpreter' in u:
         q = urllib.parse.parse_qs(r.request.post_data or '').get('data', [''])[0]
         calls.append({'host': u.split('/')[2], 'ct': r.request.headers.get('content-type', ''), 'layers': [] if 'rel(' in q else layers_in(q), 'q': q})
-        if '[\"highway\"]' in q and 'around:' in q:\n            m = re.search(r'around:([\\d.]+),([\\d.]+),([\\d.]+)', q)\n            radius, la, lo = map(float, m.groups())\n            geometry = [{'lat': la, 'lon': lo}, {'lat': la + 0.004, 'lon': lo}, {'lat': la + 0.004, 'lon': lo + 0.004}, {'lat': la, 'lon': lo + 0.004}, {'lat': la, 'lon': lo}]\n            return await r.fulfill(body=json.dumps({'elements': [{'type': 'way', 'id': 99001, 'tags': {'highway': 'residential'}, 'geometry': geometry}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})\n        if 'overpass-api.de' in u and 'school' in layers_in(q):
+        if '["highway"]' in q and 'around:' in q:
+            m = re.search(r'around:([\d.]+),([\d.]+),([\d.]+)', q)
+            radius, la, lo = map(float, m.groups())
+            geometry = [{'lat': la, 'lon': lo}, {'lat': la + 0.004, 'lon': lo}, {'lat': la + 0.004, 'lon': lo + 0.004}, {'lat': la, 'lon': lo + 0.004}, {'lat': la, 'lon': lo}]
+            return await r.fulfill(body=json.dumps({'elements': [{'type': 'way', 'id': 99001, 'tags': {'highway': 'residential'}, 'geometry': geometry}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})\n        if 'overpass-api.de' in u and 'school' in layers_in(q):
             return await r.fulfill(status=504, body='timeout')
         if any(l in MODE['fail'] for l in layers_in(q)):
             return await r.fulfill(status=429, body='busy')
