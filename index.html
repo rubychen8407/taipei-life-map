@@ -401,7 +401,7 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
       const ways=rel.members.filter(m=>m.type==='way'&&m.geometry&&!/platform/.test(m.role||'')).map(m=>m.geometry.map(p=>[p.lat,p.lon]));
       let stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/^stop/.test(m.role||'')).map(m=>[m.lat,m.lon]);
       if(stops.length<2)stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/stop|platform/.test(m.role||'')).map(m=>[m.lat,m.lon]);
-      return{t,iv:parseInterval(t.interval||t['interval:conditional']),pts:ways.length?[].concat(...chainWays(ways)):[],stops};});}
+      const chains=ways.length?chainWays(ways):[];const continuous=chains.sort((a,b)=>b.length-a.length)[0]||[];return{t,iv:parseInterval(t.interval||t['interval:conditional']),pts:continuous,stops};});}
   busy(false);if(!state.transit||state.transit.f!==f)return;
   const lines=[],seen=new Set();let n=0;
   rels.sort((a,b)=>(a.t.route!=='bus'?0:1)-(b.t.route!=='bus'?0:1)||(a.iv==null)-(b.iv==null)||(a.iv||0)-(b.iv||0));let labels=0;
@@ -420,7 +420,7 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
     if(rail||labels++<12)L.marker(down[down.length-1],{icon:L.divIcon({className:'tr-end',html:`${rail?'🚇':''}${esc(t.ref||'終點')}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
   L.marker(origin,{icon:L.divIcon({className:'tr-origin',html:String(n),iconSize:[26,26],iconAnchor:[13,13]}),zIndexOffset:2000,interactive:false}).addTo(transitLayer);
   state.transit.loading=false;state.transit.n=n;render();fitSheet();
-  if(lines.length)fit(L.featureGroup(lines).getBounds().extend(origin));}
+  }
 
 // ---------- 我的位置 ----------
 $('locate').onclick=()=>{if(!navigator.geolocation){toast('這個瀏覽器不支援定位');return;}
