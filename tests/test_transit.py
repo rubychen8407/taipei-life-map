@@ -73,6 +73,18 @@ check({m['to'] for m in bl} == {'藍8', '藍1'} and bl[0]['stops'][0] != bl[1]['
 check(bl[0]['col'] == '#0070bd' and bl[0]['iv'] == 5 and bl[0]['r'] == 'subway', f"捷運：路線顏色、班距平均（3–5、5–7→5）→ {bl[0]['col']} {bl[0]['iv']}")
 check(bl[0]['line'][0] != bl[1]['line'][0], '捷運：反方向的路線軌跡也反轉')
 
+# 即使錯誤軌跡的起訖點吻合，只要中間站點偏離，也必須退回站序線，不能畫出跨區錯誤連線。
+class WrongMetroShape(Fake):
+    def get(self, path, tries=4):
+        if 'Metro/Shape' in path:
+            return [{'LineID': 'BL', 'Geometry': wkt([(25.03, 121.50), (25.08, 121.56), (25.03, 121.57)])}]
+        return super().get(path, tries)
+wrong = [m for m in T.build_metro(WrongMetroShape(), box, quiet) if m['ref'] == '板南線']
+expected = [[T.B.r5(p[0]), T.B.r5(p[1])] for p, _ in sorted(
+    [([25.03, 121.50 + i * 0.01], f'藍{i}') for i in range(1, 9)], key=lambda x: x[1])]
+check(len(wrong) == 2 and all(len(m['line']) >= 2 for m in wrong),
+      '捷運：軌跡中間站偏離時仍保留兩個方向的安全路線')
+
 with tempfile.TemporaryDirectory() as d:
     try:
         T.build(Fake(broken=['Metro/']), d, quiet); ok = False
