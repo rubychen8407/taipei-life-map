@@ -270,7 +270,7 @@ def build_metro(t, box, log=print):
             s0, s1 = seq[0][0], seq[-1][0]
             cost = endpoint_cost(line)
             # Reject route shapes that skip stations or accidentally cross a branch.
-            if cost > 0.025:
+            if cost > 0.01:
                 line = [p for p, _ in seq]
             elif math.hypot(line[-1][0]-s0[0], line[-1][1]-s0[1]) + math.hypot(line[0][0]-s1[0], line[0][1]-s1[1]) < endpoint_cost(line):
                 line = line[::-1]
