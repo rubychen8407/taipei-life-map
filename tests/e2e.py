@@ -136,16 +136,15 @@ async def baked_suite(b, errs):
     check(r['topBottom'] < 130 and 380 < r['sheetTop'] < 520, f"版面：上方範圍列＋類別列、下方卡片約半高（{r['sheetTop']:.0f}px 起）")
     await shot(page, '1_home')
 
-    # 2. 類別按鈕、分鐘即時切換
+    # 2. 類別按鈕、各類別獨立距離設定
     t0 = time.time()
     await page.click('.chip[data-id=bus]')
     await page.wait_for_function("state.res.act.includes('bus')", timeout=5000)
     check(len(calls) == n0 and len(data_hits) == 1 and time.time() - t0 < 1.5, f'點「公車站」立即重算（{time.time()-t0:.2f} 秒），不下載任何東西')
     g10 = await ev("state.res.good")
-    await page.click('.seg button[data-m="5"]')
-    g5 = await ev("state.res.good")
-    check(await ev("state.res.mins") == 5 and g5 < g10, f'切到 5 分鐘即時重算，符合範圍變小（{g10}→{g5} 格）')
-    await page.click('.seg button[data-m="10"]')
+    await page.select_option('select[data-distance="park"]', '5')
+    check(await ev("state.res.thresholds[state.res.act.indexOf('park')]===5 && state.minsByLayer.park===5 && state.minsByLayer.school===10"), '公園距離可獨立設定為 5 分鐘，不影響學校的 10 分鐘設定')
+    await page.select_option('select[data-distance="park"]', '10')
 
     # 3. 卡片拖拉
     box = await ev(HANDLE)
@@ -154,7 +153,7 @@ async def baked_suite(b, errs):
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 160, '往下拖把卡片收到最小，地圖幾乎全螢幕')
-    check(await ev("(()=>{const r=document.querySelector('.seg').getBoundingClientRect();return r.bottom<=innerHeight})()"), '收到最小時仍看得到標題與分鐘切換')
+    check(await ev("document.querySelectorAll('select[data-distance]').length===state.res.act.length"), '每個已選類別都有獨立距離選擇器')
     await shot(page, '2_peek')
     box = await ev(HANDLE)
     await page.mouse.click(*box); await page.wait_for_timeout(350)
