@@ -6,7 +6,7 @@
   {'built','src':'tdx','routes':[{id,r,ref,to,from,name,iv,col,line,stops}]}
   r: 'bus' / 'subway'；iv: 平均班距（分鐘），沒有資料就是 None；line/stops: [[lat,lon],...]
 """
-import json, os, re, sys, time, zlib, urllib.parse, urllib.request, urllib.error
+import json, math, os, re, sys, time, zlib, urllib.parse, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -65,15 +65,72 @@ def zh(o):
     return o or ''
 
 
-def wkt_points(g):
-    """WKT LINESTRING / MULTILINESTRING → [[lat,lon],...]（經緯度順序對調）。"""
+def wkt_lines(g):
+    """WKT LINESTRING / MULTILINESTRING → 獨立線段清單，絕不把不相連的片段串接。"""
     if not g:
         return []
-    return [[float(b), float(a)] for a, b in re.findall(r'(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)', g)]
+    body = g[g.find('(') + 1:g.rfind(')')]
+    chunks = re.split(r'\)\s*,\s*\(', body) if 'MULTILINESTRING' in g.upper() else [body]
+    lines = []
+    for chunk in chunks:
+        pts = [[float(b), float(a)] for a, b in re.findall(r'(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)', chunk)]
+        if len(pts) >= 2:
+            lines.append(pts)
+    return lines
+
+
+def wkt_points(g):
+    """相容舊呼叫：只回傳單一 LINESTRING；MULTILINESTRING 不跨片段合併。"""
+    lines = wkt_lines(g)
+    return max(lines, key=len) if lines else []
 
 
 def inbox(p, box):
     return box[0] <= p[0] <= box[2] and box[1] <= p[1] <= box[3]
+
+
+def clip_segment(a, b, box):
+    """Liang–Barsky：裁切單一線段，回傳框內端點；完全在框外則回傳 None。"""
+    south, west, north, east = box
+    dx, dy = b[1] - a[1], b[0] - a[0]
+    p = (-dx, dx, -dy, dy)
+    q = (a[1] - west, east - a[1], a[0] - south, north - a[0])
+    lo, hi = 0.0, 1.0
+    for pi, qi in zip(p, q):
+        if pi == 0:
+            if qi < 0:
+                return None
+            continue
+        t = qi / pi
+        if pi < 0:
+            lo = max(lo, t)
+        else:
+            hi = min(hi, t)
+        if lo > hi:
+            return None
+    return [[a[0] + lo * dy, a[1] + lo * dx], [a[0] + hi * dy, a[1] + hi * dx]]
+
+
+def clip_polyline(points, box):
+    """裁切折線並保留不連續片段，避免刪除框外點後錯誤跨區連線。"""
+    segments, current = [], []
+    for a, b in zip(points, points[1:]):
+        clipped = clip_segment(a, b, box)
+        if not clipped:
+            if len(current) >= 2:
+                segments.append(current)
+            current = []
+            continue
+        start, end = clipped
+        if current and math.hypot(current[-1][0] - start[0], current[-1][1] - start[1]) < 1e-8:
+            current.append(end)
+        else:
+            if len(current) >= 2:
+                segments.append(current)
+            current = clipped[:]
+    if len(current) >= 2:
+        segments.append(current)
+    return segments
 
 
 def headway_mid(obj):
@@ -138,12 +195,17 @@ def build_bus(t, box, log=print):
                    for p in [[st['StopPosition']['PositionLat'], st['StopPosition']['PositionLon']]] if st.get('StopPosition')]
             if len(pts) < 2 or not any(inbox(p, box) for p, _ in pts):
                 continue
-            line = wkt_points((sh.get(k) or {}).get('Geometry'))
-            if len(line) < 2:
-                line = [p for p, _ in pts]       # 沒有行駛軌跡時退而求其次：依站序連線
+            lines = wkt_lines((sh.get(k) or {}).get('Geometry'))
+            if not lines:
+                lines = [[p for p, _ in pts]]       # 沒有行駛軌跡時退而求其次：依站序連線
+            clipped = [seg for raw in lines for seg in clip_polyline(raw, box)]
+            if not clipped:
+                continue
+            # 目前前端路線格式是一條折線；只取最長的連續框內片段，絕不跨越框外空隙硬接。
+            line = max(clipped, key=len)
             names = [zh(st.get('StopName')) for _, st in pts]
             ref = zh(s.get('SubRouteName')) or zh(s.get('RouteName'))
-            line = [[B.r5(a), B.r5(b)] for a, b in B.simplify([p for p in line if inbox(p, box)], 8)]
+            line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 8)]
             if len(line) < 2:
                 continue
             iv = bus_interval(sch.get(k) or {})
@@ -169,7 +231,9 @@ def build_metro(t, box, log=print):
         log(f'  metro {op}: station {len(st)}, route {len(sor)}, shape {len(shp)}, frequency {len(fq)}')
         shape_by = {}
         for s in shp:
-            shape_by.setdefault(s.get('LineID') or s.get('LineNo'), []).extend(wkt_points(s.get('Geometry')))
+            lid0 = s.get('LineID') or s.get('LineNo')
+            for segment in wkt_lines(s.get('Geometry')):
+                shape_by.setdefault(lid0, []).append(segment)
         iv_by = {}
         for f in fq:
             iv_by.setdefault(f.get('LineID') or f.get('LineNo'), []).append(f)
@@ -183,7 +247,21 @@ def build_metro(t, box, log=print):
                     seq.append(([p['PositionLat'], p['PositionLon']], zh(s.get('StationName'))))
             if len(seq) < 2:
                 continue
-            line = shape_by.get(lid) or [p for p, _ in seq]
+            # 只採用能對應本方向起訖站的完整幾何；不串接同線不同支線／斷裂片段。
+            candidates = shape_by.get(lid) or []
+            def endpoint_cost(candidate):
+                a, b = candidate[0], candidate[-1]
+                s0, s1 = seq[0][0], seq[-1][0]
+                forward = math.hypot(a[0]-s0[0], a[1]-s0[1]) + math.hypot(b[0]-s1[0], b[1]-s1[1])
+                reverse = math.hypot(b[0]-s0[0], b[1]-s0[1]) + math.hypot(a[0]-s1[0], a[1]-s1[1])
+                return min(forward, reverse)
+            line = min(candidates, key=endpoint_cost) if candidates else [p for p, _ in seq]
+            s0, s1 = seq[0][0], seq[-1][0]
+            cost = endpoint_cost(line)
+            if cost > 0.08:
+                line = [p for p, _ in seq]
+            elif math.hypot(line[-1][0]-s0[0], line[-1][1]-s0[1]) + math.hypot(line[0][0]-s1[0], line[0][1]-s1[1]) < endpoint_cost(line):
+                line = line[::-1]
             ivs = [headway_mid(x) for x in iv_by.get(lid, [])]; ivs = [v for v in ivs if v]
             iv = round(sum(ivs) / len(ivs), 1) if ivs else None
             col = next((c for k, c in METRO_COL.items() if re.match(k + r'\d*$', lid or '')), None)
@@ -218,6 +296,16 @@ def build(t, out_dir=os.path.join(ROOT, 'data'), log=print):
     os.makedirs(out_dir, exist_ok=True)
     built = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     json.dump({'built': built, 'src': 'tdx', 'routes': routes}, open(os.path.join(out_dir, 'routes.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    # 同步 index.json 的路線數量與更新日期，避免前端／診斷資訊顯示舊狀態。
+    index_path = os.path.join(out_dir, 'index.json')
+    if os.path.exists(index_path):
+        try:
+            index = json.load(open(index_path, encoding='utf-8'))
+        except (OSError, ValueError):
+            index = {}
+        index['routes'] = len(routes)
+        index['routes_built'] = built
+        json.dump(index, open(index_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     return {'bus': nb, 'metro': nm, 'with_interval': withiv}
 
 
