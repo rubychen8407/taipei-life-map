@@ -94,13 +94,21 @@ def headway_mid(obj):
 
 
 def bus_interval(sched):
-    """公車班距：優先用班距格式，沒有就用時刻表的班次數（約 16 小時營運）推算。"""
+    """公車班距：優先用班距格式；否則取週一各班首站發車時間的相鄰間隔中位數（少於 3 班就不推算）。"""
     iv = headway_mid(sched.get('Frequencys'))
     if iv:
         return round(iv, 1)
-    tt = sched.get('Timetables') or []
-    wk = [t for t in tt if not t.get('ServiceDay') or t['ServiceDay'].get('Monday') in (1, True)]
-    return round(960 / len(wk), 1) if wk else None
+    deps = []
+    for t in sched.get('Timetables') or []:
+        if t.get('ServiceDay') and t['ServiceDay'].get('Monday') not in (1, True):
+            continue
+        for st in (t.get('StopTimes') or [])[:1]:
+            m = re.match(r'^(\d{1,2}):(\d{2})', st.get('DepartureTime') or st.get('ArrivalTime') or '')
+            if m:
+                deps.append(int(m.group(1)) * 60 + int(m.group(2)))
+    deps.sort()
+    gaps = sorted(b - a for a, b in zip(deps, deps[1:]) if b > a)
+    return round(gaps[len(gaps) // 2], 1) if len(deps) >= 3 and gaps else None
 
 
 def bus_key(x):
@@ -139,8 +147,6 @@ def build_bus(t, box, log=print):
             if len(line) < 2:
                 continue
             iv = bus_interval(sch.get(k) or {})
-            if iv and iv >= 240 and diag[0] < 3:
-                diag[0] += 1; log('  [診斷] 班距 %s 的班表：%s' % (iv, json.dumps(sch.get(k), ensure_ascii=False)[:700]))
             out.append({'id': f'{city[0]}{zlib.crc32(repr(k).encode())}', 'r': 'bus', 'ref': ref, 'to': names[-1], 'from': names[0], 'name': ref,
                         'iv': iv, 'col': None, 'line': line,
                         'stops': [[B.r5(p[0]), B.r5(p[1])] for p, _ in pts if inbox(p, box)]})

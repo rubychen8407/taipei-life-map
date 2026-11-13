@@ -23,7 +23,7 @@ for r in range(60):
                           'Stops': [stop(k, la, lo, k + 1) for k, (la, lo) in enumerate(pts)][::-1 if r % 2 else 1]})  # 亂序也要能排好
         BUS_SHAPE.append({'RouteUID': uid, 'SubRouteUID': uid, 'Direction': d, 'Geometry': wkt(pts)})
         if r % 3 == 0: BUS_SCH.append({'SubRouteUID': uid, 'Direction': d, 'Frequencys': [{'MinHeadwayMins': 6, 'MaxHeadwayMins': 10}, {'MinHeadwayMins': 10, 'MaxHeadwayMins': 14}]})
-        elif r % 3 == 1: BUS_SCH.append({'SubRouteUID': uid, 'Direction': d, 'Timetables': [{'ServiceDay': {'Monday': 1}, 'StopTimes': []} for _ in range(48)]})
+        elif r % 3 == 1: BUS_SCH.append({'SubRouteUID': uid, 'Direction': d, 'Timetables': [{'ServiceDay': {'Monday': 1}, 'StopTimes': [{'DepartureTime': '%02d:%02d' % (6 + 20 * j // 60, 20 * j % 60)}]} for j in range(48)] + [{'ServiceDay': {'Monday': 0, 'Sunday': 1}, 'StopTimes': [{'DepartureTime': '07:00'}]}]})
 # 新北公車：站全部在城市外，應被濾掉
 BUS_STOPS.append({'RouteUID': 'NTP1', 'SubRouteUID': 'NTP1', 'Direction': 0, 'RouteName': {'Zh_tw': '遠'}, 'Stops': [stop(1, 24.5, 121.0, 1), stop(2, 24.51, 121.01, 2)]})
 METRO_ST = [{'StationID': f'BL{i}', 'StationName': {'Zh_tw': f'藍{i}'}, 'StationPosition': {'PositionLon': 121.50 + i * 0.01, 'PositionLat': 25.03}} for i in range(1, 9)]
@@ -52,7 +52,9 @@ r0 = rs[0]
 check(r0['r'] == 'bus' and r0['ref'] and r0['to'] == '站7' and r0['from'] == '站0', '公車：站序排好（即使 API 順序相反），起訖站正確')
 check(len(r0['line']) >= 2 and r0['line'][0][0] < 26, '公車：行駛軌跡從 WKT 轉成 [緯度,經度]')
 ivs = sorted({r['iv'] for r in rs if r['iv']})
-check(10 in ivs and 20 in ivs, f'公車：班距格式取平均（6–10、10–14→10 分）、時刻表以 48 班 / 16 小時推算 20 分 → {ivs}')
+check(10 in ivs and 20 in ivs, f'公車：班距格式取平均（6–10、10–14→10 分）、時刻表取週一首站發車間隔中位數 20 分 → {ivs}')
+few = {'SubRouteUID': 'x', 'Timetables': [{'ServiceDay': {'Monday': 1}, 'StopTimes': [{'DepartureTime': '06:00'}]}, {'ServiceDay': {'Monday': 1}, 'StopTimes': [{'DepartureTime': '17:00'}]}]}
+check(T.bus_interval(few) is None, '公車：週一只有 1–2 班（尖峰專車）→ 不推算班距（iv=None），不會顯示成「960 分一班」')
 check(any(r['iv'] is None for r in rs), '公車：沒有班表的路線 iv=None（app 畫成灰色虛線，不亂猜）')
 check(len({r['id'] for r in rs}) == len(rs), '路線 id 不重複')
 check(T.build_bus(Fake(broken=['Bus/Schedule']), box, quiet)[0]['iv'] is None, '班表 API 失敗不影響路線本身')
