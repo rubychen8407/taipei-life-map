@@ -83,7 +83,7 @@ async def route(r):
         return await r.fulfill(path=PD, content_type='application/javascript')
     if 'leaflet.js' in u:
         return await r.fulfill(path=LF + 'leaflet.js', content_type='application/javascript')
-    if 'cartocdn.com' in u or 'tile.openstreetmap.org' in u:
+    if 'tile.openstreetmap.org' in u or 'cartocdn.com' in u:
         return await r.fulfill(body=PNG, content_type='image/png')
     if 'interpreter' in u:
         q = urllib.parse.parse_qs(r.request.post_data or '').get('data', [''])[0]
