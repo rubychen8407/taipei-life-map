@@ -6,3 +6,13 @@ taipei-life-map
 線上版：https://rubychen8407.github.io/taipei-life-map/
 
 步行時間以直線距離 ×1.25、每分鐘 80 公尺估算。資料來源：© OpenStreetMap 貢獻者（Overpass API）；行政區界線來自 taiwan-atlas（內政部國土測繪中心）。
+
+## 測試
+
+每次修改都要先跑測試：
+
+```bash
+tests/run.sh
+```
+
+用 iPhone 尺寸的無頭 Chrome 開啟頁面，以模擬資料代替 OpenStreetMap，逐項檢查載入、計算、排名、框選、錯誤重試等功能。
