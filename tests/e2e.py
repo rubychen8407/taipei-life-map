@@ -139,6 +139,8 @@ async def baked_suite(b, errs):
     check(await ev("state.scope===''&&state.res.total===CELLS.length"), '預設直接分析全臺北市')
     check(await ev("!!heat&&map.hasLayer(heat)"), '地圖上有符合範圍的色塊圖層')
     check(await ev("densityColor(0.2)!==densityColor(2.5) && densityColor(2.5)!==densityColor(3.2)"), 'Heatmap 依跨類別累積密度使用連續分級色帶')
+    check(await ev("new Set([0.1,0.18,0.35,0.7,1.2,2.2,4.5].map(densityColor)).size===7"), 'Heatmap 低至高密度區間都有清楚不同的顏色')
+    check(await ev("(()=>{const z=map.getZoom();map.setZoom(17);const a=heatOpacity();map.setZoom(z);return a>=0.8})()"), 'Heatmap 放大到街道層級仍維持可辨識透明度')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
     check(await ev("document.querySelectorAll('#chips .chip').length") == 6 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 6 個、預設選 3 個')
