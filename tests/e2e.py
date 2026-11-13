@@ -254,6 +254,8 @@ async def baked_suite(b, errs):
     # 10. 全部取消
     for i in await ev("[...state.active]"):
         await page.click(f'.chip[data-id={i}]')
+        if await ev(`state.active.has('${i}')`):
+            await page.click(f'.chip[data-id={i}]')
     check('選擇你在意的設施' in await ev("document.getElementById('head').innerText") and not await ev("!!heat"), '全部取消時提示選擇類別')
     await page.close()
 
