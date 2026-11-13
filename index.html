@@ -15,7 +15,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFa
 button{font:inherit;color:inherit;cursor:pointer}
 #map{position:absolute;inset:0;background:#e8eaed}
 .leaflet-control-attribution{font-size:9px;opacity:.75}
-#top{position:absolute;z-index:1000;top:10px;left:10px;right:10px;pointer-events:none}
+#top{position:absolute;z-index:1000;top:10px;left:10px;right:10px;pointer-events:none;max-height:48vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}#top::-webkit-scrollbar{display:none}
 #top>*{pointer-events:auto}
 .search{position:relative;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;background:#fff;border-radius:24px;box-shadow:var(--shadow);font-size:16px;font-weight:600}
 .search .caret{margin-left:auto;color:var(--sub)}
@@ -86,7 +86,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .facility-marker svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .facility-marker .facility-name{position:absolute;left:50%;top:35px;transform:translateX(-50%);max-width:150px;padding:3px 7px;border-radius:7px;background:#fff;color:#202124;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(60,64,67,.25);pointer-events:auto;cursor:pointer}
  .detail-category{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-bottom:5px;padding:3px 8px;border-radius:12px;background:#f1f3f4;color:#5f6368;font-size:12px;font-weight:600}.detail-category svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
- .distance-settings{display:grid;gap:8px;margin:12px 0;padding:12px;background:#f8f9fa;border-radius:12px}.distance-title{font-size:13px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:34px}.distance-row .swatch{width:10px;height:10px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:13px;font-weight:600}.distance-row select{height:32px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
+ .distance-settings{display:grid;gap:8px;margin:8px 0 0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18)}.distance-title{font-size:12px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:32px}.distance-row .swatch{width:9px;height:9px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:12px;font-weight:600}.distance-row select{height:30px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px}.category-settings{max-height:38vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.category-settings::-webkit-scrollbar{display:none}.distance-title{font-size:13px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:34px}.distance-row .swatch{width:10px;height:10px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:13px;font-weight:600}.distance-row select{height:32px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
 .me{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.2)}
 .tr-end{background:#fff;border:2px solid #333;border-radius:6px;font-size:11px;font-weight:700;padding:0 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);width:auto!important;height:auto!important}
 .tr-origin{border-radius:50%;background:#ea4335;border:3px solid #fff;box-shadow:0 0 0 5px rgba(234,67,53,.3);color:#fff;font-weight:700;font-size:12px;text-align:center;line-height:20px}
@@ -107,6 +107,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 <div id="top">
   <div class="search"><span>📍</span><span id="scopeName">全臺北市</span><span class="caret">▾</span><select id="scope" aria-label="選擇範圍"></select></div>
   <div id="chips"></div>
+  <div id="categorySettings" class="category-settings"></div>
   <div id="drawbar"><div>在地圖上點 <b>2 個點</b>拉出矩形，或點 <b>3 個點以上</b>圍成範圍。</div>
     <div class="btns"><button class="btn primary" id="fin">完成</button><button class="btn" id="undo">復原</button><button class="btn" id="cancel">取消</button></div></div>
 </div>
@@ -209,8 +210,9 @@ function fit(b,o={}){map.fitBounds(b,Object.assign(padding(),o));}
 
 LAYERS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.dataset.id=l.id;b.setAttribute('aria-pressed',state.active.has(l.id));
   b.innerHTML=`<span>${l.icon}</span>${l.name}<span class="ck">✓</span>`;
-  b.onclick=()=>{const on=!state.active.has(l.id);on?state.active.add(l.id):state.active.delete(l.id);b.setAttribute('aria-pressed',on);if(state.view.type!=='list')closeDetail(true);if(isMob()&&snap!=='half')setSheet('half');run();};
+  b.onclick=()=>{const on=!state.active.has(l.id);on?state.active.add(l.id):state.active.delete(l.id);b.setAttribute('aria-pressed',on);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();if(isMob()&&snap!=='half')setSheet('half');run();};
   $('chips').appendChild(b);});
+renderCategorySettings();
 function fillScope(){$('scope').innerHTML='<option value="">全臺北市</option>'+DISTRICTS.map((d,i)=>`<option value="${i}">${d.name}</option>`).join('')+(state.custom?'<option value="custom">自選範圍</option>':'')+'<option value="draw">✏️ 自己框選範圍…</option>';$('scope').value=state.scope;$('scopeName').textContent=scopeName();}
 $('scope').onchange=()=>{const v=$('scope').value;if(v==='draw'){$('scope').value=state.scope;startDraw();return;}setScope(v);};
 
@@ -226,8 +228,8 @@ function drawScope(doFit){scopeLayer.clearLayers();labelLayer.clearLayers();cons
 function syncLabels(){const show=state.scope===''&&map.getZoom()<=13.5&&!state.transit;if(show&&!map.hasLayer(labelLayer))labelLayer.addTo(map);if(!show&&map.hasLayer(labelLayer))map.removeLayer(labelLayer);}
 function setScope(v){closeTransit();state.scope=v;state.view={type:'list'};selLayer.clearLayers();fillScope();
   if(isMob())setSheet('half');drawScope(true);run();}
-function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
-function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('chips').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('half');}
+function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('categorySettings').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
+function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('chips').style.display='';$('categorySettings').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('half');}
 function drawRing(){const p=state.drawPts;if(p.length===2){const[a,b]=p;return[[a[0],a[1]],[a[0],b[1]],[b[0],b[1]],[b[0],a[1]]];}return p;}
 function previewDraw(){drawLayer.clearLayers();state.drawPts.forEach(p=>L.circleMarker(p,{radius:6,color:'#d81b60',fillColor:'#fff',fillOpacity:1,weight:3,interactive:false}).addTo(drawLayer));
   if(state.drawPts.length>=2)L.polygon(drawRing(),{color:'#d81b60',weight:2,dashArray:'6 6',fillOpacity:.1,interactive:false}).addTo(drawLayer);}
@@ -250,12 +252,14 @@ async function loadBaked(){ // 預先下載好的全市資料（GitHub Actions �
 async function overpass(q){let err;for(const url of OVERPASS){try{
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:q}).toString()});
     if(!r.ok)throw new Error(url.split('/')[2]+' HTTP '+r.status);return await r.json();}catch(e){err=e;}}throw err;}
+function sportFacilityName(t){const sport=String(t.sport||'').split(';')[0].trim().toLowerCase(),names={basketball:'籃球場',soccer:'足球場',football:'足球場',tennis:'網球場',badminton:'羽球場',volleyball:'排球場',baseball:'棒球場',swimming:'游泳設施',running:'跑步設施',athletics:'田徑場',table_tennis:'桌球場'};if(names[sport])return names[sport];return ({sports_centre:'體育中心',pitch:'運動場',stadium:'體育場',track:'運動跑道',swimming_pool:'游泳池',fitness_centre:'健身中心'})[t.leisure]||'運動設施';}
+function facilityTitle(f,l){return f.name||(l.id==='sport'?'未命名運動設施':l.name);}
 function toFeature(e){const t=e.tags||{};let polys=null,center=null;
   if(e.type==='node')center=[e.lat,e.lon];
   else{if(e.type==='way'&&e.geometry)polys=[e.geometry.map(p=>[p.lat,p.lon])];
     if(e.type==='relation'&&e.members)polys=e.members.filter(m=>m.geometry&&m.role!=='inner').map(m=>m.geometry.map(p=>[p.lat,p.lon]));
     if(e.center)center=[e.center.lat,e.center.lon];else if(e.bounds)center=[(e.bounds.minlat+e.bounds.maxlat)/2,(e.bounds.minlon+e.bounds.maxlon)/2];}
-  return center?{name:t['name:zh']||t.name||'',center,polys}:null;}
+  return center?{name:t['name:zh']||t.name||t['name:en']||(t.leisure&&/^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$/.test(t.leisure)?sportFacilityName(t):''),center,polys}:null;}
 async function ensureLive(ids){ // 備援：沒有預建資料時，即時查 Overpass（只查目前範圍＋周邊 1.4 公里）
   const key=scopeKey(),S=state.store[key]||(state.store[key]={});const miss=ids.filter(id=>!S[id]);if(!miss.length)return;
   const [s,w,n,e]=bufferedBBox(),Ls=miss.map(id=>LAYER[id]),stm=ls=>ls.map(l=>l.q.split(';').map(x=>x+';').join('')).join('');
@@ -329,8 +333,9 @@ map.on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}if(state.transi
 
 // ---------- sheet rendering ----------
 function actNames(){return state.res.act.map(id=>LAYER[id].name).join('、');}
-function distanceSettingsHTML(){return `<div class="distance-settings"><div class="distance-title">各類別步行距離（可個別設定）</div>${state.res.act.map(id=>{const l=LAYER[id],m=state.minsByLayer[id]||10;return `<label class="distance-row"><span class="swatch" style="background:${l.color}"></span><span class="name">${l.name}</span><select data-distance="${id}" aria-label="${l.name}步行距離">${MINS.map(v=>`<option value="${v}" ${v===m?'selected':''}>${v} 分鐘</option>`).join('')}</select></label>`;}).join('')}</div>`;}
-function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}render();}
+function distanceSettingsHTML(){const ids=LAYERS.filter(l=>state.active.has(l.id)).map(l=>l.id);if(!ids.length)return '';return `<div class="distance-settings"><div class="distance-title">已選類別的步行距離</div>${ids.map(id=>{const l=LAYER[id],m=state.minsByLayer[id]||10;return `<label class="distance-row"><span class="swatch" style="background:${l.color}"></span><span class="name">${l.name}</span><select data-distance="${id}" aria-label="${l.name}步行距離">${MINS.map(v=>`<option value="${v}" ${v===m?'selected':''}>${v} 分鐘</option>`).join('')}</select></label>`;}).join('')}</div>`;}
+function renderCategorySettings(){const el=$('categorySettings');if(!el)return;el.innerHTML=distanceSettingsHTML();el.querySelectorAll('[data-distance]').forEach(s=>s.onchange=()=>setLayerMins(s.dataset.distance,+s.value));}
+function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
 function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
   const H=$('head'),Bd=$('body'),R=state.res;
@@ -343,14 +348,13 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
   H.innerHTML=`<h1>分類步行距離分析</h1><div class="sub">${scopeName()}有 <b>${pct.toFixed(0)}%</b> 的地方符合所有已選類別的個別距離</div>`;
-  let h=distanceSettingsHTML()+`<div class="legend">${R.act.map(id=>{const l=LAYER[id];return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 7px 2px 0"><i style="width:9px;height:9px;border-radius:50%;background:${l.color}"></i>${l.name}</span>`;}).join('')}</div>`;
+  let h=`<div class="legend">${R.act.map(id=>{const l=LAYER[id];return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 7px 2px 0"><i style="width:9px;height:9px;border-radius:50%;background:${l.color}"></i>${l.name}</span>`;}).join('')}</div>`;
   if(state.zones.length){h+='<h2>推薦生活圈</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
   else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(state.scope===''){const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).sort((a,b)=>b.p-a.p);
     h+='<h2>各區比較</h2>'+rk.map(r=>`<div class="drow" data-d="${r.i}"><span class="n">${r.n}</span><span class="b"><i style="width:${r.p}%"></i></span><span class="p">${r.p.toFixed(0)}%</span></div>`).join('');}
   else h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
   Bd.innerHTML=h+foot();
-  Bd.querySelectorAll('[data-distance]').forEach(s=>s.onchange=()=>setLayerMins(s.dataset.distance,+s.value));
   Bd.querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>openZone(+el.dataset.z));
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
   if($('toCity'))$('toCity').onclick=()=>setScope('');}
@@ -385,7 +389,7 @@ function chainWays(ways){const segs=[];let cur=null;const eq=(a,b)=>a&&b&&Math.a
     else{segs.push(cur);cur=w.slice();}}
   if(cur)segs.push(cur);return segs;}
 let ROUTES=null,ROUTE_DATA=null,routeLabelsLoading=false,routeLabelsAttempted=false;const FACILITY_LABEL_CACHE=new WeakMap();function bakedRoutes(){if(!ROUTES)ROUTES=getJSON('data/routes.json').then(d=>{ROUTE_DATA=d&&d.routes&&d.routes.length?d:null;return ROUTE_DATA;}).catch(()=>null);return ROUTES;}
-function facilityLabel(f,l){if(l.id!=='bus'&&l.id!=='mrt')return f.name||l.name;if(!ROUTE_DATA)return '';const cached=FACILITY_LABEL_CACHE.get(f);if(cached)return cached;const routes=ROUTE_DATA&&ROUTE_DATA.routes||[],radius=l.id==='bus'?65:180,seen=new Set(),names=[];for(const r of routes){if((l.id==='bus')!==(r.r==='bus'))continue;if(!(r.stops||[]).some(p=>md(p,f.center)<=radius))continue;const name=l.id==='bus'?(r.ref||r.name):(r.name||r.ref);if(name&&!seen.has(name)){seen.add(name);names.push(name);}}const label=names.slice(0,4).join(' · ')+(names.length>4?' +'+(names.length-4):'');FACILITY_LABEL_CACHE.set(f,label);return label;}
+function facilityLabel(f,l){if(l.id!=='bus'&&l.id!=='mrt')return facilityTitle(f,l);if(!ROUTE_DATA)return '';const cached=FACILITY_LABEL_CACHE.get(f);if(cached)return cached;const routes=ROUTE_DATA&&ROUTE_DATA.routes||[],radius=l.id==='bus'?65:180,seen=new Set(),names=[];for(const r of routes){if((l.id==='bus')!==(r.r==='bus'))continue;if(!(r.stops||[]).some(p=>md(p,f.center)<=radius))continue;const name=l.id==='bus'?(r.ref||r.name):(r.name||r.ref);if(name&&!seen.has(name)){seen.add(name);names.push(name);}}const label=names.slice(0,4).join(' · ')+(names.length>4?' +'+(names.length-4):'');FACILITY_LABEL_CACHE.set(f,label);return label;}
 function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();}
 function renderPlace(){const v=state.view,l=v.l,T=state.transit;headDetail(v.f.name||l.name,T&&!T.loading?`${T.n} 條路線從這裡出發`:'點選地圖上的設施查看周邊資訊',{name:l.name,color:l.color,icon:l.icon});
   let h='';if(!T||T.loading)h='<div class="skel" style="width:60%"></div><div class="skel"></div>';
@@ -393,7 +397,7 @@ function renderPlace(){const v=state.view,l=v.l,T=state.transit;headDetail(v.f.n
   else h='<div class="freq">'+FREQ.map(x=>`<span><i style="height:${x.w}px;background:${x.c}"></i>${x.t}</span>`).join('')+'<span><i style="height:0;border-top:3px dashed #78909c"></i>沒有班距資料</span></div><div class="note">地圖上的線是從這一站上車後<b>實際會行駛的路線</b>：線越粗越綠，班次越密；箭頭是行駛方向，圓點是停靠站，線尾的標籤是路線編號。</div>';
   $('body').innerHTML=h+foot();}
 async function openPlace(f,l){closeTransit();selLayer.clearLayers();
-  if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:f.name||l.name,sub:'從這個設施位置出發的步行生活圈',category:{name:l.name,color:l.color,icon:l.icon}});return;}
+  if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:facilityTitle(f,l),sub:'從這個設施位置出發的步行生活圈',category:{name:l.name,color:l.color,icon:l.icon}});return;}
   const [la,lo]=f.center,origin=[la,lo],R=l.id==='mrt'?300:40;state.transit={f,loading:true,n:0};state.view={type:'place',f,l};
   if(heat){map.removeLayer(heat);heat=null;}pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();busy(true);
   let rels;const Bk=await bakedRoutes();
