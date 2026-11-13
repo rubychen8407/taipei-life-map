@@ -59,6 +59,12 @@ summary{font-weight:700;cursor:pointer}
     <div id="hint" class="hint" style="display:none"></div>
     <div id="status"></div>
     <div id="summary"></div>
+    <details id="bestBox" open>
+      <summary>🎯 找最佳區域（勾選項目都能走得到）</summary>
+      <div class="row" style="align-items:center">步行 <input id="mins" type="range" min="3" max="20" value="10" style="flex:1"> <b id="minsV">10</b> 分鐘內</div>
+      <div class="row"><button class="primary" id="calcBest">計算最佳區域</button><button id="clearBest">清除</button></div>
+      <div id="bestOut" style="font-size:12px;color:#555">會以上方「已勾選」的類別計算：範圍內每一小格，到每一類最近一處的步行時間都在設定分鐘內，就標成綠色。</div>
+    </details>
     <div id="info"></div>
     <details id="transit" open>
       <summary>🚌🚇 大眾運輸路線與行駛方向</summary>
@@ -90,7 +96,7 @@ L.control.scale({imperial:false,position:'bottomright'}).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap 貢獻者'}).addTo(map);
 
 const $ = id => document.getElementById(id);
-const state = {region:null, active:new Set(['park','school','mrt']), cache:{}, groups:{}, feats:{}, start:null, mode:null, routes:[], custom:null};
+const state = {region:null, active:new Set(['park','school','mrt']), cache:{}, groups:{}, feats:{}, all:{}, start:null, mode:null, routes:[], custom:null};
 let boundaryLayer=null, startMarker=null;
 const routeLayer=L.layerGroup().addTo(map), transitLayer=L.layerGroup().addTo(map);
 const measure={pts:[],line:null,marks:L.layerGroup().addTo(map)};
@@ -197,17 +203,17 @@ function typeLabel(t){const k=t.leisure||t.landuse||t.natural||t.amenity||t.high
 function regionKey(){return state.region.name+'|'+JSON.stringify(regionBBox(state.region));}
 
 async function loadLayer(id){const key=regionKey()+'|'+id;if(state.cache[key])return state.cache[key];
-  const L0=LAYERS.find(l=>l.id===id);const [s,w,n,e]=regionBBox(state.region);
-  const q=`[out:json][timeout:90][bbox:${s},${w},${n},${e}];(${L0.q.split(';').map(x=>x+';').join('')});out geom;`;
-  const j=await overpass(q);const seen=new Set();const feats=[];
+  const L0=LAYERS.find(l=>l.id===id);const [s,w,n,e]=regionBBox(state.region);const P=0.013;
+  const q=`[out:json][timeout:120][bbox:${s-P},${w-P},${n+P},${e+P}];(${L0.q.split(';').map(x=>x+';').join('')});out geom;`;
+  const j=await overpass(q);const seen=new Set();const feats=[],all=[];
   for(const el of j.elements){const t=el.tags||{};const sh=elementShape(el);if(!sh.center)continue;
     let inside=inRegion(sh.center[0],sh.center[1]);
     if(!inside&&sh.polys)inside=sh.polys.some(p=>p.some((pt,i)=>i%5===0&&inRegion(pt[0],pt[1])));
-    if(!inside)continue;
     const name=t['name:zh']||t.name||'';
     if(id==='mrt'){const k=name.replace(/站$/,'');if(!name||seen.has(k))continue;seen.add(k);}
-    feats.push({id:el.type+'/'+el.id,osmType:el.type,osmId:el.id,name,tags:t,center:sh.center,polys:sh.polys,type:typeLabel(t)});}
-  state.cache[key]=feats;return feats;}
+    const f={id:el.type+'/'+el.id,osmType:el.type,osmId:el.id,name,tags:t,center:sh.center,polys:sh.polys,type:typeLabel(t)};
+    all.push(f);if(inside)feats.push(f);}
+  return state.cache[key]={feats,all};}
 
 function drawLayer(id,feats){const g=state.groups[id];g.clearLayers();const L0=LAYERS.find(l=>l.id===id);
   for(const f of feats){let lyr;const pt=id==='bus'||id==='mrt';
@@ -243,11 +249,11 @@ window.walkRoute=walkRoute;
 
 async function refreshLayer(id){const g=state.groups[id];
   if(!state.active.has(id)){map.removeLayer(g);renderInfo();return;}
-  try{status(`載入${LAYERS.find(l=>l.id===id).name}…`);state.feats[id]=await loadLayer(id);drawLayer(id,state.feats[id]);status('');}
+  try{status(`載入${LAYERS.find(l=>l.id===id).name}…`);const r=await loadLayer(id);state.feats[id]=r.feats;state.all[id]=r.all;drawLayer(id,state.feats[id]);status('');}
   catch(e){status('資料載入失敗（OpenStreetMap 伺服器忙碌，稍後再勾一次）：'+e.message);}
   renderInfo();}
 
-async function applyRegion(r){state.region=r;state.feats={};routeLayer.clearLayers();transitLayer.clearLayers();
+async function applyRegion(r){state.region=r;state.feats={};state.all={};clearBest();routeLayer.clearLayers();transitLayer.clearLayers();
   Object.values(state.groups).forEach(g=>{g.clearLayers();map.removeLayer(g);});LAYERS.forEach(l=>$('n-'+l.id).textContent='');
   if(boundaryLayer)map.removeLayer(boundaryLayer);
   const polys=polysOf(r).map(p=>p.map(ring=>ring.map(([x,y])=>[y,x])));
@@ -271,13 +277,71 @@ function renderInfo(){
   const box=$('info');
   if(!state.start){box.innerHTML='<div class="hint">💡 搜尋地址或「點地圖設起點」，就會列出最近的公園、學校、捷運站、公車站等與距離。</div>';return;}
   let html='';
-  for(const l of LAYERS){if(!state.active.has(l.id)||!state.feats[l.id])continue;
-    const arr=state.feats[l.id].map(f=>({f,d:hav(state.start,f.center)})).sort((a,b)=>a.d-b.d).slice(0,5);
+  for(const l of LAYERS){if(!state.active.has(l.id)||!(state.all[l.id]||state.feats[l.id]))continue;
+    const arr=(state.all[l.id]||state.feats[l.id]).map(f=>({f,d:hav(state.start,f.center)})).sort((a,b)=>a.d-b.d).slice(0,5);
     if(!arr.length)continue;
     html+=`<h4 style="color:${l.color}">${l.name}・最近 ${arr.length} 個</h4>`;
-    arr.forEach(x=>{html+=`<div class="item" data-l="${l.id}" data-k="${state.feats[l.id].indexOf(x.f)}"><span>${x.f.name||x.f.type||'（未命名）'}</span><span class="d">${fmt(x.d)}</span></div>`;});}
+    arr.forEach(x=>{html+=`<div class="item" data-l="${l.id}" data-k="${(state.all[l.id]||state.feats[l.id]).indexOf(x.f)}"><span>${x.f.name||x.f.type||'（未命名）'}</span><span class="d">${fmt(x.d)}</span></div>`;});}
   box.innerHTML=html?'<div style="font-size:12px;color:#888;margin-top:6px">直線距離；點項目看實際步行路線</div>'+html:'<div class="hint">勾選上方圖層後會列出最近地點。</div>';
-  box.querySelectorAll('.item').forEach(el=>el.onclick=()=>{const f=state.feats[el.dataset.l][+el.dataset.k];walkRoute(f.center[0],f.center[1]);});}
+  box.querySelectorAll('.item').forEach(el=>el.onclick=()=>{const f=(state.all[el.dataset.l]||state.feats[el.dataset.l])[+el.dataset.k];walkRoute(f.center[0],f.center[1]);});}
+
+// ---------- best area analysis ----------
+map.createPane('analysis');map.getPane('analysis').style.zIndex=350;
+const bestLayer=L.layerGroup().addTo(map);const bestRenderer=L.canvas({pane:'analysis'});
+const DETOUR=1.25, SPEED=80; // 實際步行路徑約為直線 1.25 倍；每分鐘約 80 公尺
+$('mins').oninput=()=>{$('minsV').textContent=$('mins').value;};
+$('calcBest').onclick=calcBest;$('clearBest').onclick=clearBest;
+function clearBest(){bestLayer.clearLayers();$('bestOut').innerHTML='會以上方「已勾選」的類別計算：範圍內每一小格，到每一類最近一處的步行時間都在設定分鐘內，就標成綠色。';}
+async function calcBest(){
+  const act=LAYERS.filter(l=>state.active.has(l.id));
+  if(!act.length){$('bestOut').textContent='請先勾選至少一個類別。';return;}
+  for(const l of act){if(!state.all[l.id]){await refreshLayer(l.id);if(!state.all[l.id]){$('bestOut').textContent=`${l.name}資料沒載入成功，請稍後再試。`;return;}}}
+  $('bestOut').textContent='計算中…';await new Promise(r=>setTimeout(r,30));
+  const mins=+$('mins').value, R=mins*SPEED/DETOUR; // 直線半徑（公尺）
+  const [S,W,N,E]=regionBBox(state.region);const lat0=(S+N)/2,kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
+  const X=lon=>(lon-W)*kx, Y=lat=>(lat-S)*ky;
+  // index each category
+  const idx={};
+  for(const l of act){const B=R,buckets=new Map(),polys=[];
+    state.all[l.id].forEach((f,fi)=>{const pts=[];
+      if(f.polys&&f.polys.length){f.polys.forEach(p=>{const st=Math.max(1,Math.floor(p.length/60));for(let i=0;i<p.length;i+=st)pts.push(p[i]);
+          if(p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]){let a=90,b=-90,c=180,d=-180;p.forEach(([la,lo])=>{a=Math.min(a,la);b=Math.max(b,la);c=Math.min(c,lo);d=Math.max(d,lo);});polys.push({fi,ring:p.map(([la,lo])=>[lo,la]),bb:[a,b,c,d]});}});}
+      pts.push(f.center);
+      pts.forEach(([la,lo])=>{const x=X(lo),y=Y(la),k=Math.floor(x/B)+','+Math.floor(y/B);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push([x,y,fi]);});});
+    idx[l.id]={B,buckets,polys};}
+  const area=regionArea(state.region);const cell=Math.max(60,Math.sqrt(area/3500));
+  const dLat=cell/ky,dLon=cell/kx;const cells=[];
+  for(let la=S+dLat/2;la<N;la+=dLat)for(let lo=W+dLon/2;lo<E;lo+=dLon){
+    if(!inRegion(la,lo))continue;const x=X(lo),y=Y(la);const res={};let ok=0,worst=0;
+    for(const l of act){const I=idx[l.id];let best=Infinity,bf=-1;
+      for(const p of I.polys){if(la>=p.bb[0]&&la<=p.bb[1]&&lo>=p.bb[2]&&lo<=p.bb[3]&&ringContains(p.ring,lo,la)){best=0;bf=p.fi;break;}}
+      if(best>0){const bx=Math.floor(x/I.B),by=Math.floor(y/I.B);
+        for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const arr=I.buckets.get((bx+i)+','+(by+j));if(!arr)continue;
+          for(const [px,py,fi] of arr){const d=Math.hypot(px-x,py-y);if(d<best){best=d;bf=fi;}}}}
+      const t=best*DETOUR/SPEED;res[l.id]={t,f:bf>=0?state.all[l.id][bf]:null};
+      if(t<=mins)ok++;worst=Math.max(worst,t);}
+    cells.push({la,lo,res,ok,worst});}
+  bestLayer.clearLayers();let good=0;const n=act.length;
+  for(const c of cells){let color=null,op=0;
+    if(c.ok===n){good++;color=c.worst<=mins*0.6?'#1b5e20':'#43a047';op=.5;}
+    else if(c.ok===n-1&&n>1){color='#ffb74d';op=.35;}
+    if(!color)continue;
+    const r=L.rectangle([[c.la-dLat/2,c.lo-dLon/2],[c.la+dLat/2,c.lo+dLon/2]],{renderer:bestRenderer,pane:'analysis',stroke:false,fillColor:color,fillOpacity:op});
+    r.on('click',ev=>{if(state.mode){return;}L.DomEvent.stopPropagation(ev);cellPopup(c,act,mins);});bestLayer.addLayer(r);}
+  const pct=cells.length?good/cells.length*100:0;
+  const top=cells.filter(c=>c.ok===n).sort((a,b)=>a.worst-b.worst)[0];
+  window._bestTop=top;
+  $('bestOut').innerHTML=`<b>${act.map(l=>l.name).join('、')}</b> 都在步行 ${mins} 分鐘內：約 <b>${(good*cell*cell/1e6).toFixed(2)} km²</b>（占範圍 ${pct.toFixed(1)}%）<br>
+   <span style="color:#1b5e20">■</span> 深綠：全部都很近（≤${Math.round(mins*0.6)} 分）　<span style="color:#43a047">■</span> 綠：全部符合　<span style="color:#ffb74d">■</span> 橘：只差一類<br>
+   ${top?`<button onclick="flyBest()">⭐ 跳到最佳點（最遠一類約 ${Math.ceil(top.worst)} 分）</button>`:'這個範圍沒有完全符合的地方，可以把分鐘數調大或少勾一類。'}<br>
+   <span style="color:#888">點色塊可看各類最近地點；時間是依直線距離 ×1.25 估算，設為起點後可算實際步行路線確認。</span>`;}
+function cellPopup(c,act,mins){let h='<div class="pop"><b>這一格的步行時間（估）</b>';
+  for(const l of act){const r=c.res[l.id];const t=r.t===Infinity?'超過':Math.max(1,Math.ceil(r.t))+' 分';
+    h+=`<br><span style="color:${l.color}">●</span> ${l.name}：${r.t<=mins?'✅':'❌'} ${t}${r.f&&r.f.name?'（'+r.f.name+'）':''}`;}
+  h+=`<br><button onclick="setStart(${c.la},${c.lo},'候選點');map.closePopup()">📍 設為起點看實際路線</button></div>`;
+  L.popup().setLatLng([c.la,c.lo]).setContent(h).openOn(map);}
+window.setStart=setStart;window.map=map;
+window.flyBest=()=>{const t=window._bestTop;if(!t)return;map.setView([t.la,t.lo],17);cellPopup(t,LAYERS.filter(l=>state.active.has(l.id)),+$('mins').value);};
 
 // ---------- transit routes ----------
 function routeKind(t){return t.route==='bus'?'bus':'rail';}
