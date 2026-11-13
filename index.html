@@ -212,7 +212,7 @@ function fit(b,o={}){map.fitBounds(b,Object.assign(padding(),o));}
 
 LAYERS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.dataset.id=l.id;b.setAttribute('aria-pressed',state.active.has(l.id));b.setAttribute('aria-expanded','false');
   b.innerHTML=`<span>${l.icon}</span>${l.name}<span class="mins" data-mins>${state.minsByLayer[l.id]}分</span><span class="ck">✓</span>`;
-  b.onclick=()=>{const on=!state.active.has(l.id);if(on)state.active.add(l.id);else state.active.delete(l.id);if(!on&&state.openDistanceLayer===l.id)state.openDistanceLayer=null;else if(on){state.openDistanceLayer=l.id;}if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();if(isMob()&&snap!=='half')setSheet('half');run();};
+  b.onclick=()=>{const selected=state.active.has(l.id),isOpen=state.openDistanceLayer===l.id;if(selected&&isOpen){state.active.delete(l.id);state.openDistanceLayer=null;}else{state.active.add(l.id);state.openDistanceLayer=l.id;}if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();if(isMob()&&snap!=='half')setSheet('half');run();};
   $('chips').appendChild(b);});
 renderCategorySettings();
 function fillScope(){$('scope').innerHTML='<option value="">全臺北市</option>'+DISTRICTS.map((d,i)=>`<option value="${i}">${d.name}</option>`).join('')+(state.custom?'<option value="custom">自選範圍</option>':'')+'<option value="draw">✏️ 自己框選範圍…</option>';$('scope').value=state.scope;$('scopeName').textContent=scopeName();}
