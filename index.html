@@ -228,8 +228,8 @@ function drawScope(doFit){scopeLayer.clearLayers();labelLayer.clearLayers();cons
 function syncLabels(){const show=state.scope===''&&map.getZoom()<=13.5&&!state.transit;if(show&&!map.hasLayer(labelLayer))labelLayer.addTo(map);if(!show&&map.hasLayer(labelLayer))map.removeLayer(labelLayer);}
 function setScope(v){closeTransit();state.scope=v;state.view={type:'list'};selLayer.clearLayers();fillScope();
   if(isMob())setSheet('half');drawScope(true);run();}
-function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
-function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('chips').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('half');}
+function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('categorySettings').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
+function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('chips').style.display='';$('categorySettings').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('half');}
 function drawRing(){const p=state.drawPts;if(p.length===2){const[a,b]=p;return[[a[0],a[1]],[a[0],b[1]],[b[0],b[1]],[b[0],a[1]]];}return p;}
 function previewDraw(){drawLayer.clearLayers();state.drawPts.forEach(p=>L.circleMarker(p,{radius:6,color:'#d81b60',fillColor:'#fff',fillOpacity:1,weight:3,interactive:false}).addTo(drawLayer));
   if(state.drawPts.length>=2)L.polygon(drawRing(),{color:'#d81b60',weight:2,dashArray:'6 6',fillOpacity:.1,interactive:false}).addTo(drawLayer);}
