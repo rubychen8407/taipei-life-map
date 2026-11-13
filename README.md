@@ -1,13 +1,12 @@
 # taipei-life-map
 taipei-life-map
 
-臺北市最佳生活區域：勾選需要的設施（公園、綠地、學校、運動場所、公車站、捷運站）與步行分鐘數，自動找出全部都能在時間內走到的區域，並列出推薦區域排名與各區符合比例。
+臺北生活圈地圖：選你在意的設施（公園、綠地、學校、運動場所、公車站、捷運站）和步行時間，地圖直接標出「全部都走得到」的範圍，並列出推薦生活圈與各區比較。點地圖任一位置看該點到各類設施的步行時間；點公車站或捷運站，沿實際行駛路線畫出上車後會到的地方與班次密度。
 
 線上版：https://rubychen8407.github.io/taipei-life-map/
 
-`data/*.json` 由 GitHub Actions 每週一自動執行 `scripts/build_data.py`，從 OpenStreetMap 預先下載各區設施與公車／捷運路線，app 會直接讀取、載入快；沒有時才即時查詢 Overpass。點地圖上的公車站或捷運站，會沿實際行駛路線畫出可到達的方向，線的粗細與顏色代表班距（OSM `interval` 標籤）。
-
-步行時間以直線距離 ×1.25、每分鐘 80 公尺估算。資料來源：© OpenStreetMap 貢獻者（Overpass API）；行政區界線來自 taiwan-atlas（內政部國土測繪中心）。
+- 資料：GitHub Actions 每週一執行 `scripts/build_data.py`，從 OpenStreetMap 預先下載到 `data/`（`city.json` 全市設施、`routes.json` 路線、各區檔）。app 開啟時只讀 `city.json`；沒有預建資料時才即時查 Overpass。
+- 步行時間以直線距離 ×1.25、每分鐘 80 公尺估算。行政區界線來自 taiwan-atlas（內政部國土測繪中心）。© OpenStreetMap 貢獻者。
 
 ## 測試
 

@@ -83,6 +83,30 @@ def buffered(bb):
     return [bb[0] - pl, bb[1] - po, bb[2] + pl, bb[3] + po]
 
 
+def stitch(ways):
+    """把 multipolygon 的 outer ways 依端點接成封閉環（接不起來的原樣保留）"""
+    eq = lambda a, b: abs(a[0] - b[0]) < 1e-7 and abs(a[1] - b[1]) < 1e-7
+    ways = [list(w) for w in ways if len(w) > 1]; out = []
+    while ways:
+        cur = ways.pop(0); grew = True
+        while grew and not eq(cur[0], cur[-1]):
+            grew = False
+            for i, w in enumerate(ways):
+                if eq(cur[-1], w[0]):
+                    cur += w[1:]
+                elif eq(cur[-1], w[-1]):
+                    cur += w[::-1][1:]
+                elif eq(cur[0], w[-1]):
+                    cur = w[:-1] + cur
+                elif eq(cur[0], w[0]):
+                    cur = w[::-1][:-1] + cur
+                else:
+                    continue
+                ways.pop(i); grew = True; break
+        out.append(cur)
+    return out
+
+
 def feature(e, geom):
     t = e.get('tags', {})
     name = t.get('name:zh') or t.get('name') or ''
@@ -100,8 +124,8 @@ def feature(e, geom):
         if e['type'] == 'way' and e.get('geometry'):
             polys = [[[p['lat'], p['lon']] for p in e['geometry']]]
         elif e['type'] == 'relation':
-            polys = [[[p['lat'], p['lon']] for p in m['geometry']] for m in e.get('members', []) if m.get('geometry') and m.get('role') != 'inner']
-        polys = [[[r5(a), r5(b)] for a, b in simplify(p, 3)] for p in polys if len(p) > 1]
+            polys = stitch([[[p['lat'], p['lon']] for p in m['geometry']] for m in e.get('members', []) if m.get('geometry') and m.get('role') != 'inner'])
+        polys = [[[r5(a), r5(b)] for a, b in simplify(p, 4)] for p in polys if len(p) > 1]
         if polys:
             f['p'] = polys
     return f
@@ -180,6 +204,27 @@ def build_routes(bb, fetch):
     return out
 
 
+def merge_city(out_dir, built=None):
+    """把 12 區檔案合併成一個去重複的 city.json（app 開啟時只讀這一個檔）"""
+    layers = {l[0]: {} for l in LAYERS}; dates = []
+    for name, _ in districts():
+        p = os.path.join(out_dir, name + '.json')
+        if not os.path.exists(p):
+            return None
+        d = json.load(open(p, encoding='utf-8')); dates.append(d.get('built', ''))
+        for lid in layers:
+            for f in d['layers'].get(lid, []):
+                layers[lid].setdefault(f['id'], f)
+    seen = set(); mrt = []
+    for f in layers['mrt'].values():   # 跨區再去一次重複站名
+        k = re.sub('站$', '', f['n'])
+        if k not in seen:
+            seen.add(k); mrt.append(f)
+    city = {'built': built or min(dates), 'layers': {lid: (mrt if lid == 'mrt' else list(v.values())) for lid, v in layers.items()}}
+    json.dump(city, open(os.path.join(out_dir, 'city.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    return {k: len(v) for k, v in city['layers'].items()}
+
+
 def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
     os.makedirs(out_dir, exist_ok=True)
     ds = districts(); built = datetime.now(timezone.utc).strftime('%Y-%m-%d')
@@ -201,11 +246,14 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
         index['routes'] = len(rs)
     except Exception as e:
         print('  routes FAILED', e, file=sys.stderr)
+    index['city'] = merge_city(out_dir, built)
     json.dump(index, open(os.path.join(out_dir, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print(json.dumps(index, ensure_ascii=False))
     return index
 
 
 if __name__ == '__main__':
+    if sys.argv[1:] == ['merge']:
+        print(merge_city(os.path.join(ROOT, 'data'))); sys.exit(0)
     idx = build()
     sys.exit(0 if idx['districts'] else 1)

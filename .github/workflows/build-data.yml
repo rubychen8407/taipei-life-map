@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: '17 19 * * 0'   # 每週一 03:17（台北時間）
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths: ['scripts/build_data.py', '.github/workflows/build-data.yml', 'taipei_districts.geojson']
 permissions:
   contents: write
 concurrency: build-data

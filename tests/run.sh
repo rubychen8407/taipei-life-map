@@ -4,4 +4,4 @@ set -e
 cd "$(dirname "$0")"
 [ -d node_modules/leaflet-polylinedecorator ] || npm install --silent
 [ -f mock.json ] || python3 make_mock.py
-python3 run_e2e.py
+python3 e2e.py
