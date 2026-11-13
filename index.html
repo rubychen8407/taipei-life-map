@@ -85,6 +85,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .facility-marker .facility-bubble{width:32px;height:32px;border:2px solid #fff;border-radius:50%;display:grid;place-items:center;box-shadow:0 1px 4px rgba(60,64,67,.38);color:#fff}
 .facility-marker svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .facility-marker .facility-name{position:absolute;left:50%;top:35px;transform:translateX(-50%);max-width:150px;padding:3px 7px;border-radius:7px;background:#fff;color:#202124;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(60,64,67,.25);pointer-events:none}
+ .detail-category{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-bottom:5px;padding:3px 8px;border-radius:12px;background:#f1f3f4;color:#5f6368;font-size:12px;font-weight:600}.detail-category svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .me{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.2)}
 .tr-end{background:#fff;border:2px solid #333;border-radius:6px;font-size:11px;font-weight:700;padding:0 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);width:auto!important;height:auto!important}
 .tr-origin{border-radius:50%;background:#ea4335;border:3px solid #fff;box-shadow:0 0 0 5px rgba(234,67,53,.3);color:#fff;font-weight:700;font-size:12px;text-align:center;line-height:20px}
@@ -352,10 +353,10 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   Bd.querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>openZone(+el.dataset.z));
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
   if($('toCity'))$('toCity').onclick=()=>setScope('');}
-function headDetail(title,sub){$('head').innerHTML=`<h1><button class="back" id="back" aria-label="返回">‹</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span><button class="x" id="close" aria-label="關閉">✕</button></h1><div class="sub">${esc(sub)}</div>`;
+function headDetail(title,sub,category){const cat=category?`<div class="detail-category" style="color:${category.color||'#5f6368'}">${category.icon||''}<span>${esc(category.name)}</span></div>`:'';$('head').innerHTML=`${cat}<h1><button class="back" id="back" aria-label="返回">‹</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span><button class="x" id="close" aria-label="關閉">✕</button></h1><div class="sub">${esc(sub)}</div>`;
   $('back').onclick=$('close').onclick=()=>closeDetail();}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
-  headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施');
+  headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
   let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部都在 '+R.mins+' 分鐘內':'✕ 有 '+(n-R.okc[k])+' 類超過 '+R.mins+' 分鐘'}</div>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k]),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.mins;
     h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'20 分以上':'步行 '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
@@ -383,13 +384,13 @@ function chainWays(ways){const segs=[];let cur=null;const eq=(a,b)=>a&&b&&Math.a
   if(cur)segs.push(cur);return segs;}
 let ROUTES=null;function bakedRoutes(){if(!ROUTES)ROUTES=getJSON('data/routes.json').then(d=>d&&d.routes&&d.routes.length?d:null).catch(()=>null);return ROUTES;}
 function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();}
-function renderPlace(){const v=state.view,l=v.l,T=state.transit;headDetail(`${l.icon} ${v.f.name||l.name}`,l.name+(T&&!T.loading?`・${T.n} 條路線從這裡出發`:''));
+function renderPlace(){const v=state.view,l=v.l,T=state.transit;headDetail(v.f.name||l.name,T&&!T.loading?`${T.n} 條路線從這裡出發`:'點選地圖上的設施查看周邊資訊',{name:l.name,color:l.color,icon:l.icon});
   let h='';if(!T||T.loading)h='<div class="skel" style="width:60%"></div><div class="skel"></div>';
   else if(!T.n)h='<div class="note">目前的資料裡沒有經過這一站的路線。</div>';
   else h='<div class="freq">'+FREQ.map(x=>`<span><i style="height:${x.w}px;background:${x.c}"></i>${x.t}</span>`).join('')+'<span><i style="height:0;border-top:3px dashed #78909c"></i>沒有班距資料</span></div><div class="note">地圖上的線是從這一站上車後<b>實際會行駛的路線</b>：線越粗越綠，班次越密；箭頭是行駛方向，圓點是停靠站，線尾的標籤是路線編號。</div>';
   $('body').innerHTML=h+foot();}
 async function openPlace(f,l){closeTransit();selLayer.clearLayers();
-  if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:`${l.icon} ${f.name||l.name}`,sub:l.name+'・從這裡走到最近的每一類設施'});return;}
+  if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:f.name||l.name,sub:'從這個設施位置出發的步行生活圈',category:{name:l.name,color:l.color,icon:l.icon}});return;}
   const [la,lo]=f.center,origin=[la,lo],R=l.id==='mrt'?300:40;state.transit={f,loading:true,n:0};state.view={type:'place',f,l};
   if(heat){map.removeLayer(heat);heat=null;}pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();busy(true);
   let rels;const Bk=await bakedRoutes();
