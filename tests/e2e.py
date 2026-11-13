@@ -265,8 +265,10 @@ async def baked_suite(b, errs):
 
     # 10b. 使用者自訂生活圈：最多三個中心、獨立分析、共用步行時間與路網
     await page.click('.life-chip')
-    await ev("map.fire('click',{latlng:L.latLng(25.0335,121.5436)})")
+    check(await ev("document.body.classList.contains('life-mode') && getComputedStyle(document.querySelector('.life-chip')).display==='flex' && parseFloat(getComputedStyle(document.getElementById('lifePanel')).maxHeight)>500"), '生活圈模式有獨立版面高度，設定卡片可捲動且按鈕樣式完整')
+    await ev("handleLifeMapPoint(L.latLng(25.0335,121.5436))")
     await ev("map.fire('click',{latlng:L.latLng(25.045,121.55)})")
+    check(await ev("state.lifeCenters.length===2 && lifeLayer.getLayers().length===2"), '地圖點擊與生活圈中心標記同步更新')
     await page.locator('[data-life-label="0"]').fill('住家')
     await page.locator('[data-life-label="1"]').fill('公司')
     await page.locator('#lifeMinutes').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}))}")
