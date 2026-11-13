@@ -86,6 +86,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .facility-marker svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .facility-marker .facility-name{position:absolute;left:50%;top:35px;transform:translateX(-50%);max-width:150px;padding:3px 7px;border-radius:7px;background:#fff;color:#202124;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(60,64,67,.25);pointer-events:none}
  .detail-category{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-bottom:5px;padding:3px 8px;border-radius:12px;background:#f1f3f4;color:#5f6368;font-size:12px;font-weight:600}.detail-category svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+ .distance-settings{display:grid;gap:8px;margin:12px 0;padding:12px;background:#f8f9fa;border-radius:12px}.distance-title{font-size:13px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:34px}.distance-row .swatch{width:10px;height:10px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:13px;font-weight:600}.distance-row select{height:32px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
 .me{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.2)}
 .tr-end{background:#fff;border:2px solid #333;border-radius:6px;font-size:11px;font-weight:700;padding:0 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);width:auto!important;height:auto!important}
 .tr-origin{border-radius:50%;background:#ea4335;border:3px solid #fff;box-shadow:0 0 0 5px rgba(234,67,53,.3);color:#fff;font-weight:700;font-size:12px;text-align:center;line-height:20px}
@@ -150,7 +151,7 @@ const scopeLayer=L.layerGroup().addTo(map),labelLayer=L.layerGroup().addTo(map),
   selLayer=L.layerGroup().addTo(map),transitLayer=L.layerGroup().addTo(map),drawLayer=L.layerGroup().addTo(map),meLayer=L.layerGroup().addTo(map);
 let heat=null;
 
-const state={active:new Set(['park','school','mrt']),mins:10,scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},
+const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,green:10,school:10,sport:10,bus:10,mrt:10},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null};
 
 // ---------- geometry ----------
@@ -290,25 +291,25 @@ const MRTN={};function mrtNear(){const key=srcKey();if(MRTN[key])return MRTN[key
 const tmin=d=>d*DETOUR/SPEED;
 
 function analyze(){const act=LAYERS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id);if(!act.length){state.res=null;state.zones=[];return;}
-  const mins=state.mins,cells=scopeCells(),D=act.map(layerDist),worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
+  const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
   const dstat=DISTRICTS.map(()=>({t:0,g:0})),goodIdx=[];
-  for(const k of cells){let w=0,o=0;for(const L0 of D){const t=tmin(L0.d[k]);if(t<=mins)o++;if(t>w)w=t;}worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
+  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k]);if(t<=thresholds[i])o++;if(t>w)w=t;}worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
     if(o===act.length){good++;goodIdx.push(k);dstat[CELLS[k].d].g++;}}
   const mn=mrtNear(),mrt=data('mrt')||[],groups=new Map(); // 推薦生活圈：以最近的捷運站分組
   for(const k of goodIdx){const g=mn[k];groups.has(g)?groups.get(g).push(k):groups.set(g,[k]);}
   const zones=[];for(const [mi,comp] of groups){if(comp.length<3)continue;let sum=0,best=comp[0];const dc={};
     for(const a of comp){sum+=worst[a];if(worst[a]<worst[best])best=a;dc[CELLS[a].d]=(dc[CELLS[a].d]||0)+1;}
     const dmain=+Object.keys(dc).sort((a,b)=>dc[b]-dc[a])[0],m=mi>=0?mrt[mi]:null,avg=sum/comp.length;
-    zones.push({comp,avg,best,area:comp.length*CELL*CELL/1e4,district:DISTRICTS[dmain].name,mrt:m&&m.name?m.name.replace(/站$/,'')+'站':null,score:Math.sqrt(comp.length)*(mins+1-avg)});}
+    zones.push({comp,avg,best,area:comp.length*CELL*CELL/1e4,district:DISTRICTS[dmain].name,mrt:m&&m.name?m.name.replace(/站$/,'')+'站':null,score:Math.sqrt(comp.length)*(Math.max(...thresholds)+1-avg)});}
   zones.sort((a,b)=>b.score-a.score);state.zones=zones.slice(0,10);
-  state.res={act,mins,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
+  state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
 function drawHeat(){const R=state.res;if(!R||state.transit){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
-  for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;
-    if(R.okc[k]===n){const r=Math.min(1,R.worst[k]/R.mins);p[o]=128*r;p[o+1]=77+126*r;p[o+2]=64+132*r;p[o+3]=140;}
-    else if(n>1&&R.okc[k]===n-1){p[o]=255;p[o+1]=183;p[o+2]=77;p[o+3]=75;}}
+  for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;let rr=0,gg=0,bb=0,total=0;
+    for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k]),limit=R.thresholds[i];if(t<=limit){const l=LAYER[R.act[i]],hex=l.color.slice(1),w=1-.35*(t/limit);rr+=parseInt(hex.slice(0,2),16)*w;gg+=parseInt(hex.slice(2,4),16)*w;bb+=parseInt(hex.slice(4,6),16)*w;total+=w;}}
+    if(total){p[o]=Math.round(rr/total);p[o+1]=Math.round(gg/total);p[o+2]=Math.round(bb/total);p[o+3]=Math.min(190,105+total*30);}}
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   if(heat)heat.setUrl(url);else heat=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heatOpacity()}).addTo(map);heat.setOpacity(heatOpacity());}
 function heatOpacity(){const z=map.getZoom();return z<=12.5?0.92:z>=15.5?0:Math.max(0,Math.min(0.92,(15.5-z)/3*0.92));}
@@ -328,8 +329,8 @@ map.on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}if(state.transi
 
 // ---------- sheet rendering ----------
 function actNames(){return state.res.act.map(id=>LAYER[id].name).join('、');}
-function segHTML(){return `<div class="seg" role="group" aria-label="步行分鐘">${MINS.map(m=>`<button data-m="${m}" aria-pressed="${m===state.mins}">${m} 分鐘</button>`).join('')}</div>`;}
-function setMins(m){state.mins=m;if(state.res){analyze();drawHeat();drawPins();}render();}
+function distanceSettingsHTML(){return `<div class="distance-settings"><div class="distance-title">各類別步行距離（可個別設定）</div>${state.res.act.map(id=>{const l=LAYER[id],m=state.minsByLayer[id]||10;return `<label class="distance-row"><span class="swatch" style="background:${l.color}"></span><span class="name">${l.name}</span><select data-distance="${id}" aria-label="${l.name}步行距離">${MINS.map(v=>`<option value="${v}" ${v===m?'selected':''}>${v} 分鐘</option>`).join('')}</select></label>`;}).join('')}</div>`;}
+function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}render();}
 function foot(){return `<div class="foot">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
 function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
   const H=$('head'),Bd=$('body'),R=state.res;
@@ -341,15 +342,15 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
-  H.innerHTML=`<h1>步行 ${R.mins} 分鐘生活圈</h1><div class="sub">${scopeName()}有 <b>${pct.toFixed(0)}%</b> 的地方，${actNames()}都走得到</div>${segHTML()}`;
-  let h=`<div class="legend"><span>很近</span><span class="grad"></span><span>剛好 ${R.mins} 分</span>${R.act.length>1?'<span class="sw"></span><span>只差一類</span>':''}</div>`;
+  H.innerHTML=`<h1>分類步行距離分析</h1><div class="sub">${scopeName()}有 <b>${pct.toFixed(0)}%</b> 的地方符合所有已選類別的個別距離</div>`;
+  let h=distanceSettingsHTML()+`<div class="legend">${R.act.map(id=>{const l=LAYER[id];return `<span style="display:inline-flex;align-items:center;gap:4px;margin:2px 7px 2px 0"><i style="width:9px;height:9px;border-radius:50%;background:${l.color}"></i>${l.name}</span>`;}).join('')}</div>`;
   if(state.zones.length){h+='<h2>推薦生活圈</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
-  else h+=`<div class="note">這個範圍沒有「全部都在 ${R.mins} 分鐘內」的地方。試試把時間拉長，或少選一類。</div>`;
+  else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(state.scope===''){const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).sort((a,b)=>b.p-a.p);
     h+='<h2>各區比較</h2>'+rk.map(r=>`<div class="drow" data-d="${r.i}"><span class="n">${r.n}</span><span class="b"><i style="width:${r.p}%"></i></span><span class="p">${r.p.toFixed(0)}%</span></div>`).join('');}
   else h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
   Bd.innerHTML=h+foot();
-  H.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setMins(+b.dataset.m));
+  Bd.querySelectorAll('[data-distance]').forEach(s=>s.onchange=()=>setLayerMins(s.dataset.distance,+s.value));
   Bd.querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>openZone(+el.dataset.z));
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
   if($('toCity'))$('toCity').onclick=()=>setScope('');}
@@ -357,8 +358,9 @@ function headDetail(title,sub,category){const cat=category?`<div class="detail-c
   $('back').onclick=$('close').onclick=()=>closeDetail();}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
-  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部都在 '+R.mins+' 分鐘內':'✕ 有 '+(n-R.okc[k])+' 類超過 '+R.mins+' 分鐘'}</div>`;
-  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k]),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.mins;
+  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k])>R.thresholds[i]);
+  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的步行距離':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定距離'}</div>`;
+  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k]),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
     h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'20 分以上':'步行 '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
   $('body').innerHTML=h+foot();}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
