@@ -29,18 +29,18 @@ button.primary{background:#2e7d32;color:#fff;border-color:#2e7d32}
 input[type=range]{flex:1}
 #status{font-size:12px;min-height:16px;margin:4px 0;color:#666}
 #status.err{color:#c62828}
-.sum{background:#f1f8e9;border-radius:8px;padding:8px;margin:6px 0;font-size:13px}
+.sum{background:#e0f2f1;border-radius:8px;padding:8px;margin:6px 0;font-size:13px}
 .legend{font-size:12px;color:#555;margin:4px 0}
 h4{margin:12px 0 4px;font-size:13px}
 .item{display:flex;justify-content:space-between;gap:8px;padding:6px;border-radius:6px;cursor:pointer;border-bottom:1px solid #f0f0f0}
 .item:hover,.item.sel{background:#eef3fb}
 .item .sub{font-size:11px;color:#888}
-.rank{display:inline-block;width:20px;height:20px;border-radius:50%;background:#2e7d32;color:#fff;text-align:center;font-size:12px;line-height:20px;margin-right:6px;flex:none}
+.rank{display:inline-block;width:20px;height:20px;border-radius:50%;background:#00695c;color:#fff;text-align:center;font-size:12px;line-height:20px;margin-right:6px;flex:none}
 .bar{height:6px;background:#e0e0e0;border-radius:3px;margin-top:3px}
-.bar i{display:block;height:100%;background:#43a047;border-radius:3px}
+.bar i{display:block;height:100%;background:#26a69a;border-radius:3px}
 .hint{background:#fff8e1;border-radius:8px;padding:6px 8px;font-size:12px;margin:6px 0}
 .leaflet-tooltip.lbl{background:rgba(255,255,255,.9);border:none;box-shadow:none;font-size:11px;padding:0 3px;color:#333}
-.zlabel{background:#2e7d32;color:#fff;border-radius:50%;width:22px!important;height:22px!important;line-height:22px;text-align:center;font-weight:700;font-size:12px;margin-left:-11px!important;margin-top:-11px!important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.zlabel{background:#00695c;color:#fff;border-radius:50%;width:22px!important;height:22px!important;line-height:22px;text-align:center;font-weight:700;font-size:12px;margin-left:-11px!important;margin-top:-11px!important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .pop b{font-size:14px}
 </style>
 </head>
@@ -80,6 +80,8 @@ const cellRenderer=L.canvas({pane:'analysis'});
 const cellLayer=L.layerGroup().addTo(map), zoneLayer=L.layerGroup().addTo(map), scopeLayer=L.layerGroup().addTo(map), drawLayer=L.layerGroup().addTo(map);
 
 const $=id=>document.getElementById(id);
+function fit(b,o={}){const mob=window.innerWidth<=600;const ph=mob&&!$('panel').classList.contains('min')?$('panel').offsetHeight:0;
+  map.fitBounds(b,Object.assign({paddingTopLeft:[10,10],paddingBottomRight:[mob?10:0,ph+10]},o,mob?{}:{paddingTopLeft:[370,10]}));}
 const state={active:new Set(['park','school','mrt']),data:{},groups:{},scope:'all',custom:null,drawPts:[],drawing:false,computed:null,zones:[],loading:{}};
 
 // ---------- geometry ----------
@@ -111,12 +113,12 @@ function fillScope(){const s=$('scope');const v=s.value;s.innerHTML='<option val
 fillScope();
 $('toggle').onclick=()=>{$('panel').classList.toggle('min');$('toggle').textContent=$('panel').classList.contains('min')?'▴':'▾';};
 let t0;$('mins').oninput=()=>{$('minsV').textContent=$('mins').value;clearTimeout(t0);t0=setTimeout(compute,250);};
-$('scope').onchange=()=>{state.scope=$('scope').value;render(true);};
+$('scope').onchange=()=>{map.closePopup();state.scope=$('scope').value;render(true);};
 $('mDraw').onclick=()=>{state.drawing?endDraw():startDraw();};
 function status(t,err){$('status').textContent=t||'';$('status').className=err?'err':'';}
 
 // ---------- draw custom scope ----------
-function startDraw(){state.drawing=true;state.drawPts=[];$('mDraw').classList.add('on');$('hint').style.display='block';
+function startDraw(){map.closePopup();state.drawing=true;state.drawPts=[];$('mDraw').classList.add('on');$('hint').style.display='block';
   $('hint').innerHTML='在地圖上點：<b>2 點</b>＝矩形，<b>3 點以上</b>＝多邊形。 <button class="primary" id="fin">完成</button> <button id="undo">復原</button> <button id="cancel">取消</button>';
   $('fin').onclick=finishDraw;$('undo').onclick=()=>{state.drawPts.pop();previewDraw();};$('cancel').onclick=endDraw;}
 function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('mDraw').classList.remove('on');$('hint').style.display='none';}
@@ -196,51 +198,59 @@ function compute(){const act=LAYERS.filter(l=>state.active.has(l.id)&&state.data
 function inScope(c){const s=state.scope;if(s==='all')return true;if(s==='custom'){const b=state.custom.bb;return c.la>=b[0]&&c.la<=b[2]&&c.lo>=b[1]&&c.lo<=b[3]&&inPoly(state.custom,c.la,c.lo);}return c.d===+s;}
 function scopeName(){return state.scope==='all'?'全臺北市':state.scope==='custom'?'自選範圍':DISTRICTS[+state.scope].name;}
 function nearestMrt(la,lo){const m=state.data.mrt;if(!m||!m.length)return null;let b=null,bd=Infinity;for(const f of m){const d=Math.hypot((f.center[0]-la)*KY,(f.center[1]-lo)*KX);if(d<bd){bd=d;b=f;}}return b?{name:b.name.replace(/站$/,'')+'站',d:bd}:null;}
-function render(fit){
+let _cm=null,_cmSrc=null;
+function cellMrt(){const m=state.data.mrt;if(!m||!m.length)return null;if(_cmSrc===m)return _cm;
+  _cm=GRID.cells.map(c=>{let b=0,bd=Infinity;m.forEach((f,i)=>{const d=Math.hypot((f.center[0]-c.la)*KY,(f.center[1]-c.lo)*KX);if(d<bd){bd=d;b=i;}});return b;});_cmSrc=m;return _cm;}
+function render(doFit){
   scopeLayer.clearLayers();
   if(state.scope!=='all'){const r=state.scope==='custom'?state.custom:DISTRICTS[+state.scope];
     const polys=polysOf(r).map(p=>p.map(ring=>ring.map(([x,y])=>[y,x])));
     const pl=L.polygon(polys,{color:state.scope==='custom'?'#d81b60':'#333',weight:3,dashArray:'8 6',fill:false,interactive:false}).addTo(scopeLayer);
-    if(fit)map.fitBounds(pl.getBounds(),{padding:[20,20]});}
-  else if(fit)map.fitBounds([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);
+    if(doFit)fit(pl.getBounds());}
+  else if(doFit)fit([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);
   const C=state.computed;cellLayer.clearLayers();zoneLayer.clearLayers();if(!C)return;
   const {act,mins,res}=C,n=act.length;let tot=0,good=0;const distStat=DISTRICTS.map(()=>({t:0,g:0}));const goodIdx=new Set();
   GRID.cells.forEach((c,k)=>{if(!inScope(c))return;const r=res[k];tot++;distStat[c.d].t++;
     let color=null,op=0;
-    if(r.ok===n){good++;distStat[c.d].g++;goodIdx.add(k);color=r.worst<=mins*0.6?'#1b5e20':'#43a047';op=.45;}
-    else if(r.ok===n-1&&n>1){color='#ffb74d';op=.3;}
+    if(r.ok===n){good++;distStat[c.d].g++;goodIdx.add(k);color=r.worst<=mins*0.6?'#00695c':'#26a69a';op=.5;}
+    else if(r.ok===n-1&&n>1){color='#ffb74d';op=.28;}
     if(!color)return;
     L.rectangle([[c.la-dLat/2,c.lo-dLon/2],[c.la+dLat/2,c.lo+dLon/2]],{renderer:cellRenderer,pane:'analysis',stroke:false,fillColor:color,fillOpacity:op})
       .on('click',ev=>{if(state.drawing)return;L.DomEvent.stopPropagation(ev);cellPopup(k);}).addTo(cellLayer);});
-  // zones = connected qualifying cells
-  const seen=new Set(),zones=[];
-  for(const k of goodIdx){if(seen.has(k))continue;const comp=[];const st=[k];seen.add(k);
+  // zones: group qualifying cells by nearest MRT station (or connected patches if no MRT data)
+  const groups=new Map();const mrtNear=cellMrt();
+  if(mrtNear){for(const k of goodIdx){const key=mrtNear[k];if(!groups.has(key))groups.set(key,[]);groups.get(key).push(k);}}
+  else{const seen=new Set();let gi=0;for(const k of goodIdx){if(seen.has(k))continue;const comp=[];const st=[k];seen.add(k);
     while(st.length){const a=st.pop();comp.push(a);const c=GRID.cells[a];
       for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const b=GRID.byKey.get((c.i+di)+','+(c.j+dj));if(b!=null&&goodIdx.has(b)&&!seen.has(b)){seen.add(b);st.push(b);}}}
-    if(comp.length<2)continue;
+    groups.set('g'+(gi++),comp);}}
+  const zones=[];
+  for(const comp of groups.values()){
+    if(comp.length<3)continue;
     const avg=comp.reduce((s,a)=>s+res[a].worst,0)/comp.length;
     const best=comp.reduce((b,a)=>res[a].worst<res[b].worst?a:b,comp[0]);
     const bc=GRID.cells[best];
     const dc={};comp.forEach(a=>{const d=GRID.cells[a].d;dc[d]=(dc[d]||0)+1;});const dmain=+Object.keys(dc).sort((a,b)=>dc[b]-dc[a])[0];
-    zones.push({comp,avg,best,area:comp.length*CELL*CELL/1e4,district:DISTRICTS[dmain].name,mrt:nearestMrt(bc.la,bc.lo)});}
+    const mr=mrtNear?state.data.mrt[mrtNear[comp[0]]]:null;
+    zones.push({comp,avg,best,area:comp.length*CELL*CELL/1e4,district:DISTRICTS[dmain].name,mrt:mr?{name:mr.name.replace(/站$/,'')+'站',d:Math.hypot((mr.center[0]-bc.la)*KY,(mr.center[1]-bc.lo)*KX)}:nearestMrt(bc.la,bc.lo)});}
   zones.forEach(z=>z.score=Math.sqrt(z.area)*(mins+1-z.avg)); // 面積大、平均步行時間短者優先
   zones.sort((a,b)=>b.score-a.score);state.zones=zones.slice(0,10);
   state.zones.forEach((z,i)=>{const c=GRID.cells[z.best];
     L.marker([c.la,c.lo],{icon:L.divIcon({className:'zlabel',html:String(i+1),iconSize:[22,22]}),zIndexOffset:1000}).on('click',()=>focusZone(i)).addTo(zoneLayer);});
   const names=act.map(id=>LAYERS.find(l=>l.id===id).name).join('、');
   let h=`<div class="sum"><b>${scopeName()}</b>：${names} 都在步行 <b>${mins} 分鐘</b>內的區域約 <b>${(good*CELL*CELL/1e6).toFixed(2)} km²</b>（占 ${tot?(good/tot*100).toFixed(1):0}%）</div>
-   <div class="legend"><span style="color:#1b5e20">■</span> 全部 ≤${Math.round(mins*.6)} 分　<span style="color:#43a047">■</span> 全部 ≤${mins} 分　<span style="color:#ffb74d">■</span> 只差一類</div>`;
-  if(state.zones.length){h+=`<h4>🏆 推薦區域（面積大、離各設施近者優先）</h4>`;
-    state.zones.forEach((z,i)=>{h+=`<div class="item" data-z="${i}"><span style="display:flex"><span class="rank">${i+1}</span><span>${z.district}・${z.mrt?(z.mrt.d<900?z.mrt.name+'周邊':'近'+z.mrt.name):''}<div class="sub">約 ${z.area.toFixed(1)} 公頃・各類最遠平均 ${Math.ceil(z.avg)} 分</div></span></span><span class="sub">›</span></div>`;});}
+   <div class="legend">色塊：<span style="color:#00695c">■</span> 全部 ≤${Math.round(mins*.6)} 分　<span style="color:#26a69a">■</span> 全部 ≤${mins} 分　<span style="color:#ffb74d">■</span> 只差一類</div>`;
+  if(state.zones.length){h+=`<h4>🏆 推薦區域（以捷運站周邊分區；符合面積大、離各設施近者優先）</h4>`;
+    state.zones.forEach((z,i)=>{h+=`<div class="item" data-z="${i}"><span style="display:flex"><span class="rank">${i+1}</span><span>${z.district}・${z.mrt?(z.mrt.d<1200?z.mrt.name+'周邊':'近'+z.mrt.name):''}<div class="sub">符合範圍約 ${z.area.toFixed(1)} 公頃・最佳點各類最遠 ${Math.max(1,Math.ceil(state.computed.res[z.best].worst))} 分・平均 ${Math.ceil(z.avg)} 分</div></span></span><span class="sub">›</span></div>`;});}
   else h+='<div class="hint">這個範圍找不到全部符合的區域。可以把分鐘數調大，或少勾一類。</div>';
   if(state.scope==='all'){const rk=DISTRICTS.map((d,i)=>({n:d.name,p:distStat[i].t?distStat[i].g/distStat[i].t*100:0,i})).sort((a,b)=>b.p-a.p);
     h+=`<h4>📊 各區符合比例（點選放大該區）</h4>`+rk.map(r=>`<div class="item" data-d="${r.i}"><span style="flex:1">${r.n}<div class="bar"><i style="width:${Math.min(100,r.p)}%"></i></div></span><span class="sub">${r.p.toFixed(1)}%</span></div>`).join('');}
   h+=`<div style="font-size:11px;color:#999;margin-top:8px">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。資料：© OpenStreetMap 貢獻者。</div>`;
   $('result').innerHTML=h;
   $('result').querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>focusZone(+el.dataset.z));
-  $('result').querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>{$('scope').value=el.dataset.d;state.scope=el.dataset.d;render(true);});}
+  $('result').querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>{map.closePopup();$('scope').value=el.dataset.d;state.scope=el.dataset.d;render(true);});}
 function focusZone(i){const z=state.zones[i];const b=L.latLngBounds(z.comp.map(a=>[GRID.cells[a].la,GRID.cells[a].lo]));
-  map.fitBounds(b.pad(.4),{maxZoom:17});
+  fit(b.pad(.2),{maxZoom:17});
   document.querySelectorAll('[data-z]').forEach(el=>el.classList.toggle('sel',+el.dataset.z===i));
   setTimeout(()=>cellPopup(z.best,`#${i+1} ${z.district}${z.mrt?'・'+z.mrt.name+'周邊':''}`),350);}
 function cellPopup(k,title){const C=state.computed,c=GRID.cells[k],r=C.res[k];
@@ -249,6 +259,7 @@ function cellPopup(k,title){const C=state.computed,c=GRID.cells[k],r=C.res[k];
     h+=`<br><span style="color:${L0.color}">●</span> ${L0.name}：${t<=C.mins?'✅':'❌'} ${t===Infinity?'超過 '+C.mins:Math.max(1,Math.ceil(t))} 分${f&&f.name?'（'+f.name+'）':''}`;}
   L.popup().setLatLng([c.la,c.lo]).setContent(h+'</div>').openOn(map);}
 
+fit([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);
 run();
 </script>
 </body>
