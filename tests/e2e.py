@@ -92,8 +92,7 @@ async def route(r):
             m = re.search(r'around:([\d.]+),([\d.]+),([\d.]+)', q)
             radius, la, lo = map(float, m.groups())
             geometry = [{'lat': la, 'lon': lo}, {'lat': la + 0.004, 'lon': lo}, {'lat': la + 0.004, 'lon': lo + 0.004}, {'lat': la, 'lon': lo + 0.004}, {'lat': la, 'lon': lo}]
-            return await r.fulfill(body=json.dumps({'elements': [{'type': 'way', 'id': 99001, 'tags': {'highway': 'residential'}, 'geometry': geometry}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
-        if 'overpass-api.de' in u and 'school' in layers_in(q):
+            return await r.fulfill(body=json.dumps({'elements': [{'type': 'way', 'id': 99001, 'tags': {'highway': 'residential'}, 'geometry': geometry}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})\n        if 'overpass-api.de' in u and 'school' in layers_in(q):
             return await r.fulfill(status=504, body='timeout')
         if any(l in MODE['fail'] for l in layers_in(q)):
             return await r.fulfill(status=429, body='busy')
