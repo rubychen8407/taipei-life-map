@@ -80,9 +80,12 @@ class WrongMetroShape(Fake):
             return [{'LineID': 'BL', 'Geometry': wkt([(25.03, 121.50), (25.08, 121.56), (25.03, 121.57)])}]
         return super().get(path, tries)
 wrong = [m for m in T.build_metro(WrongMetroShape(), box, quiet) if m['ref'] == '板南線']
-expected = [[T.B.r5(25.03), T.B.r5(121.50 + i * 0.01)] for i in range(1, 9)]
+# build_metro intentionally applies Douglas-Peucker simplification (8 m),
+# so this straight synthetic station sequence reduces to its two endpoints.
+expected = [[T.B.r5(25.03), T.B.r5(121.51)],
+            [T.B.r5(25.03), T.B.r5(121.58)]]
 check(len(wrong) == 2 and wrong[0]['line'] == expected and wrong[1]['line'] == expected[::-1],
-      '捷運：起訖點吻合但中間站偏離時，改用正確站序而非錯誤軌跡')
+      '捷運：起訖點吻合但中間站偏離時，退回正確站序（並保留既有簡化規則）')
 
 with tempfile.TemporaryDirectory() as d:
     try:
