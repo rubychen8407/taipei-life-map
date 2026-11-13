@@ -122,7 +122,7 @@ async def baked_suite(b, errs):
     t0 = time.time()
     await page.goto(URL)
     await page.wait_for_function(READY, timeout=20000)
-    labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(data('park').find(f=>f.name),LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();return result;})()""")
+    labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(data('park').find(f=>f.name),LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();FACILITY_LABEL_CACHE.delete(bus);FACILITY_LABEL_CACHE.delete(mrt);return result;})()""")
     check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
     check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
     dt = time.time() - t0
