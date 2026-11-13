@@ -196,8 +196,9 @@ def build_bus(t, box, log=print):
             if len(pts) < 2 or not any(inbox(p, box) for p, _ in pts):
                 continue
             lines = wkt_lines((sh.get(k) or {}).get('Geometry'))
+            # 不以站點直線代替缺失的行駛軌跡；直線可能穿越建築物或非道路空間。
             if not lines:
-                lines = [[p for p, _ in pts]]       # 沒有行駛軌跡時退而求其次：依站序連線
+                continue
             clipped = [seg for raw in lines for seg in clip_polyline(raw, box)]
             if not clipped:
                 continue
@@ -205,7 +206,7 @@ def build_bus(t, box, log=print):
             line = max(clipped, key=len)
             names = [zh(st.get('StopName')) for _, st in pts]
             ref = zh(s.get('SubRouteName')) or zh(s.get('RouteName'))
-            line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 8)]
+            line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 1.5)]
             if len(line) < 2:
                 continue
             iv = bus_interval(sch.get(k) or {})

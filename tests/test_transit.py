@@ -62,6 +62,13 @@ few = {'SubRouteUID': 'x', 'Timetables': [{'ServiceDay': {'Monday': 1}, 'StopTim
 check(T.bus_interval(few) is None, '公車：週一只有 1–2 班（尖峰專車）→ 不推算班距（iv=None），不會顯示成「960 分一班」')
 check(any(r['iv'] is None for r in rs), '公車：沒有班表的路線 iv=None（app 畫成灰色虛線，不亂猜）')
 check(len({r['id'] for r in rs}) == len(rs), '路線 id 不重複')
+class MissingOneBusShape(Fake):
+    def get(self, path, tries=4):
+        if 'Bus/Shape/City/Taipei' in path:
+            return BUS_SHAPE[2:]  # 同一路線往返兩個方向都缺少軌跡
+        return super().get(path, tries)
+missing_shape_routes = T.build_bus(MissingOneBusShape(), box, quiet)
+check(len(missing_shape_routes) == 118 and all(r['ref'] != '0路' for r in missing_shape_routes), '單一路線缺少幾何時略過，不用站點直線穿越建築物')
 check(T.build_bus(Fake(broken=['Bus/Schedule']), box, quiet)[0]['iv'] is None, '班表 API 失敗不影響路線本身')
 check(T.build_bus(Fake(broken=['Bus/Shape']), box, quiet) == [], '軌跡 API 失敗：該城市整批略過、不崩潰')
 

@@ -126,6 +126,7 @@ async def baked_suite(b, errs):
     check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
     check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
     check(labels['labelClick'], '點擊標籤文字會觸發對應 POI 標記事件')
+    check(await ev("toFeature({type:'way',id:1,center:{lat:25.05,lon:121.55},tags:{leisure:'pitch',sport:'basketball'}}).name==='籃球場'"), '沒有正式名稱的運動設施依 OSM sport 標籤顯示設施類型名稱')
     dt = time.time() - t0
     # 1. 開啟即顯示
     check(len(calls) == n0 and data_hits == ['city.json'], f'開啟時只讀一個預建檔（city.json），完全不查 Overpass {data_hits}')
@@ -137,7 +138,7 @@ async def baked_suite(b, errs):
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
     r = await ev("(()=>{const s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return {sheetTop:s.top,topBottom:t.bottom}})()")
-    check(r['topBottom'] < 130 and 380 < r['sheetTop'] < 520, f"版面：上方範圍列＋類別列、下方卡片約半高（{r['sheetTop']:.0f}px 起）")
+    check(r['topBottom'] < 330 and 380 < r['sheetTop'] < 520, f"版面：搜尋、類別與距離設定位於地圖上方，下方為結果卡片（{r['topBottom']:.0f}px／{r['sheetTop']:.0f}px）")
     await shot(page, '1_home')
 
     # 2. 類別按鈕、各類別獨立距離設定
@@ -157,7 +158,7 @@ async def baked_suite(b, errs):
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 160, '往下拖把卡片收到最小，地圖幾乎全螢幕')
-    check(await ev("document.querySelectorAll('select[data-distance]').length===state.res.act.length"), '每個已選類別都有獨立距離選擇器')
+    check(await ev("document.querySelectorAll('#categorySettings select[data-distance]').length===state.res.act.length && !document.querySelector('#body select[data-distance]')"), '每個已選類別的距離選擇器都在搜尋區域下方，不混入結果面板')
     await shot(page, '2_peek')
     box = await ev(HANDLE)
     await page.mouse.click(*box); await page.wait_for_timeout(350)

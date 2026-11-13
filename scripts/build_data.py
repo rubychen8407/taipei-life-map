@@ -107,9 +107,17 @@ def stitch(ways):
     return out
 
 
+def sport_facility_name(tags):
+    sport = (tags.get('sport') or '').split(';')[0].strip().lower()
+    names = {'basketball': '籃球場', 'soccer': '足球場', 'football': '足球場', 'tennis': '網球場', 'badminton': '羽球場', 'volleyball': '排球場', 'baseball': '棒球場', 'swimming': '游泳設施', 'running': '跑步設施', 'athletics': '田徑場', 'table_tennis': '桌球場'}
+    if sport in names:
+        return names[sport]
+    return {'sports_centre': '體育中心', 'pitch': '運動場', 'stadium': '體育場', 'track': '運動跑道', 'swimming_pool': '游泳池', 'fitness_centre': '健身中心'}.get(tags.get('leisure'), '運動設施')
+
+
 def feature(e, geom):
     t = e.get('tags', {})
-    name = t.get('name:zh') or t.get('name') or ''
+    name = t.get('name:zh') or t.get('name') or t.get('name:en') or (sport_facility_name(t) if t.get('leisure') in ('sports_centre', 'pitch', 'stadium', 'track', 'swimming_pool', 'fitness_centre') else '')
     if e['type'] == 'node':
         c = [e['lat'], e['lon']]
     elif 'center' in e:
