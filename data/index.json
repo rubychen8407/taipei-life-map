@@ -1,0 +1,102 @@
+{
+ "built": "2026-11-13",
+ "districts": {
+  "大安區": {
+   "park": 459,
+   "green": 3970,
+   "school": 245,
+   "sport": 781,
+   "bus": 1336,
+   "mrt": 40
+  },
+  "文山區": {
+   "park": 310,
+   "green": 2245,
+   "school": 176,
+   "sport": 685,
+   "bus": 1135,
+   "mrt": 20
+  },
+  "信義區": {
+   "park": 337,
+   "green": 2026,
+   "school": 145,
+   "sport": 471,
+   "bus": 851,
+   "mrt": 26
+  },
+  "萬華區": {
+   "park": 267,
+   "green": 1303,
+   "school": 141,
+   "sport": 566,
+   "bus": 1014,
+   "mrt": 21
+  },
+  "中正區": {
+   "park": 387,
+   "green": 3312,
+   "school": 236,
+   "sport": 798,
+   "bus": 1227,
+   "mrt": 29
+  },
+  "南港區": {
+   "park": 289,
+   "green": 1111,
+   "school": 105,
+   "sport": 425,
+   "bus": 1045,
+   "mrt": 13
+  },
+  "松山區": {
+   "park": 378,
+   "green": 1362,
+   "school": 159,
+   "sport": 583,
+   "bus": 962,
+   "mrt": 31
+  },
+  "大同區": {
+   "park": 197,
+   "green": 1033,
+   "school": 109,
+   "sport": 427,
+   "bus": 725,
+   "mrt": 19
+  },
+  "中山區": {
+   "park": 464,
+   "green": 2071,
+   "school": 216,
+   "sport": 832,
+   "bus": 1402,
+   "mrt": 42
+  },
+  "內湖區": {
+   "park": 385,
+   "green": 798,
+   "school": 161,
+   "sport": 635,
+   "bus": 1247,
+   "mrt": 26
+  },
+  "士林區": {
+   "park": 603,
+   "green": 1397,
+   "school": 268,
+   "sport": 1348,
+   "bus": 2521,
+   "mrt": 37
+  },
+  "北投區": {
+   "park": 346,
+   "green": 1081,
+   "school": 166,
+   "sport": 798,
+   "bus": 1708,
+   "mrt": 18
+  }
+ },
+ "routes": false
+}
