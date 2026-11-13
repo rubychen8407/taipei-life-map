@@ -5,7 +5,7 @@ taipei-life-map
 
 線上版：https://rubychen8407.github.io/taipei-life-map/
 
-若 repo 內有 `data/*.json`（由 `scripts/build_data.py` 從 OpenStreetMap 預先下載各區設施與公車／捷運路線），app 會直接讀取、載入快；沒有時才即時查詢 Overpass。點地圖上的公車站或捷運站，會沿實際行駛路線畫出可到達的方向，線的粗細與顏色代表班距（OSM `interval` 標籤）。
+`data/*.json` 由 GitHub Actions 每週一自動執行 `scripts/build_data.py`，從 OpenStreetMap 預先下載各區設施與公車／捷運路線，app 會直接讀取、載入快；沒有時才即時查詢 Overpass。點地圖上的公車站或捷運站，會沿實際行駛路線畫出可到達的方向，線的粗細與顏色代表班距（OSM `interval` 標籤）。
 
 步行時間以直線距離 ×1.25、每分鐘 80 公尺估算。資料來源：© OpenStreetMap 貢獻者（Overpass API）；行政區界線來自 taiwan-atlas（內政部國土測繪中心）。
 

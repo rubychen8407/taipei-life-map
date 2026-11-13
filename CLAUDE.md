@@ -5,4 +5,4 @@
 - 新增或改動功能時，同步在 `tests/run_e2e.py` 加上對應的檢查項目，並看一下截圖確認畫面。
 - 回報給使用者時，列出測試結果（通過/失敗項目）與尚未能驗證的部分（例如真實 OpenStreetMap 資料）。
 - 測試分兩組：A. 沒有預建資料（即時查 Overpass 的備援流程）、B. 有預建資料（`scripts/build_data.py` 用模擬資料實際產生 `data/*.json` 後載入）。
-- `data/*.json` 由 `scripts/build_data.py` 產生，請勿手動編輯；`build_data.py` 的 LAYERS／BUFFER 必須與 `index.html` 一致。
+- `data/*.json` 由 GitHub Actions（`.github/workflows/build-data.yml`，使用者已同意每週自動更新）執行 `scripts/build_data.py` 產生，請勿手動編輯；`build_data.py` 的 LAYERS／BUFFER 必須與 `index.html` 一致。
