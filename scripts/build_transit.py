@@ -254,11 +254,23 @@ def build_metro(t, box, log=print):
                 s0, s1 = seq[0][0], seq[-1][0]
                 forward = math.hypot(a[0]-s0[0], a[1]-s0[1]) + math.hypot(b[0]-s1[0], b[1]-s1[1])
                 reverse = math.hypot(b[0]-s0[0], b[1]-s0[1]) + math.hypot(a[0]-s1[0], a[1]-s1[1])
-                return min(forward, reverse)
+                # Endpoints alone can match a wrong branch. Require every ordered
+                # station to be close to the candidate geometry as well.
+                def point_segment_distance(p, x, y):
+                    dx, dy = y[0]-x[0], y[1]-x[1]
+                    den = dx*dx + dy*dy
+                    if den == 0: return math.hypot(p[0]-x[0], p[1]-x[1])
+                    u = max(0.0, min(1.0, ((p[0]-x[0])*dx + (p[1]-x[1])*dy)/den))
+                    return math.hypot(p[0]-(x[0]+u*dx), p[1]-(x[1]+u*dy))
+                def station_fit(points):
+                    return max(min(point_segment_distance(p, x, y) for x, y in zip(candidate, candidate[1:])) for p, _ in points)
+                fit = station_fit(seq)
+                return min(forward, reverse) + fit * 4
             line = min(candidates, key=endpoint_cost) if candidates else [p for p, _ in seq]
             s0, s1 = seq[0][0], seq[-1][0]
             cost = endpoint_cost(line)
-            if cost > 0.08:
+            # Reject route shapes that skip stations or accidentally cross a branch.
+            if cost > 0.01:
                 line = [p for p, _ in seq]
             elif math.hypot(line[-1][0]-s0[0], line[-1][1]-s0[1]) + math.hypot(line[0][0]-s1[0], line[0][1]-s1[1]) < endpoint_cost(line):
                 line = line[::-1]

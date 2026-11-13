@@ -73,6 +73,20 @@ check({m['to'] for m in bl} == {'藍8', '藍1'} and bl[0]['stops'][0] != bl[1]['
 check(bl[0]['col'] == '#0070bd' and bl[0]['iv'] == 5 and bl[0]['r'] == 'subway', f"捷運：路線顏色、班距平均（3–5、5–7→5）→ {bl[0]['col']} {bl[0]['iv']}")
 check(bl[0]['line'][0] != bl[1]['line'][0], '捷運：反方向的路線軌跡也反轉')
 
+# 即使錯誤軌跡的起訖點吻合，只要中間站點偏離，也必須退回站序線，不能畫出跨區錯誤連線。
+class WrongMetroShape(Fake):
+    def get(self, path, tries=4):
+        if 'Metro/Shape' in path:
+            return [{'LineID': 'BL', 'Geometry': wkt([(25.03, 121.50), (25.08, 121.56), (25.03, 121.57)])}]
+        return super().get(path, tries)
+wrong = [m for m in T.build_metro(WrongMetroShape(), box, quiet) if m['ref'] == '板南線']
+# build_metro intentionally applies Douglas-Peucker simplification (8 m),
+# so this straight synthetic station sequence reduces to its two endpoints.
+expected = [[T.B.r5(25.03), T.B.r5(121.51)],
+            [T.B.r5(25.03), T.B.r5(121.58)]]
+check(len(wrong) == 2 and wrong[0]['line'] == expected and wrong[1]['line'] == expected[::-1],
+      '捷運：起訖點吻合但中間站偏離時，退回正確站序（並保留既有簡化規則）')
+
 with tempfile.TemporaryDirectory() as d:
     try:
         T.build(Fake(broken=['Metro/']), d, quiet); ok = False
