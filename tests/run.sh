@@ -3,6 +3,8 @@
 set -e
 cd "$(dirname "$0")"
 [ -d node_modules/leaflet-polylinedecorator ] || npm install --silent
+python3 -c "import playwright" 2>/dev/null || python3 -m pip install playwright
+python3 -m playwright install chromium
 [ -f mock.json ] || python3 make_mock.py
 python3 test_transit.py
 python3 e2e.py

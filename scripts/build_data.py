@@ -211,7 +211,11 @@ def merge_city(out_dir, built=None):
         p = os.path.join(out_dir, name + '.json')
         if not os.path.exists(p):
             return None
-        d = json.load(open(p, encoding='utf-8')); dates.append(d.get('built', ''))
+        d = json.load(open(p, encoding='utf-8'))
+        if built and d.get('built') != built:
+            print(f'  merge skipped: {name} is stale ({d.get("built")!r}, expected {built!r})', file=sys.stderr)
+            return None
+        dates.append(d.get('built', ''))
         for lid in layers:
             for f in d['layers'].get(lid, []):
                 layers[lid].setdefault(f['id'], f)
@@ -253,7 +257,13 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
         pass
     except Exception as e:
         print('  routes FAILED', e, file=sys.stderr)
-    index['city'] = merge_city(out_dir, built)
+    if len(index['districts']) == len(ds):
+        index['city'] = merge_city(out_dir, built)
+    else:
+        failed = [name for name, _ in ds if name not in index['districts']]
+        index['failed_districts'] = failed
+        index['city'] = None
+        print('  city merge skipped; incomplete refresh: ' + ', '.join(failed), file=sys.stderr)
     json.dump(index, open(os.path.join(out_dir, 'index.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print(json.dumps(index, ensure_ascii=False))
     return index
@@ -263,4 +273,4 @@ if __name__ == '__main__':
     if sys.argv[1:] == ['merge']:
         print(merge_city(os.path.join(ROOT, 'data'))); sys.exit(0)
     idx = build()
-    sys.exit(0 if idx['districts'] else 1)
+    sys.exit(0 if len(idx['districts']) == len(districts()) and idx.get('city') else 1)

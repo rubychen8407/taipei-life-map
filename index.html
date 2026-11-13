@@ -173,6 +173,7 @@ function bufferedBBox(){const b=region().bb,pl=BUFFER/KY,po=BUFFER/KX;return[b[0
 
 // ---------- UI helpers ----------
 function busy(on){$('bar').style.display=on?'block':'none';}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 let toastT;function toast(t,err){const el=$('toast');el.textContent=t;el.className=err?'err':'';el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',err?6000:3000);}
 const sheet=$('sheet');let snap='half';
 function snapPx(s){const H=window.innerHeight;return typeof s==='number'?s:s==='peek'?PEEK:s==='full'?Math.round(H*.88):Math.round(H*.46);}
@@ -304,7 +305,7 @@ function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res)re
       const closed=f.polys&&f.polys.length&&f.polys.every(p=>p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]);
       if(closed){if(!polyOK)continue;lyr=L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.3});}
       else{if(!ptOK)continue;lyr=L.circleMarker(f.center,{radius:l.id==='bus'?5:(l.id==='mrt'?8:6.5),color:'#fff',weight:2,fillColor:l.color,fillOpacity:1});}
-      if(f.name&&z>=16)lyr.bindTooltip(f.name,{className:'lbl',direction:'top'});
+      if(f.name&&z>=16)lyr.bindTooltip(esc(f.name),{className:'lbl',direction:'top'});
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
 map.on('moveend',()=>{drawFacilities();syncLabels();});
 map.on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
@@ -337,13 +338,13 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   Bd.querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>openZone(+el.dataset.z));
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
   if($('toCity'))$('toCity').onclick=()=>setScope('');}
-function headDetail(title,sub){$('head').innerHTML=`<h1><button class="back" id="back" aria-label="返回">‹</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</span><button class="x" id="close" aria-label="關閉">✕</button></h1><div class="sub">${sub}</div>`;
+function headDetail(title,sub){$('head').innerHTML=`<h1><button class="back" id="back" aria-label="返回">‹</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span><button class="x" id="close" aria-label="關閉">✕</button></h1><div class="sub">${esc(sub)}</div>`;
   $('back').onclick=$('close').onclick=()=>closeDetail();}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施');
   let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部都在 '+R.mins+' 分鐘內':'✕ 有 '+(n-R.okc[k])+' 類超過 '+R.mins+' 分鐘'}</div>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k]),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.mins;
-    h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?f.name:'最近的'+l.name}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'20 分以上':'步行 '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
+    h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'20 分以上':'步行 '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
   $('body').innerHTML=h+foot();}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
 function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
@@ -399,10 +400,10 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
     const fs=rr.iv==null?null:FREQ.find(x=>rr.iv<=x.max),rail=t.route!=='bus';
     const style=fs?{color:fs.c,weight:fs.w,opacity:.9}:rail?{color:t.colour||'#455a64',weight:6,opacity:.9}:{color:'#78909c',weight:3.5,opacity:.75,dashArray:'6 7'};
     const pl=L.polyline(down,style).addTo(transitLayer);pl.on('click',L.DomEvent.stopPropagation);lines.push(pl);n++;
-    pl.bindTooltip(`${rail?'🚇':'🚌'} ${t.ref||''} → ${t.to||''}${rr.iv?'・約 '+rr.iv+' 分一班':''}`,{sticky:true});
+    pl.bindTooltip(`${rail?'🚇':'🚌'} ${esc(t.ref||'')} → ${esc(t.to||'')}${rr.iv?'・約 '+rr.iv+' 分一班':''}`,{sticky:true});
     if(L.polylineDecorator)L.polylineDecorator(pl,{patterns:[{offset:25,repeat:140,symbol:L.Symbol.arrowHead({pixelSize:9,polygon:true,pathOptions:{color:style.color,fillOpacity:1,weight:0}})}]}).addTo(transitLayer);
     (onRoute?stops.slice(si+1):[]).forEach(p=>L.circleMarker(p,{radius:3,color:style.color,weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(transitLayer));
-    if(rail||labels++<12)L.marker(down[down.length-1],{icon:L.divIcon({className:'tr-end',html:`${rail?'🚇':''}${t.ref||'終點'}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
+    if(rail||labels++<12)L.marker(down[down.length-1],{icon:L.divIcon({className:'tr-end',html:`${rail?'🚇':''}${esc(t.ref||'終點')}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
   L.marker(origin,{icon:L.divIcon({className:'tr-origin',html:String(n),iconSize:[26,26],iconAnchor:[13,13]}),zIndexOffset:2000,interactive:false}).addTo(transitLayer);
   state.transit.loading=false;state.transit.n=n;render();fitSheet();
   if(lines.length)fit(L.featureGroup(lines).getBounds().extend(origin));}
