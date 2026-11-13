@@ -121,7 +121,7 @@ function categoryIcon(id){const paths={
  bus:'<rect x="4" y="3" width="16" height="17" rx="3"/><path d="M4 12h16M7 20v2M17 20v2M7 7h10"/>',
  mrt:'<rect x="5" y="3" width="14" height="17" rx="4"/><path d="M8 8h8M8 12h8M9 20l-2 2M15 20l2 2"/>'
 };return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[id]||paths.park)+'</svg>';}
-function facilityIcon(l,f,z){const label=z>=17&&f.name?'<span class="facility-name">'+esc(f.name)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[34,38],iconAnchor:[17,17]});}
+function facilityIcon(l,f,z,showLabel){const label=showLabel&&f.name?'<span class="facility-name">'+esc(f.name)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[34,38],iconAnchor:[17,17]});}
 const LAYERS = [
   {id:'park',  name:'公園',  icon:categoryIcon('park'), color:'#2e7d32', bg:'#e6f4ea', geom:true,  q:'nwr["leisure"="park"]', is:t=>t.leisure==='park'},
   {id:'green', name:'綠地',  icon:categoryIcon('green'), color:'#7cb342', bg:'#f1f8e9', geom:true,  q:'nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"];nwr["leisure"="garden"];nwr["natural"~"^(wood|scrub|grassland)$"]',
@@ -314,11 +314,11 @@ function heatOpacity(){const z=map.getZoom();return z<=12.5?0.92:z>=15.5?0:Math.
 function drawPins(){pinLayer.clearLayers();if(!state.res||state.transit||state.view.type!=='list')return;
   state.zones.forEach((z,i)=>{const c=CELLS[z.best];L.marker([c.la,c.lo],{icon:L.divIcon({className:'zpin',html:String(i+1),iconSize:[26,26]}),zIndexOffset:500}).on('click',()=>{if(!state.drawing)openZone(i);}).addTo(pinLayer);});}
 function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res)return;const z=map.getZoom(),b=map.getBounds().pad(.15),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();let cnt=0;
-  for(const l of LAYERS){if(!state.active.has(l.id))continue;const feats=data(l.id);if(!feats)continue;const ptOK=z>=(l.id==='mrt'?12.5:(l.id==='bus'?15.5:14.5)),polyOK=z>=14;
+  for(const l of LAYERS){if(!state.active.has(l.id))continue;const feats=data(l.id);if(!feats)continue;const ptOK=z>=(l.id==='mrt'?12.5:(l.id==='bus'?15.5:14.5)),polyOK=z>=14;const occupied=new Set();
     for(const f of feats){if(cnt>900)break;const bb=f.bb||[f.center[0],f.center[1],f.center[0],f.center[1]];if(bb[2]<s||bb[0]>n||bb[3]<w||bb[1]>e)continue;let lyr;
       const closed=f.polys&&f.polys.length&&f.polys.every(p=>p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]);
       if(closed){if(!polyOK)continue;lyr=L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.22});}
-      else{if(!ptOK)continue;lyr=L.marker(f.center,{icon:facilityIcon(l,f,z),keyboard:false,zIndexOffset:l.id==='mrt'?250:0});}
+      else{if(!ptOK)continue;const px=map.latLngToContainerPoint(f.center),cell=Math.floor(px.x/118)+':'+Math.floor(px.y/54);const showLabel=z>=17&&!!f.name&&!occupied.has(cell);if(showLabel)occupied.add(cell);lyr=L.marker(f.center,{icon:facilityIcon(l,f,z,showLabel),keyboard:false,zIndexOffset:l.id==='mrt'?250:0});}
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
 map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
