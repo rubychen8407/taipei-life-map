@@ -110,7 +110,7 @@ async def shot(page, name):
     await page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 
-READY = "state.res&&document.getElementById('head').innerText.includes('生活圈')"
+READY = "state.res&&document.getElementById('head').innerText.includes('分類步行距離分析')"
 LINES = "transitLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
 HANDLE = "(()=>{const r=document.querySelector('.handle').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()"
 
@@ -122,6 +122,9 @@ async def baked_suite(b, errs):
     t0 = time.time()
     await page.goto(URL)
     await page.wait_for_function(READY, timeout=20000)
+    labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(data('park').find(f=>f.name),LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();return result;})()""")
+    check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
+    check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
     dt = time.time() - t0
     # 1. 開啟即顯示
     check(len(calls) == n0 and data_hits == ['city.json'], f'開啟時只讀一個預建檔（city.json），完全不查 Overpass {data_hits}')
