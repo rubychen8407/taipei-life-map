@@ -22,7 +22,7 @@ MARGIN = 0.03                                 # 度；路線只保留城市範�
 
 
 class Tdx:
-    def __init__(self, cid, secret, pause=0.3):
+    def __init__(self, cid, secret, pause=1.0):
         self.cid, self.secret, self.pause, self.tok, self.exp = cid, secret, pause, None, 0
 
     def token(self):
@@ -34,7 +34,7 @@ class Tdx:
         self.tok, self.exp = j['access_token'], time.time() + int(j.get('expires_in', 3600))
         return self.tok
 
-    def get(self, path, tries=4):
+    def get(self, path, tries=6):
         url = f'{API}{path}{"&" if "?" in path else "?"}%24format=JSON'
         last = None
         for i in range(tries):
@@ -51,7 +51,7 @@ class Tdx:
                 last = f'HTTP {e.code} {e.read()[:200]!r}'
                 if e.code == 401:
                     self.tok = None
-                time.sleep(3 * (i + 1) if e.code in (429, 500, 502, 503, 504, 401) else 0)
+                time.sleep((20 if e.code == 429 else 3) * (i + 1) if e.code in (429, 500, 502, 503, 504, 401) else 0)
                 if e.code in (400, 403, 404):
                     break
             except Exception as e:
@@ -108,7 +108,7 @@ def bus_key(x):
 
 
 def build_bus(t, box, log=print):
-    out, seen = [], set()
+    out, seen, diag = [], set(), [0]
     for city in BUS_CITIES:
         try:
             stops = t.get(f'/v2/Bus/StopOfRoute/City/{city}')
@@ -138,8 +138,11 @@ def build_bus(t, box, log=print):
             line = [[B.r5(a), B.r5(b)] for a, b in B.simplify([p for p in line if inbox(p, box)], 8)]
             if len(line) < 2:
                 continue
+            iv = bus_interval(sch.get(k) or {})
+            if iv and iv >= 240 and diag[0] < 3:
+                diag[0] += 1; log('  [診斷] 班距 %s 的班表：%s' % (iv, json.dumps(sch.get(k), ensure_ascii=False)[:700]))
             out.append({'id': f'{city[0]}{zlib.crc32(repr(k).encode())}', 'r': 'bus', 'ref': ref, 'to': names[-1], 'from': names[0], 'name': ref,
-                        'iv': bus_interval(sch.get(k) or {}), 'col': None, 'line': line,
+                        'iv': iv, 'col': None, 'line': line,
                         'stops': [[B.r5(p[0]), B.r5(p[1])] for p, _ in pts if inbox(p, box)]})
     return out
 
