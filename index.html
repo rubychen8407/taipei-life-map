@@ -314,7 +314,7 @@ map.on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}if(state.transi
 function actNames(){return state.res.act.map(id=>LAYER[id].name).join('、');}
 function segHTML(){return `<div class="seg" role="group" aria-label="步行分鐘">${MINS.map(m=>`<button data-m="${m}" aria-pressed="${m===state.mins}">${m} 分鐘</button>`).join('')}</div>`;}
 function setMins(m){state.mins=m;if(state.res){analyze();drawHeat();drawPins();}render();}
-function foot(){return `<div class="foot">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者${state.built?'（'+state.built+' 更新）':''}</div>`;}
+function foot(){return `<div class="foot">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
 function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
   const H=$('head'),Bd=$('body'),R=state.res;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -389,6 +389,7 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
       return{t,iv:parseInterval(t.interval||t['interval:conditional']),pts:ways.length?[].concat(...chainWays(ways)):[],stops};});}
   busy(false);if(!state.transit||state.transit.f!==f)return;
   const lines=[],seen=new Set();let n=0;
+  rels.sort((a,b)=>(a.t.route!=='bus'?0:1)-(b.t.route!=='bus'?0:1)||(a.iv==null)-(b.iv==null)||(a.iv||0)-(b.iv||0));let labels=0;
   for(const rr of rels){const t=rr.t,pts=rr.pts,stops=rr.stops;if(pts.length<2)continue;
     const sig=(t.route||'')+'|'+(t.ref||'')+'|'+(t.to||t.name||'');if(seen.has(sig))continue;seen.add(sig);
     let si=0,sd=Infinity;stops.forEach((p,i)=>{const d=md(p,origin);if(d<sd){sd=d;si=i;}});
@@ -401,7 +402,7 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
     pl.bindTooltip(`${rail?'🚇':'🚌'} ${t.ref||''} → ${t.to||''}${rr.iv?'・約 '+rr.iv+' 分一班':''}`,{sticky:true});
     if(L.polylineDecorator)L.polylineDecorator(pl,{patterns:[{offset:25,repeat:140,symbol:L.Symbol.arrowHead({pixelSize:9,polygon:true,pathOptions:{color:style.color,fillOpacity:1,weight:0}})}]}).addTo(transitLayer);
     (onRoute?stops.slice(si+1):[]).forEach(p=>L.circleMarker(p,{radius:3,color:style.color,weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(transitLayer));
-    L.marker(down[down.length-1],{icon:L.divIcon({className:'tr-end',html:`${rail?'🚇':''}${t.ref||'終點'}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
+    if(rail||labels++<12)L.marker(down[down.length-1],{icon:L.divIcon({className:'tr-end',html:`${rail?'🚇':''}${t.ref||'終點'}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
   L.marker(origin,{icon:L.divIcon({className:'tr-origin',html:String(n),iconSize:[26,26],iconAnchor:[13,13]}),zIndexOffset:2000,interactive:false}).addTo(transitLayer);
   state.transit.loading=false;state.transit.n=n;render();fitSheet();
   if(lines.length)fit(L.featureGroup(lines).getBounds().extend(origin));}
