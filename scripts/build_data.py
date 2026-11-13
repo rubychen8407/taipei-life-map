@@ -239,11 +239,18 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
             print('  FAILED', name, e, file=sys.stderr)
         time.sleep(pause)
     city = [min(b[0] for _, b in ds), min(b[1] for _, b in ds), max(b[2] for _, b in ds), max(b[3] for _, b in ds)]
+    prev = os.path.join(out_dir, 'routes.json')
     try:
-        print('routes', flush=True)
+        if os.path.exists(prev) and json.load(open(prev, encoding='utf-8')).get('src') == 'tdx':
+            print('routes: 沿用 TDX 路線檔（由 build_transit.py 產生）', flush=True)
+            index['routes'] = len(json.load(open(prev, encoding='utf-8'))['routes'])
+            raise StopIteration
+        print('routes (OSM)', flush=True)
         rs = build_routes(city, fetch)
         json.dump({'built': built, 'routes': rs}, open(os.path.join(out_dir, 'routes.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
         index['routes'] = len(rs)
+    except StopIteration:
+        pass
     except Exception as e:
         print('  routes FAILED', e, file=sys.stderr)
     index['city'] = merge_city(out_dir, built)

@@ -1,0 +1,30 @@
+name: Build transit routes
+# 每週用交通部 TDX 產生公車／捷運實際路線、站序、班距（data/routes.json）
+on:
+  schedule:
+    - cron: '47 18 * * 0'   # 每週一 02:47（台北時間），早於設施資料更新
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: build-transit
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 scripts/build_transit.py
+        env:
+          TDX_CLIENT_ID: ${{ secrets.TDX_CLIENT_ID }}
+          TDX_CLIENT_SECRET: ${{ secrets.TDX_CLIENT_SECRET }}
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/routes.json
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "Update transit routes (TDX) $(date -u +%F)"
+          git pull --rebase origin master
+          git push
