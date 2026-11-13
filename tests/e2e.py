@@ -149,9 +149,10 @@ async def baked_suite(b, errs):
     await page.wait_for_function("state.res.act.includes('bus')", timeout=5000)
     check(len(calls) == n0 and len(data_hits) == 1 and time.time() - t0 < 1.5, f'點「公車站」立即重算（{time.time()-t0:.2f} 秒），不下載任何東西')
     g10 = await ev("state.res.good")
-    await page.select_option('select[data-distance="park"]', '5')
-    check(await ev("state.res.thresholds[state.res.act.indexOf('park')]===5 && state.minsByLayer.park===5 && state.minsByLayer.school===10"), '公園距離可獨立設定為 5 分鐘，不影響學校的 10 分鐘設定')
-    await page.select_option('select[data-distance="park"]', '10')
+    await page.locator('#chips .chip[data-id="park"]').click()
+    await page.locator('input[data-distance="park"]').evaluate("(el)=>{el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}))}")
+    check(await ev("state.res.thresholds[state.res.act.indexOf('park')]===5 && state.minsByLayer.park===5 && state.minsByLayer.school===10"), '公園距離可獨立調整為 5 分鐘，不影響學校的 10 分鐘設定')
+    await page.locator('input[data-distance="park"]').evaluate("(el)=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}))}")
 
     # 3. 卡片拖拉
     box = await ev(HANDLE)
@@ -160,7 +161,7 @@ async def baked_suite(b, errs):
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 160, '往下拖把卡片收到最小，地圖幾乎全螢幕')
-    check(await ev("document.querySelectorAll('#categorySettings select[data-distance]').length===state.res.act.length && !document.querySelector('#body select[data-distance]')"), '每個已選類別的距離選擇器都在搜尋區域下方，不混入結果面板')
+    check(await ev("document.querySelectorAll('#categorySettings input[type=range][data-distance]').length===1 && !document.querySelector('#body [data-distance]')"), '一次只展開一個類別的步行距離拉桿，位置在搜尋區域下方')
     await shot(page, '2_peek')
     box = await ev(HANDLE)
     await page.mouse.click(*box); await page.wait_for_timeout(350)
