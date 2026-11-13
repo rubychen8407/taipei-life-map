@@ -237,7 +237,7 @@ async def baked_suite(b, errs):
     # 8. 框選
     await page.select_option('#scope', 'draw'); await page.wait_for_timeout(300)
     check(await ev("state.drawing&&getComputedStyle(document.getElementById('drawbar')).display==='block'"), '選「自己框選範圍」進入框選模式')
-    await page.mouse.click(120, 260); await page.mouse.click(280, 520); await page.click('#fin')
+    await page.mouse.click(120, 350); await page.mouse.click(280, 520); await page.click('#fin')
     await page.wait_for_function("state.res&&state.res.key.startsWith('custom')", timeout=5000)
     check(await ev("scopeCells().length>0&&scopeCells().every(k=>inPoly(state.custom,CELLS[k].la,CELLS[k].lo))") and len(calls) == n0, '框選 2 點成矩形，只分析框內')
     await page.select_option('#scope', '')
