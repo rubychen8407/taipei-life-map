@@ -285,10 +285,10 @@ async def baked_suite(b, errs):
     await page.close()
 
     # 12. 沒有 city.json 但有各區檔 → 仍用預建資料
-    MODE['missing'] = {'city.json'}; d0 = len(data_hits)
+    MODE['missing'] = {'city.json'}; d0 = len(data_hits); c0 = len(calls)
     page = await new_page(b, errs, **PHONE)
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
-    check(len(calls) == n0 and len([d for d in data_hits[d0:] if d.endswith('區.json')]) == 12, '沒有 city.json 時改讀 12 區檔，仍不查 Overpass')
+    check(len(calls) == c0 and len([d for d in data_hits[d0:] if d.endswith('區.json')]) == 12, '沒有 city.json 時改讀 12 區檔，仍不查 Overpass')
     MODE['missing'] = set()
     await page.close()
 
