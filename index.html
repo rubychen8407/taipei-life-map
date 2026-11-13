@@ -414,7 +414,7 @@ function drawLifeCenters(){
 }
 function cancelLifeMode(){
   state.lifeMode=false;state.lifeSelectedIndex=-1;$('lifePanel').hidden=true;$('categorySettings').style.display='';
-  lifeButton.setAttribute('aria-pressed','false');lifeLayer.clearLayers();if(isMob())setSheet('half');
+  lifeButton.setAttribute('aria-pressed','false');lifeLayer.clearLayers();if(state.lifeResults.length){drawLifeCenters();state.lifeResults.forEach((r,i)=>{if(r.graph)drawLifeNetwork(r.graph,LIFE_COLORS[i]);});renderLifeResults();}else render();if(isMob())setSheet('half');
 }
 function lifeKey(lat,lon){return lat.toFixed(5)+','+lon.toFixed(5);}
 function buildWalkGraph(elements,origin){
