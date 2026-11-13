@@ -180,8 +180,20 @@ function toFeature(e){const t=e.tags||{};let polys=null,center=null;
     if(e.type==='relation'&&e.members)polys=e.members.filter(m=>m.geometry&&m.role!=='inner').map(m=>m.geometry.map(p=>[+p.lat.toFixed(6),+p.lon.toFixed(6)]));
     if(e.center)center=[e.center.lat,e.center.lon];else if(e.bounds)center=[(e.bounds.minlat+e.bounds.maxlat)/2,(e.bounds.minlon+e.bounds.maxlon)/2];}
   if(!center)return null;return{name:t['name:zh']||t.name||'',center,polys,tags:t};}
-// 一次查詢就抓齊所有缺少的類別（只限目前範圍＋周邊緩衝）
+// 預先建好的資料（GitHub Actions 每週更新 data/*.json）：同網站讀取，最快
+const BAKED={};
+function bakedDistrict(name){if(!(name in BAKED))BAKED[name]=fetch('data/'+encodeURIComponent(name)+'.json').then(r=>r.ok?r.json():null).then(d=>d&&d.layers?d:null).catch(()=>null);return BAKED[name];}
+function scopeDistricts(){if(state.scope!=='custom')return[DISTRICTS[+state.scope].name];const[s,w,n,e]=bufferedBBox();
+  return DISTRICTS.filter(d=>!(d.bb[2]<s||d.bb[0]>n||d.bb[3]<w||d.bb[1]>e)).map(d=>d.name);}
+async function fromBaked(S,ids){const ds=await Promise.all(scopeDistricts().map(bakedDistrict));if(!ds.length||!ds.every(Boolean))return false;
+  const[s,w,n,e]=bufferedBBox();
+  for(const id of ids){if(S[id])continue;const m=new Map();
+    ds.forEach(d=>(d.layers[id]||[]).forEach(f=>{if(f.c[0]>=s&&f.c[0]<=n&&f.c[1]>=w&&f.c[1]<=e&&!m.has(f.id))m.set(f.id,{name:f.n,center:f.c,polys:f.p||null});}));
+    S[id]=[...m.values()];}
+  state.built=ds.map(d=>d.built).sort()[0];return true;}
+// 先用預建資料；沒有的話才即時查 Overpass（一次查詢抓齊缺少的類別，只限範圍＋周邊緩衝）
 async function ensureData(ids){const key=scopeKey();const S=state.store[key]||(state.store[key]={});
+  if(ids.some(id=>!S[id]))await fromBaked(S,ids);
   ids.forEach(id=>{if(!S[id]){const c=cacheGet(key+':'+id);if(c)S[id]=c;}});
   const miss=ids.filter(id=>!S[id]);
   if(miss.length){const [s,w,n,e]=bufferedBBox();const Ls=miss.map(id=>LAYERS.find(l=>l.id===id));
@@ -211,8 +223,8 @@ async function run(){if(!state.scope){setScope('');return;}
   LAYERS.forEach(l=>{if(!state.active.has(l.id))map.removeLayer(state.groups[l.id]);});
   if(!act.length){cellLayer.clearLayers();zoneLayer.clearLayers();state.computed=null;$('result').innerHTML='<div class="hint">請至少勾選一類設施。</div>';return;}
   const need=[...new Set([...act,'mrt'])]; // 捷運站也用來替區域命名
-  const missing=need.filter(id=>!data(id)&&!cacheGet(scopeKey()+':'+id));
-  if(missing.length)status(`下載${scopeName()}（含周邊 1.4 公里）資料：${missing.map(id=>LAYERS.find(l=>l.id===id).name).join('、')}…`);
+  const missing=need.filter(id=>!data(id));
+  if(missing.length)status(`載入${scopeName()}（含周邊 1.4 公里）資料…`);
   try{await ensureData(need);status('');}
   catch(e){need.forEach(id=>{if(!data(id))$('n-'+id).textContent='⚠️';});
     status(`下載失敗（OpenStreetMap 伺服器忙碌），取消再勾選任一類即可重試。錯誤：${e.message}`,true);
@@ -276,7 +288,7 @@ function render(){
   if(state.zones.length){h+=`<h4>🏆 推薦區域（以捷運站周邊分區；符合面積大、離各設施近者優先）</h4>`;
     state.zones.forEach((z,i)=>{h+=`<div class="item" data-z="${i}"><span style="display:flex"><span class="rank">${i+1}</span><span>${z.district}・${z.mrt?(z.mrt.d<1200?z.mrt.name+'周邊':'近'+z.mrt.name):'無捷運站'}<div class="sub">符合範圍約 ${z.area.toFixed(1)} 公頃・最佳點各類最遠 ${Math.max(1,Math.ceil(res[z.best].worst))} 分・平均 ${Math.ceil(z.avg)} 分</div></span></span><span class="sub">›</span></div>`;});}
   else h+='<div class="hint">這個範圍找不到全部符合的區域。可以把分鐘數調大，或少勾一類。</div>';
-  h+=`<div class="row"><button id="backCity">← 換行政區</button></div><div style="font-size:11px;color:#999;margin-top:4px">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界；區界外 1.4 公里內的設施也納入。資料：© OpenStreetMap 貢獻者（下載後保存在此裝置 ${CACHE_DAYS} 天）。</div>`;
+  h+=`<div class="row"><button id="backCity">← 換行政區</button></div><div style="font-size:11px;color:#999;margin-top:4px">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界；區界外 1.4 公里內的設施也納入。資料：© OpenStreetMap 貢獻者${state.built?'（'+state.built+' 更新）':''}。</div>`;
   $('result').innerHTML=h;
   $('result').querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>focusZone(+el.dataset.z));
   $('backCity').onclick=()=>{map.closePopup();$('scope').value='';setScope('');};}
@@ -303,6 +315,7 @@ function chainWays(ways){const segs=[];let cur=null;const eq=(a,b)=>a&&b&&Math.a
     else{segs.push(cur);cur=w.slice();}}
   if(cur)segs.push(cur);return segs;}
 const md=(a,b)=>Math.hypot((a[0]-b[0])*KY,(a[1]-b[1])*KX);
+let ROUTES=null;function bakedRoutes(){if(!ROUTES)ROUTES=fetch('data/routes.json').then(r=>r.ok?r.json():null).then(d=>d&&d.routes&&d.routes.length?d:null).catch(()=>null);return ROUTES;}
 function closeTransit(){if(!state.transit)return;transitLayer.clearLayers();if(trLegend){map.removeControl(trLegend);trLegend=null;}
   if(!map.hasLayer(cellLayer))cellLayer.addTo(map);if(!map.hasLayer(zoneLayer))zoneLayer.addTo(map);
   LAYERS.forEach(l=>{if(state.active.has(l.id)&&state.groups[l.id]._drawn&&state.scope)state.groups[l.id].addTo(map);});
@@ -311,27 +324,30 @@ async function showTransit(f,kind){closeTransit();map.closePopup();
   const [la,lo]=f.center,R=kind==='mrt'?300:40;
   const panelWasOpen=!$('panel').classList.contains('min');state.transit={f,panelWasOpen,loading:true};
   status('🚏 查詢經過這站的路線…');
-  const RT='["route"~"^(bus|subway|light_rail|train|monorail)$"]';
-  const q=`[out:json][timeout:90];(node(around:${R},${la},${lo})["public_transport"~"^(stop_position|platform)$"];node(around:${R},${la},${lo})["highway"="bus_stop"];way(around:${R},${la},${lo})["public_transport"="platform"];)->.s;(rel(bn.s)${RT};rel(bw.s)${RT};);out geom;`;
-  let j;try{j=await overpass(q);}catch(e){status('路線查詢失敗（伺服器忙碌），請再點一次。',true);state.transit=null;return;}
+  const origin=[la,lo];let rels;
+  const B=await bakedRoutes();
+  if(B)rels=B.routes.filter(r=>r.stops.some(p=>md(p,origin)<=R)).map(r=>({t:{route:r.r,ref:r.ref,to:r.to,colour:r.col,name:r.name},iv:r.iv,pts:r.line,stops:r.stops}));
+  else{const RT='["route"~"^(bus|subway|light_rail|train|monorail)$"]';
+    const q=`[out:json][timeout:90];(node(around:${R},${la},${lo})["public_transport"~"^(stop_position|platform)$"];node(around:${R},${la},${lo})["highway"="bus_stop"];way(around:${R},${la},${lo})["public_transport"="platform"];)->.s;(rel(bn.s)${RT};rel(bw.s)${RT};);out geom;`;
+    let j;try{j=await overpass(q);}catch(e){if(state.transit&&state.transit.f===f){status('路線查詢失敗（伺服器忙碌），請再點一次。',true);state.transit=null;}return;}
+    rels=j.elements.filter(rel=>rel.type==='relation'&&rel.members).map(rel=>{const t=rel.tags||{};
+      const ways=rel.members.filter(m=>m.type==='way'&&m.geometry&&!/platform/.test(m.role||'')).map(m=>m.geometry.map(p=>[p.lat,p.lon]));
+      let stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/^stop/.test(m.role||'')).map(m=>[m.lat,m.lon]);
+      if(stops.length<2)stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/stop|platform/.test(m.role||'')).map(m=>[m.lat,m.lon]);
+      return{t,iv:parseInterval(t.interval||t['interval:conditional']),pts:ways.length?[].concat(...chainWays(ways)):[],stops};});}
   if(!state.transit||state.transit.f!==f)return;status('');
   map.removeLayer(cellLayer);map.removeLayer(zoneLayer);LAYERS.forEach(l=>map.removeLayer(state.groups[l.id]));
   if(window.innerWidth<=600&&panelWasOpen)$('toggle').click();
-  const origin=[la,lo];const lines=[];const seen=new Set();let nRoutes=0;
-  for(const rel of j.elements){if(rel.type!=='relation'||!rel.members)continue;const t=rel.tags||{};
+  const lines=[];const seen=new Set();let nRoutes=0;
+  for(const rr of rels){const t=rr.t,pts=rr.pts,stops=rr.stops;if(pts.length<2)continue;
     const sig=(t.route||'')+'|'+(t.ref||'')+'|'+(t.to||t.name||'');if(seen.has(sig))continue;seen.add(sig);
-    const ways=rel.members.filter(m=>m.type==='way'&&m.geometry&&!/platform/.test(m.role||'')).map(m=>m.geometry.map(p=>[p.lat,p.lon]));
-    if(!ways.length)continue;
-    const pts=[].concat(...chainWays(ways));
-    let stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/^stop/.test(m.role||'')).map(m=>[m.lat,m.lon]);
-    if(stops.length<2)stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/stop|platform/.test(m.role||'')).map(m=>[m.lat,m.lon]);
     // 起點：這條路線上最靠近所點車站的停靠點
     let si=0,sd=Infinity;stops.forEach((p,i)=>{const d=md(p,origin);if(d<sd){sd=d;si=i;}});
     const anchor=stops.length&&sd<R+250?stops[si]:origin;
     let pi=0,pd=Infinity;pts.forEach((p,i)=>{const d=md(p,anchor);if(d<pd){pd=d;pi=i;}});
     const down=pts.slice(pi);if(down.length<2)continue;   // 已是終點站：不往下畫
     const downStops=stops.length&&sd<R+250?stops.slice(si+1):[];
-    const iv=parseInterval(t.interval||t['interval:conditional']);const fs=freqStyle(iv);
+    const iv=rr.iv;const fs=freqStyle(iv);
     const base=t.route==='bus'?null:(t.colour||'#455a64');
     const style=fs?{color:fs.c,weight:fs.w,opacity:.85}:{color:base||'#78909c',weight:3,opacity:.6,dashArray:'6 6'};
     if(t.route!=='bus'&&!fs)Object.assign(style,{weight:6,opacity:.85,dashArray:null});
@@ -348,7 +364,9 @@ async function showTransit(f,kind){closeTransit();map.closePopup();
       `<br><i style="height:0;border-top:3px dashed #78909c"></i>無班距資料<br><span style="color:#888">箭頭＝行駛方向・圓點＝停靠站</span><button class="x">✕ 關閉路線</button>`;
     L.DomEvent.disableClickPropagation(d);d.querySelector('.x').onclick=closeTransit;return d;};
   trLegend.addTo(map);state.transit.loading=false;state.transit.n=nRoutes;
-  if(lines.length)map.fitBounds(L.featureGroup(lines).getBounds().extend(origin),{padding:[30,30]});
+  if(lines.length){const lh=trLegend.getContainer().offsetHeight,lw=trLegend.getContainer().offsetWidth,mob=window.innerWidth<=600;
+    const ph=mob&&!$('panel').classList.contains('min')?$('panel').offsetHeight:($('panel').classList.contains('min')?$('panel').offsetHeight:0);
+    map.fitBounds(L.featureGroup(lines).getBounds().extend(origin),mob?{paddingTopLeft:[50,lh+50],paddingBottomRight:[50,ph+30]}:{paddingTopLeft:[lw+50,40],paddingBottomRight:[80,40]});}
   else status('OpenStreetMap 上沒有這一站的路線資料。');}
 
 setScope('');

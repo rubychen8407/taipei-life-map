@@ -59,7 +59,9 @@ for r in range(60):
     for k,i in enumerate(seq):
         members.append({"type":"node","ref":data['bus'][i]['id'],"role":"stop","lat":bus[i][0],"lon":bus[i][1]})
     for k in range(len(seq)-1):
-        g=[{"lat":bus[seq[k]][0],"lon":bus[seq[k]][1]},{"lat":bus[seq[k+1]][0],"lon":bus[seq[k+1]][1]}]
+        A,B=bus[seq[k]],bus[seq[k+1]]
+        # 模擬沿道路行駛：先沿東西向道路、再轉南北向（L 形），中間還有一個彎
+        g=[{"lat":A[0],"lon":A[1]},{"lat":A[0],"lon":(A[1]+B[1])/2},{"lat":A[0]+(B[0]-A[0])*0.3,"lon":(A[1]+B[1])/2+0.0004},{"lat":A[0]+(B[0]-A[0])*0.3,"lon":B[1]},{"lat":B[0],"lon":B[1]}]
         if k%3==1:g=g[::-1]   # 測試反向 way 的串接
         members.append({"type":"way","ref":900000+r*100+k,"role":"","geometry":g})
     iv=[ '6','12','00:20',None ][(r//6)%4]
