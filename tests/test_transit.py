@@ -46,6 +46,11 @@ class Fake(T.Tdx):
 
 quiet = lambda *a: None
 box = T.city_box()
+# WKT MultiLineString 與框選裁切必須保留不連續片段，不能把框外區段硬接起來。
+multi = T.wkt_lines('MULTILINESTRING((121.0 25.0,121.1 25.0),(121.2 25.0,121.3 25.0))')
+check(len(multi) == 2 and len(multi[0]) == 2 and len(multi[1]) == 2, 'WKT MultiLineString 保留獨立片段')
+clipped = T.clip_polyline([(25.0,121.2),(25.0,121.5),(25.1,121.5),(25.1,121.2)], [24.9,121.1,25.1,121.3])
+check(len(clipped) == 2 and all(len(seg) >= 2 for seg in clipped), '路線框選裁切不跨越框外空隙')
 rs = T.build_bus(Fake(), box, quiet)
 check(len(rs) == 120, f'公車：60 條路線 × 兩個方向 = 120（新北城外那條被濾掉）→ {len(rs)}')
 r0 = rs[0]
@@ -81,6 +86,14 @@ with tempfile.TemporaryDirectory() as d:
     check(all(keys <= set(r) for r in j['routes']), '每條路線都有 app 需要的欄位（與 OSM 版格式相同）')
 
 import build_data as B
+with tempfile.TemporaryDirectory() as d:
+    # 合併時拒絕混用本輪與舊輪次的行政區快照。
+    for name, _ in B.districts():
+        json.dump({'built': 'old', 'layers': {k: [] for k, *_ in B.LAYERS}},
+                  open(os.path.join(d, name + '.json'), 'w', encoding='utf-8'))
+    check(B.merge_city(d, 'new') is None and not os.path.exists(os.path.join(d, 'city.json')),
+          '行政區快照日期不一致時拒絕產生 city.json')
+
 with tempfile.TemporaryDirectory() as d:
     json.dump({'built': 'x', 'src': 'tdx', 'routes': [{'id': 1}]}, open(os.path.join(d, 'routes.json'), 'w'))
     asked = []
