@@ -10,10 +10,10 @@
    "mrt": 40
   },
   "文山區": {
-   "park": 310,
-   "green": 2245,
-   "school": 176,
-   "sport": 685,
+   "park": 309,
+   "green": 2289,
+   "school": 175,
+   "sport": 690,
    "bus": 1135,
    "mrt": 20
   },
@@ -66,12 +66,12 @@
    "mrt": 19
   },
   "中山區": {
-   "park": 464,
-   "green": 2071,
-   "school": 216,
-   "sport": 832,
-   "bus": 1402,
-   "mrt": 42
+   "park": 469,
+   "green": 2100,
+   "school": 218,
+   "sport": 848,
+   "bus": 1398,
+   "mrt": 44
   },
   "內湖區": {
    "park": 385,
@@ -99,5 +99,12 @@
   }
  },
  "routes": 2400,
- "routes_built": "2026-11-13"
+ "city": {
+  "park": 1475,
+  "green": 6422,
+  "school": 708,
+  "sport": 2934,
+  "bus": 5787,
+  "mrt": 102
+ }
 }
