@@ -37,5 +37,40 @@ data['bus']=[node(5000+i,la,lo,f'站牌{i}',highway='bus_stop') for i,(la,lo) in
 mrt=[node(6000+i,la,lo,f'捷運{i}站',railway='station',station='subway') for i,(la,lo) in enumerate(pts(110))]
 mrt+= [node(7000+i,m['lat']+.0003,m['lon'],m['tags']['name'].replace('站',''),public_transport='station',subway='yes') for i,m in enumerate(mrt[:20])]  # duplicates to test dedupe
 data['mrt']=mrt
-json.dump(data,open(os.path.join(HERE,'mock.json'),'w'),ensure_ascii=False)
+pass
 print({k:len(v) for k,v in data.items()})
+
+# ---- 路線（模擬 OSM PTv2 route relation，out geom 格式）----
+import math
+def dist(a,b):return math.hypot((a[0]-b[0])*110540,(a[1]-b[1])*101000)
+bus=[(n['lat'],n['lon']) for n in data['bus']]
+routes=[]
+for r in range(60):
+    hubs=[i for i in range(len(bus)) if 25.025<bus[i][0]<25.04 and 121.535<bus[i][1]<121.55][:6]
+    cur=hubs[r%6] if r<36 else random.randrange(len(bus));seq=[cur];heading=random.uniform(0,2*math.pi)
+    for _ in range(random.randint(8,15)):
+        p=bus[seq[-1]]
+        cand=[i for i in range(len(bus)) if i not in seq and 150<dist(bus[i],p)<900]
+        if not cand:break
+        cand.sort(key=lambda i:abs(math.atan2(bus[i][0]-p[0],bus[i][1]-p[1])-heading))
+        seq.append(cand[0])
+    if len(seq)<4:continue
+    members=[]
+    for k,i in enumerate(seq):
+        members.append({"type":"node","ref":data['bus'][i]['id'],"role":"stop","lat":bus[i][0],"lon":bus[i][1]})
+    for k in range(len(seq)-1):
+        g=[{"lat":bus[seq[k]][0],"lon":bus[seq[k]][1]},{"lat":bus[seq[k+1]][0],"lon":bus[seq[k+1]][1]}]
+        if k%3==1:g=g[::-1]   # 測試反向 way 的串接
+        members.append({"type":"way","ref":900000+r*100+k,"role":"","geometry":g})
+    iv=[ '6','12','00:20',None ][(r//6)%4]
+    tags={"type":"route","route":"bus","ref":str(200+r),"from":f"起站{r}","to":f"終站{r}","name":f"公車{200+r}"}
+    if iv:tags["interval"]=iv
+    routes.append({"type":"relation","id":800000+r,"members":members,"tags":tags})
+mrt=[(n['lat'],n['lon']) for n in data['mrt'][:110]]
+for r,col in enumerate(['#e3002c','#0070bd','#008659']):
+    seq=sorted(random.sample(range(len(mrt)),10),key=lambda i:mrt[i][1]+r*mrt[i][0])
+    members=[{"type":"node","ref":data['mrt'][i]['id'],"role":"stop","lat":mrt[i][0],"lon":mrt[i][1]} for i in seq]
+    members+=[{"type":"way","ref":950000+r*100+k,"role":"","geometry":[{"lat":mrt[seq[k]][0],"lon":mrt[seq[k]][1]},{"lat":mrt[seq[k+1]][0],"lon":mrt[seq[k+1]][1]}]} for k in range(len(seq)-1)]
+    routes.append({"type":"relation","id":850000+r,"members":members,"tags":{"type":"route","route":"subway","ref":"BR"[r%2]+str(r),"to":f"捷運終點{r}","colour":col}})
+json.dump({'layers':data,'routes':routes},open(os.path.join(HERE,'mock.json'),'w'),ensure_ascii=False)
+print('routes',len(routes))

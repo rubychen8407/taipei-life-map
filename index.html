@@ -6,6 +6,7 @@
 <title>臺北市最佳生活區域</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:14px}
@@ -42,6 +43,11 @@ h4{margin:12px 0 4px;font-size:13px}
 .leaflet-tooltip.lbl{background:rgba(255,255,255,.9);border:none;box-shadow:none;font-size:11px;padding:0 3px;color:#333}
 .zlabel{background:#00695c;color:#fff;border-radius:50%;width:22px!important;height:22px!important;line-height:22px;text-align:center;font-weight:700;font-size:12px;margin-left:-11px!important;margin-top:-11px!important;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .pop b{font-size:14px}
+.tr-legend{background:#fff;border-radius:10px;padding:6px 8px;box-shadow:0 1px 6px rgba(0,0,0,.3);font-size:11px;line-height:1.5}
+.tr-legend i{display:inline-block;width:22px;margin-right:4px;vertical-align:middle;border-radius:2px}
+.tr-legend .x{display:block;margin-top:4px;width:100%;padding:4px;border:1px solid #ccc;border-radius:6px;background:#fff;font-size:12px}
+.tr-end{background:#fff;border:2px solid #333;border-radius:6px;font-size:11px;font-weight:700;padding:0 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);width:auto!important;height:auto!important}
+.tr-origin{border-radius:50%;background:#ff1744;border:3px solid #fff;box-shadow:0 0 0 4px rgba(255,23,68,.35),0 1px 4px rgba(0,0,0,.4);color:#fff;font-weight:700;font-size:12px;text-align:center;line-height:24px}
 </style>
 </head>
 <body>
@@ -135,7 +141,7 @@ function status(t,err){$('status').textContent=t||'';$('status').className=err?'
 function showCity(){cityLayer.clearLayers();DISTRICTS.forEach((d,i)=>{const pl=L.polygon(polysOf(d).map(p=>p.map(r=>r.map(([x,y])=>[y,x]))),{color:'#555',weight:1.5,fillColor:'#26a69a',fillOpacity:.08});
   pl.bindTooltip(d.name,{permanent:true,direction:'center',className:'lbl'});pl.on('click',()=>{if(state.drawing)return;$('scope').value=String(i);setScope(String(i));});pl.addTo(cityLayer);});}
 
-function setScope(v){state.scope=v;state.computed=null;cellLayer.clearLayers();zoneLayer.clearLayers();scopeLayer.clearLayers();
+function setScope(v){closeTransit();state.scope=v;state.computed=null;cellLayer.clearLayers();zoneLayer.clearLayers();scopeLayer.clearLayers();
   LAYERS.forEach(l=>{state.groups[l.id].clearLayers();map.removeLayer(state.groups[l.id]);$('n-'+l.id).textContent='';});
   if(!v){showCity();fit([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);$('result').innerHTML='<div class="hint">👆 先選一個行政區（下拉選單、或直接點地圖上的區），再勾選設施。只會下載該區與周邊 1.4 公里的資料，區界外的設施也會算進步行距離。</div>';status('');return;}
   cityLayer.clearLayers();
@@ -155,7 +161,9 @@ function previewDraw(){drawLayer.clearLayers();state.drawPts.forEach(p=>L.circle
   if(state.drawPts.length>=2)L.polygon(drawRing(),{color:'#d81b60',weight:2,dashArray:'5 5',fillOpacity:.08}).addTo(drawLayer);}
 function finishDraw(){if(state.drawPts.length<2)return;const ring=drawRing().map(([la,lo])=>[lo,la]);ring.push(ring[0]);
   state.custom={name:'自選範圍',type:'Polygon',coords:[ring]};state.custom.bb=bboxOf(state.custom);endDraw();fillScope();$('scope').value='custom';setScope('custom');}
-map.on('click',e=>{if(state.drawing){state.drawPts.push([e.latlng.lat,e.latlng.lng]);previewDraw();}});
+map.on('click',e=>{if(state.drawing){state.drawPts.push([e.latlng.lat,e.latlng.lng]);previewDraw();return;}
+  if(state.transit){closeTransit();return;}
+  if(state.computed&&state.byKey){const i=Math.floor((e.latlng.lng-CITY[1])/dLon),j=Math.floor((e.latlng.lat-CITY[0])/dLat);const k=state.byKey.get(i+','+j);if(k!=null)cellPopup(k);}});
 
 // ---------- data ----------
 async function overpass(q){let err;
@@ -194,6 +202,7 @@ function drawFeatures(id,feats){const g=state.groups[id];g.clearLayers();const L
     if(closed)lyr=L.polygon(f.polys,{color:L0.color,weight:1,fillColor:L0.color,fillOpacity:.4});
     else lyr=L.circleMarker(f.center,{radius:id==='bus'?3:(id==='mrt'?7:5),color:'#fff',weight:1.5,fillColor:L0.color,fillOpacity:1});
     if(f.name)lyr.bindTooltip(`${L0.name}：${f.name}`,{className:'lbl',direction:'top'});
+    if(id==='bus'||id==='mrt')lyr.on('click',ev=>{if(state.drawing)return;L.DomEvent.stopPropagation(ev);showTransit(f,id);});
     g.addLayer(lyr);}}
 function data(id){const S=state.store[scopeKey()];return S&&S[id];}
 
@@ -244,8 +253,7 @@ function render(){
     if(r.ok===n){good++;goodIdx.push(k);color=r.worst<=mins*0.6?'#00695c':'#26a69a';op=.5;}
     else if(r.ok===n-1&&n>1){color='#ffb74d';op=.28;}
     if(!color)return;
-    L.rectangle([[c.la-dLat/2,c.lo-dLon/2],[c.la+dLat/2,c.lo+dLon/2]],{renderer:cellRenderer,pane:'analysis',stroke:false,fillColor:color,fillOpacity:op})
-      .on('click',ev=>{if(state.drawing)return;L.DomEvent.stopPropagation(ev);cellPopup(k);}).addTo(cellLayer);});
+    L.rectangle([[c.la-dLat/2,c.lo-dLon/2],[c.la+dLat/2,c.lo+dLon/2]],{renderer:cellRenderer,pane:'analysis',stroke:false,fillColor:color,fillOpacity:op,interactive:false}).addTo(cellLayer);});
   // 推薦區域：依最近捷運站分組
   const mrt=data('mrt')||[];const groups=new Map();
   for(const k of goodIdx){const c=state.cells[k];let b=-1,bd=Infinity;mrt.forEach((f,i)=>{const d=Math.hypot((f.center[0]-c.la)*KY,(f.center[1]-c.lo)*KX);if(d<bd){bd=d;b=i;}});
@@ -281,6 +289,67 @@ function cellPopup(k,title){const C=state.computed,c=state.cells[k],r=C.res[k];
   for(const id of C.act){const L0=LAYERS.find(l=>l.id===id);const[t,fi]=r.near[id];const f=fi>=0?data(id)[fi]:null;
     h+=`<br><span style="color:${L0.color}">●</span> ${L0.name}：${t<=C.mins?'✅':'❌'} ${t===Infinity?'超過 '+C.mins:Math.max(1,Math.ceil(t))} 分${f&&f.name?'（'+f.name+'）':''}`;}
   L.popup().setLatLng([c.la,c.lo]).setContent(h+'</div>').openOn(map);}
+
+// ---------- 大眾運輸：點站牌/捷運站 → 地圖上畫出可到達的方向與班次多寡 ----------
+const transitLayer=L.layerGroup().addTo(map);let trLegend=null;
+const FREQ=[{max:8,c:'#1b5e20',w:8,t:'≤8 分一班'},{max:15,c:'#7cb342',w:6,t:'8–15 分'},{max:30,c:'#f9a825',w:4.5,t:'15–30 分'},{max:1e9,c:'#e53935',w:3,t:'30 分以上'}];
+function parseInterval(v){if(!v)return null;v=String(v).trim();let m=v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?/);if(m)return(+m[1])*60+(+m[2]);m=v.match(/\d+(\.\d+)?/);return m?+m[0]:null;}
+function freqStyle(min){if(min==null)return null;return FREQ.find(f=>min<=f.max);}
+function chainWays(ways){const segs=[];let cur=null;const eq=(a,b)=>a&&b&&Math.abs(a[0]-b[0])<1e-7&&Math.abs(a[1]-b[1])<1e-7;
+  for(const w of ways){if(!cur){cur=w.slice();continue;}const end=cur[cur.length-1],start=cur[0];
+    if(eq(end,w[0]))cur=cur.concat(w.slice(1));
+    else if(eq(end,w[w.length-1]))cur=cur.concat(w.slice().reverse().slice(1));
+    else if(!segs.length&&(eq(start,w[0])||eq(start,w[w.length-1]))){cur.reverse();cur=eq(cur[cur.length-1],w[0])?cur.concat(w.slice(1)):cur.concat(w.slice().reverse().slice(1));}
+    else{segs.push(cur);cur=w.slice();}}
+  if(cur)segs.push(cur);return segs;}
+const md=(a,b)=>Math.hypot((a[0]-b[0])*KY,(a[1]-b[1])*KX);
+function closeTransit(){if(!state.transit)return;transitLayer.clearLayers();if(trLegend){map.removeControl(trLegend);trLegend=null;}
+  if(!map.hasLayer(cellLayer))cellLayer.addTo(map);if(!map.hasLayer(zoneLayer))zoneLayer.addTo(map);
+  LAYERS.forEach(l=>{if(state.active.has(l.id)&&state.groups[l.id]._drawn&&state.scope)state.groups[l.id].addTo(map);});
+  if(state.transit.panelWasOpen&&$('panel').classList.contains('min'))$('toggle').click();state.transit=null;}
+async function showTransit(f,kind){closeTransit();map.closePopup();
+  const [la,lo]=f.center,R=kind==='mrt'?300:40;
+  const panelWasOpen=!$('panel').classList.contains('min');state.transit={f,panelWasOpen,loading:true};
+  status('🚏 查詢經過這站的路線…');
+  const RT='["route"~"^(bus|subway|light_rail|train|monorail)$"]';
+  const q=`[out:json][timeout:90];(node(around:${R},${la},${lo})["public_transport"~"^(stop_position|platform)$"];node(around:${R},${la},${lo})["highway"="bus_stop"];way(around:${R},${la},${lo})["public_transport"="platform"];)->.s;(rel(bn.s)${RT};rel(bw.s)${RT};);out geom;`;
+  let j;try{j=await overpass(q);}catch(e){status('路線查詢失敗（伺服器忙碌），請再點一次。',true);state.transit=null;return;}
+  if(!state.transit||state.transit.f!==f)return;status('');
+  map.removeLayer(cellLayer);map.removeLayer(zoneLayer);LAYERS.forEach(l=>map.removeLayer(state.groups[l.id]));
+  if(window.innerWidth<=600&&panelWasOpen)$('toggle').click();
+  const origin=[la,lo];const lines=[];const seen=new Set();let nRoutes=0;
+  for(const rel of j.elements){if(rel.type!=='relation'||!rel.members)continue;const t=rel.tags||{};
+    const sig=(t.route||'')+'|'+(t.ref||'')+'|'+(t.to||t.name||'');if(seen.has(sig))continue;seen.add(sig);
+    const ways=rel.members.filter(m=>m.type==='way'&&m.geometry&&!/platform/.test(m.role||'')).map(m=>m.geometry.map(p=>[p.lat,p.lon]));
+    if(!ways.length)continue;
+    const pts=[].concat(...chainWays(ways));
+    let stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/^stop/.test(m.role||'')).map(m=>[m.lat,m.lon]);
+    if(stops.length<2)stops=rel.members.filter(m=>m.type==='node'&&m.lat!=null&&/stop|platform/.test(m.role||'')).map(m=>[m.lat,m.lon]);
+    // 起點：這條路線上最靠近所點車站的停靠點
+    let si=0,sd=Infinity;stops.forEach((p,i)=>{const d=md(p,origin);if(d<sd){sd=d;si=i;}});
+    const anchor=stops.length&&sd<R+250?stops[si]:origin;
+    let pi=0,pd=Infinity;pts.forEach((p,i)=>{const d=md(p,anchor);if(d<pd){pd=d;pi=i;}});
+    const down=pts.slice(pi);if(down.length<2)continue;   // 已是終點站：不往下畫
+    const downStops=stops.length&&sd<R+250?stops.slice(si+1):[];
+    const iv=parseInterval(t.interval||t['interval:conditional']);const fs=freqStyle(iv);
+    const base=t.route==='bus'?null:(t.colour||'#455a64');
+    const style=fs?{color:fs.c,weight:fs.w,opacity:.85}:{color:base||'#78909c',weight:3,opacity:.6,dashArray:'6 6'};
+    if(t.route!=='bus'&&!fs)Object.assign(style,{weight:6,opacity:.85,dashArray:null});
+    const pl=L.polyline(down,style).addTo(transitLayer);pl.on('click',L.DomEvent.stopPropagation);lines.push(pl);nRoutes++;
+    pl.bindTooltip(`${t.route==='bus'?'🚌':'🚇'} ${t.ref||''} → ${t.to||''}${iv?'・約 '+iv+' 分一班':''}`,{sticky:true});
+    if(L.polylineDecorator)L.polylineDecorator(pl,{patterns:[{offset:25,repeat:140,symbol:L.Symbol.arrowHead({pixelSize:9,polygon:true,pathOptions:{color:style.color,fillOpacity:1,weight:0}})}]}).addTo(transitLayer);
+    downStops.forEach(p=>L.circleMarker(p,{radius:3,color:style.color,weight:2,fillColor:'#fff',fillOpacity:1,interactive:false}).addTo(transitLayer));
+    const end=down[down.length-1];
+    L.marker(end,{icon:L.divIcon({className:'tr-end',html:`${t.route==='bus'?'':'🚇'}${t.ref||'終點'}`,iconSize:null,iconAnchor:[12,10]}),interactive:false}).addTo(transitLayer);}
+  L.marker(origin,{icon:L.divIcon({className:'tr-origin',html:String(nRoutes),iconSize:[26,26],iconAnchor:[13,13]}),zIndexOffset:2000,interactive:false}).addTo(transitLayer);
+  trLegend=L.control({position:'topleft'});
+  trLegend.onAdd=()=>{const d=L.DomUtil.create('div','tr-legend');
+    d.innerHTML=`<b>${f.name||'這一站'}</b>：${nRoutes} 條路線<br>`+FREQ.map(x=>`<i style="height:${x.w}px;background:${x.c}"></i>${x.t}`).join('<br>')+
+      `<br><i style="height:0;border-top:3px dashed #78909c"></i>無班距資料<br><span style="color:#888">箭頭＝行駛方向・圓點＝停靠站</span><button class="x">✕ 關閉路線</button>`;
+    L.DomEvent.disableClickPropagation(d);d.querySelector('.x').onclick=closeTransit;return d;};
+  trLegend.addTo(map);state.transit.loading=false;state.transit.n=nRoutes;
+  if(lines.length)map.fitBounds(L.featureGroup(lines).getBounds().extend(origin),{padding:[30,30]});
+  else status('OpenStreetMap 上沒有這一站的路線資料。');}
 
 setScope('');
 </script>

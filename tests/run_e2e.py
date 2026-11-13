@@ -5,8 +5,11 @@ import json, asyncio, urllib.parse, base64, sys, os, re, shutil
 from playwright.async_api import async_playwright
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
-MOCK = json.load(open(os.path.join(HERE, 'mock.json')))
+_M = json.load(open(os.path.join(HERE, 'mock.json')))
+MOCK, ROUTES = _M['layers'], _M['routes']
+import math
 LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
+PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
 SNIP = {'park': 'leisure"="park"', 'green': 'landuse', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
@@ -25,7 +28,18 @@ def center(e):
     return (b['minlat'] + b['maxlat']) / 2, (b['minlon'] + b['maxlon']) / 2
 
 
+def mdist(a, b):
+    return math.hypot((a[0] - b[0]) * 110540, (a[1] - b[1]) * 101000)
+
+
+def answer_routes(q):
+    R, la, lo = map(float, re.search(r'around:([\d.]+),([\d.]+),([\d.]+)', q).group(1, 2, 3))
+    return [rel for rel in ROUTES if any(m['type'] == 'node' and mdist((m['lat'], m['lon']), (la, lo)) <= R for m in rel['members'])]
+
+
 def answer(q):
+    if 'rel(bn.s)' in q:
+        return answer_routes(q)
     s, w, n, e = map(float, re.search(r'\[bbox:([^\]]+)\]', q).group(1).split(','))
     out = []
     for lid in layers_in(q):
@@ -54,6 +68,8 @@ async def main():
                 return await r.fulfill(path=os.path.join(ROOT, 'index.html'), content_type='text/html; charset=utf-8')
             if 'unpkg.com/leaflet@1.9.4/dist/leaflet.css' in u:
                 return await r.fulfill(path=LF + 'leaflet.css', content_type='text/css')
+            if 'leaflet-polylinedecorator' in u:
+                return await r.fulfill(path=PD, content_type='application/javascript')
             if 'unpkg.com/leaflet@1.9.4/dist/leaflet.js' in u:
                 return await r.fulfill(path=LF + 'leaflet.js', content_type='application/javascript')
             if 'tile.openstreetmap.org' in u:
@@ -61,7 +77,7 @@ async def main():
             if 'interpreter' in u:
                 req = r.request
                 q = urllib.parse.parse_qs(req.post_data or '').get('data', [''])[0]
-                calls.append({'host': u.split('/')[2], 'ct': req.headers.get('content-type', ''), 'layers': layers_in(q), 'q': q})
+                calls.append({'host': u.split('/')[2], 'ct': req.headers.get('content-type', ''), 'layers': [] if 'rel(bn.s)' in q else layers_in(q), 'q': q})
                 if 'overpass-api.de' in u and 'school' in layers_in(q):
                     return await r.fulfill(status=504, body='timeout')          # 測試改用備用伺服器
                 if any(FAIL.get(l) for l in layers_in(q)):
@@ -143,6 +159,61 @@ async def main():
         pop = await ev("document.querySelector('.leaflet-popup-content')?.innerText||''")
         check(pop.startswith('#1') and pop.count('✅') == 4, '點推薦區域 #1 放大並列出各類步行時間')
         await page.screenshot(path=os.path.join(HERE, 'out', 's2.png'))
+
+        # 6b. 點色塊（地圖空白處）顯示該格步行時間
+        await ev("void map.closePopup()")
+        k = await ev("state.computed.res.findIndex(x=>x.ok===state.computed.act.length)")
+        await ev(f"(()=>{{const c=state.cells[{k}];map.fire('click',{{latlng:L.latLng(c.la,c.lo)}});}})()")
+        await page.wait_for_timeout(300)
+        check('步行時間' in await ev("document.querySelector('.leaflet-popup-content')?.innerText||''") and not await ev("cellLayer.getLayers()[0].options.interactive"), '點地圖上的色塊會顯示該格步行時間（色塊不擋住設施點）')
+        await ev("void map.closePopup()")
+
+        # 6c. 大眾運輸：點公車站 → 地圖上畫出可到達方向與班次
+        cands = []
+        for rel in ROUTES:
+            if rel['tags']['route'] != 'bus' or rel['tags'].get('interval') != '6' or int(rel['id']) - 800000 >= 36:
+                continue
+            st = [m for m in rel['members'] if m['type'] == 'node']
+            cands.append((st[0]['lat'], st[0]['lon']))
+        pick = await ev(f"(()=>{{const C={json.dumps(cands)};const d=data('bus');for(const [a,b] of C){{const f=d.find(f=>Math.abs(f.center[0]-a)<1e-9&&Math.abs(f.center[1]-b)<1e-9);if(f)return [a,b,f.name];}}return null;}})()")
+        check(pick is not None, '找到一個有路線經過的公車站可供點選')
+        stop = (pick[0], pick[1])
+        exp = []
+        for rel in ROUTES:
+            st = [(m['lat'], m['lon']) for m in rel['members'] if m['type'] == 'node']
+            near = [i for i, p in enumerate(st) if mdist(p, stop) <= 40]
+            if near and near[0] < len(st) - 1:
+                exp.append(rel)
+        await page.click('#toggle')   # 先收起面板，點地圖上看得到的站牌
+        await ev(f"void map.setView([{stop[0]},{stop[1]}],19,{{animate:false}})"); await page.wait_for_timeout(400)
+        pt = await ev(f"(()=>{{const p=map.latLngToContainerPoint([{stop[0]},{stop[1]}]);return [p.x,p.y];}})()")
+        n0 = len(calls)
+        await page.mouse.click(pt[0], pt[1])
+        await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=20000)
+        check(any('rel(bn.s)' in c['q'] for c in calls[n0:]), '點公車站會查詢經過此站的路線')
+        check(await ev("state.transit.f.name") == pick[2], f'點到的是指定的站牌（{pick[2]}）')
+        lines = await ev("transitLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon)).map(l=>({w:l.options.weight,c:l.options.color,dash:l.options.dashArray||null,first:l.getLatLngs()[0],n:l.getLatLngs().length}))")
+        check(len(lines) == len(exp), f'地圖上畫出所有經過此站的路線（{len(lines)}/{len(exp)} 條）')
+        check(all(mdist((l['first']['lat'], l['first']['lng']), stop) < 60 for l in lines), '每條路線都從這一站往下游畫（只畫可到達的方向）')
+        ivs = [rel['tags'].get('interval') for rel in exp]
+        check(len(lines) >= 4, f'測試站有多條路線經過（{len(lines)} 條）')
+        check(any(l['w'] == 8 and l['c'] == '#1b5e20' for l in lines), '6 分一班的路線畫成最粗的深綠線')
+        check(any(l['w'] == 4.5 for l in lines) and any(l['dash'] for l in lines), '20 分一班畫成細黃線、無班距資料畫成虛線')
+        check(await ev("transitLayer.getLayers().some(l=>l.options&&l.options.icon&&l.options.icon.options.className==='tr-end')"), '路線終點有路線編號標記')
+        check(await ev("!!document.querySelector('.tr-legend')") and not await ev("map.hasLayer(cellLayer)") and not await ev("map.hasLayer(state.groups.bus)"), '顯示班距圖例，暫時隱藏分析色塊與設施點')
+
+        await page.screenshot(path=os.path.join(HERE, 'out', 's_transit.png'))
+        await page.click('.tr-legend .x'); await page.wait_for_timeout(300)
+        check(await ev("!state.transit&&!document.querySelector('.tr-legend')&&map.hasLayer(cellLayer)&&map.hasLayer(state.groups.bus)"), '關閉路線後恢復分析色塊與設施點')
+        await page.click('#toggle')   # 打開面板
+
+        # 6d. 捷運站也可點
+        await ev("void showTransit(data('mrt').find(f=>f.name==='捷運0站')||data('mrt')[0],'mrt')")
+        await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=20000)
+        check(await ev("state.transit.n>=0") and any('around:300' in c['q'] for c in calls), '點捷運站以 300 公尺範圍查詢路線')
+        check(await ev("document.getElementById('panel').classList.contains('min')"), '面板開著時點車站，手機上會自動收起面板讓地圖完整顯示')
+        await ev("closeTransit()")
+        check(not await ev("document.getElementById('panel').classList.contains('min')"), '關閉路線後面板恢復')
 
         # 7. 換區 → 下載；換回 → 不重抓
         n0 = len(calls)
