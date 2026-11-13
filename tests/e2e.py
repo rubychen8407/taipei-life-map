@@ -110,7 +110,7 @@ async def shot(page, name):
     await page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 
-READY = "state.res&&document.getElementById('head').innerText.includes('生活圈')"
+READY = "state.res&&document.getElementById('head').innerText.includes('分類步行距離分析')"
 LINES = "transitLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
 HANDLE = "(()=>{const r=document.querySelector('.handle').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()"
 
@@ -122,6 +122,10 @@ async def baked_suite(b, errs):
     t0 = time.time()
     await page.goto(URL)
     await page.wait_for_function(READY, timeout=20000)
+    labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],park=data('park').find(f=>f.name),old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(park,LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();const marker=L.marker(park.center,{icon:facilityIcon(LAYER.park,park,17,true)}).on('click',()=>window.__labelClicked=true).addTo(map);marker._icon.querySelector('.facility-name').dispatchEvent(new MouseEvent('click',{bubbles:true}));result.labelClick=!!window.__labelClicked;marker.remove();delete window.__labelClicked;FACILITY_LABEL_CACHE.delete(bus);FACILITY_LABEL_CACHE.delete(mrt);return result;})()""")
+    check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
+    check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
+    check(labels['labelClick'], '點擊標籤文字會觸發對應 POI 標記事件')
     dt = time.time() - t0
     # 1. 開啟即顯示
     check(len(calls) == n0 and data_hits == ['city.json'], f'開啟時只讀一個預建檔（city.json），完全不查 Overpass {data_hits}')
@@ -136,16 +140,15 @@ async def baked_suite(b, errs):
     check(r['topBottom'] < 130 and 380 < r['sheetTop'] < 520, f"版面：上方範圍列＋類別列、下方卡片約半高（{r['sheetTop']:.0f}px 起）")
     await shot(page, '1_home')
 
-    # 2. 類別按鈕、分鐘即時切換
+    # 2. 類別按鈕、各類別獨立距離設定
     t0 = time.time()
     await page.click('.chip[data-id=bus]')
     await page.wait_for_function("state.res.act.includes('bus')", timeout=5000)
     check(len(calls) == n0 and len(data_hits) == 1 and time.time() - t0 < 1.5, f'點「公車站」立即重算（{time.time()-t0:.2f} 秒），不下載任何東西')
     g10 = await ev("state.res.good")
-    await page.click('.seg button[data-m="5"]')
-    g5 = await ev("state.res.good")
-    check(await ev("state.res.mins") == 5 and g5 < g10, f'切到 5 分鐘即時重算，符合範圍變小（{g10}→{g5} 格）')
-    await page.click('.seg button[data-m="10"]')
+    await page.select_option('select[data-distance="park"]', '5')
+    check(await ev("state.res.thresholds[state.res.act.indexOf('park')]===5 && state.minsByLayer.park===5 && state.minsByLayer.school===10"), '公園距離可獨立設定為 5 分鐘，不影響學校的 10 分鐘設定')
+    await page.select_option('select[data-distance="park"]', '10')
 
     # 3. 卡片拖拉
     box = await ev(HANDLE)
@@ -154,7 +157,7 @@ async def baked_suite(b, errs):
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 160, '往下拖把卡片收到最小，地圖幾乎全螢幕')
-    check(await ev("(()=>{const r=document.querySelector('.seg').getBoundingClientRect();return r.bottom<=innerHeight})()"), '收到最小時仍看得到標題與分鐘切換')
+    check(await ev("document.querySelectorAll('select[data-distance]').length===state.res.act.length"), '每個已選類別都有獨立距離選擇器')
     await shot(page, '2_peek')
     box = await ev(HANDLE)
     await page.mouse.click(*box); await page.wait_for_timeout(350)
@@ -204,6 +207,7 @@ async def baked_suite(b, errs):
     check(hit > len(corners) * .5, f'路線沿實際行駛道路畫（經過 {hit}/{len(corners)} 個轉彎點），不是站與站直線')
     check(any(l['w'] == 8 and l['c'] == '#137333' for l in lines), '班次密（6 分一班）的路線畫成最粗的綠線')
     check(await ev("state.view.type") == 'place' and '條路線' in await ev("document.querySelector('#head .sub').innerText") and await ev("!!document.querySelector('.freq')"), '卡片顯示站名、路線數與班距圖例')
+    check(await ev("document.querySelector('.detail-category')?.innerText==='公車站' && document.querySelector('#head h1').innerText.includes(state.view.f.name||'公車站')"), '下方視窗標題顯示所選 POI 名稱，類別標籤與地圖上的公車站圖示一致')
     check(not await ev("!!heat") and await ev("pinLayer.getLayers().length") == 0, '看路線時暫時隱藏色塊與其他標記')
     viewport_after = await ev("(()=>{const c=map.getCenter();return {lat:c.lat,lng:c.lng,zoom:map.getZoom()}})()")
     stable = abs(viewport_after['lat']-viewport_before['lat'])<1e-7 and abs(viewport_after['lng']-viewport_before['lng'])<1e-7 and viewport_after['zoom']==viewport_before['zoom']
