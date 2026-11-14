@@ -248,8 +248,18 @@ def build_bus(t, box, log=print):
             sch = {bus_key(s): s for s in t.get(f'/v2/Bus/Schedule/City/{city}')}
         except Exception as e:
             log(f'  bus schedule {city} FAILED {e}'); sch = {}
-        sh = {bus_key(s): s for s in shapes}
+        # 軌跡的編號不一定和站序資料同一層級：先用 子路線＋方向 找，找不到再用 主路線 的所有軌跡，
+        # 最後一律用「貼著多少站牌」決定用哪一條，所以不會配到別條路線的線。
+        by_sub, by_route = {}, {}
+        for x in shapes:
+            segs = [seg for raw in wkt_lines(x.get('Geometry')) for seg in clip_polyline(raw, box)]
+            if not segs:
+                continue
+            if x.get('SubRouteUID'):
+                by_sub.setdefault((x['SubRouteUID'], int(x.get('Direction') or 0)), []).extend(segs)
+            by_route.setdefault(x.get('RouteUID') or '', []).extend(segs)
         log(f'  bus {city}: stopOfRoute {len(stops)}, shape {len(shapes)}, schedule {len(sch)}')
+        stat = {'sub': 0, 'route': 0, 'none': 0}
         for s in stops:
             k = bus_key(s)
             if k in seen:
@@ -259,25 +269,29 @@ def build_bus(t, box, log=print):
                    for p in [[st['StopPosition']['PositionLat'], st['StopPosition']['PositionLon']]] if st.get('StopPosition')]
             if len(pts) < 2 or not any(inbox(p, box) for p, _ in pts):
                 continue
-            lines = wkt_lines((sh.get(k) or {}).get('Geometry'))
-            # 不以站點直線代替缺失的行駛軌跡；直線可能穿越建築物或非道路空間。
-            if not lines:
-                continue
-            clipped = [seg for raw in lines for seg in clip_polyline(raw, box)]
-            if not clipped:
-                continue
-            # 前端路線格式是一條折線：取「貼著最多站牌」的連續框內片段，絕不跨越框外空隙硬接。
             sp = [p for p, _ in pts if inbox(p, box)]
-            line = max(clipped, key=lambda seg: (sum(1 for p in sp if project(seg, p)[0] <= 60), len(seg)))
+            line, how = [], 'none'
+            for label, cands in (('sub', by_sub.get(k)), ('route', by_route.get(s.get('RouteUID') or ''))):
+                if not cands:
+                    continue
+                fit = lambda seg: sum(1 for p in sp if project(seg, p)[0] <= 60)
+                best = max(cands, key=lambda seg: (fit(seg), len(seg)))
+                if fit(best) >= max(2, 0.6 * len(sp)):      # 至少六成站牌貼著這條線才採用
+                    line, how = best, label; break
+            stat[how] += 1
+            if line:   # 軌跡方向要和站序一致（前端只畫上車後的下游）
+                i0, i1 = project(line, sp[0])[1], project(line, sp[-1])[1]
+                if i0 > i1:
+                    line = line[::-1]
+                line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 1.5)]
+            # 沒有可信的行駛軌跡：路線仍保留（清單會列出），但不畫線——不用站間直線代替，直線會穿過建築物。
             names = [zh(st.get('StopName')) for _, st in pts]
             ref = zh(s.get('SubRouteName')) or zh(s.get('RouteName'))
-            line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 1.5)]
-            if len(line) < 2:
-                continue
             iv = bus_interval(sch.get(k) or {})
             out.append({'id': f'{city[0]}{zlib.crc32(repr(k).encode())}', 'r': 'bus', 'ref': ref, 'to': names[-1], 'from': names[0], 'name': ref,
                         'iv': iv, 'col': None, 'line': line,
                         'stops': [[B.r5(p[0]), B.r5(p[1])] for p, _ in pts if inbox(p, box)]})
+        log(f'  bus {city} 軌跡配對：子路線 {stat["sub"]}、主路線 {stat["route"]}、沒有軌跡 {stat["none"]}')
     return out
 
 
@@ -345,7 +359,10 @@ def build(t, out_dir=os.path.join(ROOT, 'data'), log=print):
     routes = build_metro(t, box, log) + build_bus(t, box, log)
     nb = sum(1 for r in routes if r['r'] == 'bus'); nm = len(routes) - nb
     withiv = sum(1 for r in routes if r['iv'])
-    log(f'routes: bus {nb}, metro {nm}, with interval {withiv}')
+    noline = sum(1 for r in routes if len(r['line']) < 2)
+    log(f'routes: bus {nb}, metro {nm}, with interval {withiv}, without line {noline}')
+    if noline > nb * 0.5:
+        raise RuntimeError('超過一半的公車沒有行駛軌跡，資料異常，不覆蓋既有路線檔')
     if nb < 50 or nm < 4:
         raise RuntimeError('TDX 資料量異常少，不覆蓋既有路線檔')
     os.makedirs(out_dir, exist_ok=True)

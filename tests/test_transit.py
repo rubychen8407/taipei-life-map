@@ -68,9 +68,18 @@ class MissingOneBusShape(Fake):
             return BUS_SHAPE[2:]  # 同一路線往返兩個方向都缺少軌跡
         return super().get(path, tries)
 missing_shape_routes = T.build_bus(MissingOneBusShape(), box, quiet)
-check(len(missing_shape_routes) == 118 and all(r['ref'] != '0路' for r in missing_shape_routes), '單一路線缺少幾何時略過，不用站點直線穿越建築物')
+check(len(missing_shape_routes) == 120 and all(r['line'] == [] for r in missing_shape_routes if r['ref'] == '0路') and sum(1 for r in missing_shape_routes if r['line']) == 118, '單一路線缺少幾何時不畫線（line 為空、仍列在清單），不用站點直線穿越建築物')
 check(T.build_bus(Fake(broken=['Bus/Schedule']), box, quiet)[0]['iv'] is None, '班表 API 失敗不影響路線本身')
 check(T.build_bus(Fake(broken=['Bus/Shape']), box, quiet) == [], '軌跡 API 失敗：該城市整批略過、不崩潰')
+_keep = [dict(x) for x in BUS_SHAPE]
+for x in BUS_SHAPE:
+    x.pop('SubRouteUID')                      # 軌跡只有主路線編號（沒有子路線）
+    if x['RouteUID'] == 'TPE5': x['Geometry'] = wkt([(25.20, 121.40), (25.21, 121.41)])   # 這條的軌跡根本不經過站牌
+rs2 = T.build_bus(Fake(), box, quiet)
+ok5 = [r for r in rs2 if r['ref'] == '5路']
+check(len(rs2) == 120 and sum(1 for r in rs2 if len(r['line']) >= 2) == 118 and all(r['line'] == [] for r in ok5), f"軌跡只有主路線編號時仍配得到（118/120 有線）；軌跡不經過站牌的路線保留在清單但不畫線")
+check(all(T.project(r['line'], r['stops'][0])[1] <= T.project(r['line'], r['stops'][-1])[1] for r in rs2 if r['line']), '同一主路線的去程／返程各自配到線，方向與站序一致')
+BUS_SHAPE[:] = _keep
 
 ms = T.build_metro(Fake(), box, quiet)
 main = [m for m in ms if m['ref'] in ('板南線', '淡水信義線')]
