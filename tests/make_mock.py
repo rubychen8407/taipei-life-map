@@ -30,7 +30,6 @@ data={}
 data['park']=[way(1000+i,la,lo,random.uniform(.001,.004),f'公園{i}',{"leisure":"park"}) for i,(la,lo) in enumerate(pts(500))]
 data['park'].append({"type":"relation","id":9,"bounds":{"minlat":25.03,"minlon":121.53,"maxlat":25.034,"maxlon":121.537},
   "members":[{"type":"way","ref":1,"role":"outer","geometry":[{"lat":25.03,"lon":121.53},{"lat":25.03,"lon":121.537},{"lat":25.034,"lon":121.537},{"lat":25.034,"lon":121.53},{"lat":25.03,"lon":121.53}]}],"tags":{"name":"大安森林公園","leisure":"park"}})
-data['green']=[way(2000+i,la,lo,random.uniform(.002,.01),'',{"landuse":"forest"}) for i,(la,lo) in enumerate(pts(400))]
 data['school']=[way(3000+i,la,lo,.002,f'國小{i}',{"amenity":"school"}) if i%2 else node(3000+i,la,lo,f'幼兒園{i}',amenity='kindergarten') for i,(la,lo) in enumerate(pts(600))]
 data['sport']=[node(4000+i,la,lo,f'球場{i}',leisure='pitch') for i,(la,lo) in enumerate(pts(500))]
 data['bus']=[node(5000+i,la,lo,f'站牌{i}',highway='bus_stop') for i,(la,lo) in enumerate(pts(4000))]

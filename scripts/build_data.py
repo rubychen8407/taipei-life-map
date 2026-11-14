@@ -11,9 +11,6 @@ ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.privat
 BUFFER = 1400  # 公尺；與 index.html 相同
 LAYERS = [  # 與 index.html 的 LAYERS 相同
     ('park', True, 'nwr["leisure"="park"]', lambda t: t.get('leisure') == 'park'),
-    ('green', True, 'nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"];nwr["leisure"="garden"];nwr["natural"~"^(wood|scrub|grassland)$"]',
-     lambda t: bool(re.match(r'^(grass|forest|meadow|recreation_ground|village_green)$', t.get('landuse', ''))) or t.get('leisure') == 'garden'
-     or bool(re.match(r'^(wood|scrub|grassland)$', t.get('natural', '')))),
     ('school', False, 'nwr["amenity"~"^(school|kindergarten|university|college)$"]', lambda t: bool(re.match(r'^(school|kindergarten|university|college)$', t.get('amenity', '')))),
     ('sport', False, 'nwr["leisure"~"^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$"]',
      lambda t: bool(re.match(r'^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$', t.get('leisure', '')))),

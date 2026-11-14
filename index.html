@@ -279,8 +279,6 @@ function categoryIcon(id){const paths={
 function facilityIcon(l,f,z,showLabel){const text=showLabel?facilityLabel(f,l):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[44,44],iconAnchor:[22,22]});}
 const LAYERS = [
   {id:'park',  name:'公園',  icon:categoryIcon('park'), color:'#2e7d32', bg:'#e6f4ea', geom:true,  q:'nwr["leisure"="park"]', is:t=>t.leisure==='park'},
-  {id:'green', name:'綠地',  icon:categoryIcon('green'), color:'#7cb342', bg:'#f1f8e9', geom:true,  q:'nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"];nwr["leisure"="garden"];nwr["natural"~"^(wood|scrub|grassland)$"]',
-   is:t=>/^(grass|forest|meadow|recreation_ground|village_green)$/.test(t.landuse||'')||t.leisure==='garden'||/^(wood|scrub|grassland)$/.test(t.natural||'')},
   {id:'school',name:'學校',  icon:categoryIcon('school'), color:'#1565c0', bg:'#e8f0fe', geom:false, q:'nwr["amenity"~"^(school|kindergarten|university|college)$"]', is:t=>/^(school|kindergarten|university|college)$/.test(t.amenity||'')},
   {id:'sport', name:'運動',  icon:categoryIcon('sport'), color:'#ef6c00', bg:'#fff3e0', geom:false, q:'nwr["leisure"~"^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$"]', is:t=>/^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$/.test(t.leisure||'')},
   {id:'bus',   name:'公車站',icon:categoryIcon('bus'), color:'#8e24aa', bg:'#f3e8fd', geom:false, q:'node["highway"="bus_stop"]', is:t=>t.highway==='bus_stop'},
@@ -307,7 +305,7 @@ const scopeLayer=L.layerGroup().addTo(map),labelLayer=L.layerGroup().addTo(map),
   selLayer=L.layerGroup().addTo(map),transitLayer=L.layerGroup().addTo(map),drawLayer=L.layerGroup().addTo(map),meLayer=L.layerGroup().addTo(map),lifeLayer=L.layerGroup().addTo(map);
 let heat=null;
 
-const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,green:10,school:10,sport:10,bus:10,mrt:10,life:20},modeByLayer:{park:'walk',green:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
+const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,school:10,sport:10,bus:10,mrt:10,life:20},modeByLayer:{park:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
   lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true}};
 
@@ -553,7 +551,7 @@ function drawPins(){pinLayer.clearLayers();if(!state.res||state.transit||state.v
   state.zones.forEach((z,i)=>{const c=CELLS[z.best];L.marker([c.la,c.lo],{icon:L.divIcon({className:'zpin',html:String(i+1),iconSize:[26,26]}),zIndexOffset:500}).on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}openZone(i);}).addTo(pinLayer);});}
 let facCache=new Map();
 function drawFacilities(){if(state.transit||!state.res||!state.layers.fac){facLayer.clearLayers();facCache.clear();return;}const next=new Map();const z=map.getZoom();if(!ROUTE_DATA&&!routeLabelsLoading&&!routeLabelsAttempted&&((state.active.has('mrt')&&z>=12.5)||(state.active.has('bus')&&z>=15.5))){routeLabelsAttempted=true;routeLabelsLoading=true;bakedRoutes().then(()=>{routeLabelsLoading=false;if(!state.transit)drawFacilities();});}const b=map.getBounds().pad(.15),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();let cnt=0;const dots=new Set();
-  for(const l of [...LAYERS].sort((a,b)=>['mrt','bus','school','sport','park','green'].indexOf(a.id)-['mrt','bus','school','sport','park','green'].indexOf(b.id))){if(!state.active.has(l.id))continue;const feats=data(l.id);if(!feats)continue;const ptOK=z>=(l.id==='mrt'?12.5:(l.id==='bus'?15.5:14.5)),polyOK=z>=14;const occupied=new Set();
+  for(const l of [...LAYERS].sort((a,b)=>['mrt','bus','school','sport','park'].indexOf(a.id)-['mrt','bus','school','sport','park'].indexOf(b.id))){if(!state.active.has(l.id))continue;const feats=data(l.id);if(!feats)continue;const ptOK=z>=(l.id==='mrt'?12.5:(l.id==='bus'?15.5:14.5)),polyOK=z>=14;const occupied=new Set();
     for(const f of feats){if(cnt>900)break;const bb=f.bb||[f.center[0],f.center[1],f.center[0],f.center[1]];if(bb[2]<s||bb[0]>n||bb[3]<w||bb[1]>e)continue;let lyr;
       const closed=f.polys&&f.polys.length&&f.polys.every(p=>p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]);
       let key;if(closed){if(!polyOK)continue;key=l.id+'|p|'+f.center;lyr=facCache.get(key)||L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.22});}
