@@ -15,7 +15,7 @@ LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
 PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
-SNIP = {'park': 'leisure"="park"', 'green': 'landuse', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
+SNIP = {'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
 OUT = os.path.join(HERE, 'out')
 DATA_DIR = os.path.join(OUT, 'data')
 MODE = {'baked': False, 'missing': set(), 'fail': set(), 'dir': DATA_DIR}
@@ -192,12 +192,12 @@ async def baked_suite(b, errs):
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=()=>12;const b=heatOpacity();map.getZoom=get;return a<=0.35&&b>=0.85})()"), '熱圖：全市看得清楚，放大到街區自動淡化，讓設施圖示浮現')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
-    check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含生活圈）、預設選 3 個')
+    check(await ev("document.querySelectorAll('#chips .chip').length") == 6 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 6 個（已移除綠地）（含生活圈）、預設選 3 個')
     check(await ev("[...document.querySelectorAll('#chips .chip')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.querySelector('.chip-icon svg')&&b.querySelector('.chip-name').textContent.trim()}) && document.getElementById('chips').scrollWidth<=document.getElementById('chips').clientWidth+1"),
-          '7 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
+          '6 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
     check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
           '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
-    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '7 個類別包在同一個毛玻璃小組裡')
+    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '6 個類別包在同一個毛玻璃小組裡')
     check(await ev("[...document.querySelectorAll('#sheet,#chips,.fab,#scopeTag')].every(e=>{const c=getComputedStyle(e);return (c.backdropFilter||'none')==='none'&&(c.webkitBackdropFilter||'none')==='none'}) && getComputedStyle(document.body).position!=='fixed'"), '手機（觸控）上不用即時模糊、body 不固定定位，避免 iPhone Safari 漏畫閃爍')
     z = await ev("(()=>{const ev=new Event('gesturestart',{cancelable:true});document.dispatchEvent(ev);return {g:ev.defaultPrevented,ta:getComputedStyle(document.body).touchAction,top:getComputedStyle(document.getElementById('sheet')).touchAction}})()")
     check(z['g'] and z['ta'] == 'pan-x pan-y' and z['top'] == 'manipulation', f"擋掉整個網頁的雙指縮放與連點放大（{z}），地圖本身仍可縮放")
@@ -549,11 +549,11 @@ async def real_suite(b, errs):
     print(f'real data: ready in {time.time()-t0:.1f}s', await ev("({built:state.built,n:Object.fromEntries(LAYERS.map(l=>[l.id,data(l.id).length])),good:state.res.good,total:state.res.total,zones:state.zones.map(z=>z.mrt||z.district)})"))
     check(await ev("state.zones.length") > 0, '真實資料：算出推薦生活圈')
     await shot(page, 'real_1_home')
-    for i in ['bus', 'sport', 'green']:
+    for i in ['bus', 'sport']:
         t0 = time.time(); await page.click(f'.chip[data-id={i}]'); await page.wait_for_function(f"state.res.act.includes('{i}')", timeout=30000)
         print(f'  + {i}: {time.time()-t0:.2f}s')
     await shot(page, 'real_2_all')
-    for i in ['bus', 'sport', 'green']:
+    for i in ['bus', 'sport']:
         await page.click(f'.chip[data-id={i}]')
     await page.click('[data-z="0"]'); await shot(page, 'real_3_zone'); await page.click('#close')
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:松山區'"); await page.click('#regionBtn'); await shot(page, 'real_4_songshan')
