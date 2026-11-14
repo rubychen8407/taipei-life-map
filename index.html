@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>臺北生活圈地圖</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -220,6 +220,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
   :root{--glass:rgba(255,255,255,.93)}
   .chip .chip-icon{background:#F4F5F7}
 }
+
+/* 不讓整個網頁被放大縮小（iPhone 會忽略 user-scalable=no）；地圖本身仍可用兩指縮放 */
+html,body{touch-action:pan-x pan-y}
+#top,#sheet,#fabs,.pop,#pressMenu,#toast{touch-action:manipulation}
 </style>
 </head>
 <body>
@@ -704,6 +708,10 @@ async function openPlace(f,l){closeTransit();selLayer.clearLayers();
 
 // ---------- 我的位置 ----------
 document.addEventListener('scroll',e=>{const t=e.target;if(t===document||t===document.body||t===document.documentElement||t===$('map')){if(scrollX||scrollY)scrollTo(0,0);document.body.scrollTop=document.body.scrollLeft=0;document.documentElement.scrollTop=0;$('map').scrollTop=$('map').scrollLeft=0;}},true);
+// iPhone Safari 會忽略 user-scalable=no：擋掉網頁層級的雙指縮放與連點放大（地圖內的縮放由 Leaflet 處理，不受影響）
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1&&!(e.target.closest&&e.target.closest('#map')))e.preventDefault();},{passive:false});
+let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouchEnd<300&&!(e.target.closest&&e.target.closest('#map,input,textarea')))e.preventDefault();lastTouchEnd=now;},{passive:false});
 $('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();}
