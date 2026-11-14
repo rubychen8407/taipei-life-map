@@ -503,11 +503,14 @@ function matchRings(){const R=state.res;if(!R)return [];const W=NI+2,H=NJ+2,g=ne
     if(ring.length>=4)rings.push(ring);}
   const smooth=r=>{let pts=r.slice(0,-1);for(let it=0;it<2;it++){const o=[];pts.forEach((p,i)=>{const q=pts[(i+1)%pts.length];o.push([p[0]*.75+q[0]*.25,p[1]*.75+q[1]*.25],[p[0]*.25+q[0]*.75,p[1]*.25+q[1]*.75]);});pts=o;}return pts;};
   return rings.map(r=>smooth(r).map(([x,y])=>P(x,y)));}
-function drawOutline(){outlineLayer.clearLayers();if(!state.res||state.transit||!state.layers.outline||state.editing)return;
+let outlineSig=null;function drawOutline(){if(!state.res||state.transit||!state.layers.outline||state.editing){outlineLayer.clearLayers();outlineSig=null;return;}
+  if(outlineSig&&outlineSig.r===state.res&&outlineSig.k===scopeKey()&&outlineLayer.getLayers().length)return;outlineSig={r:state.res,k:scopeKey()};outlineLayer.clearLayers();
   const rs=matchRings();state.outlineRings=rs.length;
   rs.forEach(r=>{L.polygon(r,{color:'#fff',weight:5,opacity:.85,fill:false,interactive:false}).addTo(outlineLayer);L.polygon(r,{color:'#123B8A',weight:2,opacity:1,fill:false,interactive:false,dashArray:null}).addTo(outlineLayer);});}
 let heatRank=null;
-function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state.layers.heat){if(heat){map.removeLayer(heat);heat=null;}return;}
+let heatAll=[];function clearHeat(){heatAll.forEach(o=>map.removeLayer(o));heatAll=[];heat=null;}
+function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state.layers.heat){clearHeat();return;}
+  if(heat&&heat._sig===R&&heat._scope===scopeKey()){heat.setOpacity(heatOpacity());return;} // 結果沒變就不重畫，避免閃爍
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   const ks=[],ds=[];
   for(const k of scopeCells()){let density=0;
@@ -519,19 +522,25 @@ function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state
   ks.forEach((k,j)=>{const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4,t=rank(ds[j]),hex=densityColor(t).slice(1);
     p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.round(70+t*175);});
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
-  if(heat)heat.setUrl(url);else heat=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heatOpacity()}).addTo(map);heat.setOpacity(heatOpacity());}
+  // 雙緩衝：新圖載好才換掉舊圖，換圖時不會先變成空白
+  const nh=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heat?0:heatOpacity()}).addTo(map);nh._sig=R;nh._scope=scopeKey();heatAll.push(nh);heat=nh;
+  const swap=()=>{if(heat!==nh){map.removeLayer(nh);heatAll=heatAll.filter(o=>o!==nh);return;}nh.setOpacity(heatOpacity());heatAll.filter(o=>o!==nh).forEach(o=>map.removeLayer(o));heatAll=[nh];};
+  const el=nh.getElement();if(el&&el.complete&&el.naturalWidth)swap();else{nh.once('load',swap);setTimeout(swap,400);}}
 function heatOpacity(){const z=map.getZoom();return z<=13?0.9:z>=16?0.3:0.9-(z-13)/3*0.6;} // 放大到街區：熱圖淡出，讓設施圖示浮現
 function drawPins(){pinLayer.clearLayers();if(!state.res||state.transit||state.view.type!=='list'||!state.layers.pins)return;
   state.zones.forEach((z,i)=>{const c=CELLS[z.best];L.marker([c.la,c.lo],{icon:L.divIcon({className:'zpin',html:String(i+1),iconSize:[26,26]}),zIndexOffset:500}).on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}openZone(i);}).addTo(pinLayer);});}
-function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res||!state.layers.fac)return;const z=map.getZoom();if(!ROUTE_DATA&&!routeLabelsLoading&&!routeLabelsAttempted&&((state.active.has('mrt')&&z>=12.5)||(state.active.has('bus')&&z>=15.5))){routeLabelsAttempted=true;routeLabelsLoading=true;bakedRoutes().then(()=>{routeLabelsLoading=false;if(!state.transit)drawFacilities();});}const b=map.getBounds().pad(.15),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();let cnt=0;const dots=new Set();
+let facCache=new Map();
+function drawFacilities(){if(state.transit||!state.res||!state.layers.fac){facLayer.clearLayers();facCache.clear();return;}const next=new Map();const z=map.getZoom();if(!ROUTE_DATA&&!routeLabelsLoading&&!routeLabelsAttempted&&((state.active.has('mrt')&&z>=12.5)||(state.active.has('bus')&&z>=15.5))){routeLabelsAttempted=true;routeLabelsLoading=true;bakedRoutes().then(()=>{routeLabelsLoading=false;if(!state.transit)drawFacilities();});}const b=map.getBounds().pad(.15),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();let cnt=0;const dots=new Set();
   for(const l of [...LAYERS].sort((a,b)=>['mrt','bus','school','sport','park','green'].indexOf(a.id)-['mrt','bus','school','sport','park','green'].indexOf(b.id))){if(!state.active.has(l.id))continue;const feats=data(l.id);if(!feats)continue;const ptOK=z>=(l.id==='mrt'?12.5:(l.id==='bus'?15.5:14.5)),polyOK=z>=14;const occupied=new Set();
     for(const f of feats){if(cnt>900)break;const bb=f.bb||[f.center[0],f.center[1],f.center[0],f.center[1]];if(bb[2]<s||bb[0]>n||bb[3]<w||bb[1]>e)continue;let lyr;
       const closed=f.polys&&f.polys.length&&f.polys.every(p=>p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]);
-      if(closed){if(!polyOK)continue;lyr=L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.22});}
-      else{if(!ptOK)continue;const px=map.latLngToContainerPoint(f.center),cell=Math.floor(px.x/118)+':'+Math.floor(px.y/54);const dot=Math.floor(px.x/30)+':'+Math.floor(px.y/30);if(dots.has(dot))continue;dots.add(dot);const showLabel=state.layers.labels&&z>=17&&!!f.name&&!occupied.has(cell);if(showLabel)occupied.add(cell);lyr=L.marker(f.center,{icon:facilityIcon(l,f,z,showLabel),keyboard:false,zIndexOffset:l.id==='mrt'?250:0});}
-      lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
+      let key;if(closed){if(!polyOK)continue;key=l.id+'|p|'+f.center;lyr=facCache.get(key)||L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.22});}
+      else{if(!ptOK)continue;const px=map.project(f.center,Math.round(z)),cell=Math.floor(px.x/118)+':'+Math.floor(px.y/54);const dot=Math.floor(px.x/30)+':'+Math.floor(px.y/30);if(dots.has(dot))continue;dots.add(dot);const showLabel=state.layers.labels&&z>=17&&!!f.name&&!occupied.has(cell);if(showLabel)occupied.add(cell);key=l.id+'|m|'+f.center+'|'+(showLabel?1:0)+'|'+Math.round(z);lyr=facCache.get(key)||L.marker(f.center,{icon:facilityIcon(l,f,z,showLabel),keyboard:false,zIndexOffset:l.id==='mrt'?250:0});}
+      next.set(key,lyr);cnt++;if(facCache.has(key)){if(!facLayer.hasLayer(lyr))facLayer.addLayer(lyr);continue;}
+      lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);}}
+  facCache.forEach((ly,k)=>{if(!next.has(k))facLayer.removeLayer(ly);});facCache=next;}
 map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
-map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
+map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();}); // zoomend 之後一定還有 moveend，設施只在 moveend 重畫一次
 map.on('click',e=>{if(state.editing)return;if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
 
@@ -645,7 +654,7 @@ function renderPlace(){const v=state.view,l=v.l,T=state.transit,rail=l.id==='mrt
 async function openPlace(f,l){closeTransit();selLayer.clearLayers();
   if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:facilityTitle(f,l),sub:'從這個設施位置出發的步行生活圈',category:{name:l.name,color:l.color,icon:l.icon}});return;}
   const [la,lo]=f.center,origin=[la,lo],R=l.id==='mrt'?300:40;state.transit={f,loading:true,n:0};state.view={type:'place',f,l};
-  if(heat){map.removeLayer(heat);heat=null;}pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();busy(true);
+  clearHeat();pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();busy(true);
   let rels;const Bk=await bakedRoutes();
   const isBus=l.id==='bus';
   if(Bk){let cand=Bk.routes.filter(r=>(r.r==='bus')===isBus);
