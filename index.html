@@ -394,7 +394,7 @@ function simplifyRing(r,tol){const pts=r.slice();if(pts.length>1&&pts[0][0]===pt
 function editRings(){const r=region();return polysOf(r).map(p=>{let tol=0.0004,out;do{out=simplifyRing(p[0],tol);tol*=1.3;}while(out.length>60);return out.map(([x,y])=>[y,x]);}).filter(r=>r.length>=3);}
 function startEdit(){if(!region())return;closePops();closeTune();closeDetail(true);render();
   state.editing={rings:editRings(),base:scopeName()};$('chips').style.display='none';$('categorySettings').style.display='none';$('scopeTag').hidden=true;$('editbar').style.display='block';
-  if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));editLayer.addTo(map);drawEdit();}
+  if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));editLayer.addTo(map);drawEdit();fit(L.latLngBounds(state.editing.rings.flat()));}
 function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
   E.rings.forEach(ring=>{const pg=L.polygon(ring,{color:'#123B8A',weight:2.5,fillColor:'#F7931E',fillOpacity:.14,interactive:false}).addTo(editLayer);
     ring.forEach((p,i)=>{const m=L.marker(p,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh',iconSize:[18,18]}),zIndexOffset:2000,keyboard:false}).addTo(editLayer);
