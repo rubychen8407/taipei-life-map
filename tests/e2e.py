@@ -139,7 +139,7 @@ async def baked_suite(b, errs):
     check(await ev("state.scope===''&&state.res.total===CELLS.length"), '預設直接分析全臺北市')
     check(await ev("!!heat&&map.hasLayer(heat)"), '地圖上有符合範圍的色塊圖層')
     check(await ev("densityColor(0.2)!==densityColor(2.5) && densityColor(2.5)!==densityColor(3.2)"), 'Heatmap 依跨類別累積密度使用連續分級色帶')
-    check(await ev("new Set([0.1,0.18,0.35,0.7,1.2,2.2,4.5].map(densityColor)).size===7"), 'Heatmap 低至高密度區間都有清楚不同的顏色')
+    check(await ev("new Set([0.1,0.18,0.35,0.7,1.2,1.8,2.6,3.8,6].map(densityColor)).size===9"), 'Heatmap 九個密度節點都有清楚區別的顏色')
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=get;return a>=0.8})()"), 'Heatmap 放大到街道層級仍維持可辨識透明度')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
@@ -278,6 +278,7 @@ async def baked_suite(b, errs):
     await page.click('#lifeConfirm')
     await page.wait_for_function("state.lifeResults.length===2 && state.lifeResults.every(r=>r.graph)", timeout=20000)
     check(await ev("state.lifeResults[0].graph!==state.lifeResults[1].graph && document.querySelectorAll('.life-tabs button').length===2 && lifeLayer.getLayers().length>2"), '生活圈 A/B 分開計算並顯示各自的可步行路網')
+    check(await ev("lifeLayer.getLayers().filter(x=>x.options.className==='life-way').length===2"), '每個生活圈將可步行路網合併為單一圖層，避免大量 Leaflet 圖層拖慢繪製')
     check(await ev("document.querySelector('.life-tabs').innerText.includes('住家') && document.querySelector('.life-tabs').innerText.includes('公司')"), '生活圈比較標籤顯示使用者自訂名稱')
     await page.close()
 
