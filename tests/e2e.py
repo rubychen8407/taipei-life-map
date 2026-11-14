@@ -251,7 +251,7 @@ async def baked_suite(b, errs):
     check(await ev("state.view.type") == 'list' and await ev("selLayer.getLayers().length") == 0, '按返回回到清單')
 
     # 5. 點地圖任一位置
-    k = await ev("(()=>{const b=new Set(state.zones.map(z=>z.best)),m=data('mrt');return scopeCells().find(k=>state.res.okc[k]===state.res.act.length&&!b.has(k)&&CELLS[k].d===4&&m.every(f=>md(f.center,[CELLS[k].la,CELLS[k].lo])>250))})()")
+    k = await ev("(()=>{const b=new Set(state.zones.map(z=>z.best)),m=data('mrt');return scopeCells().find(k=>state.res.okc[k]===state.res.act.length&&!b.has(k)&&CELLS[k].d===4&&m.every(f=>md(f.center,[CELLS[k].la,CELLS[k].lo])>500))})()")
     await ev(f"void map.setView([CELLS[{k}].la,CELLS[{k}].lo],13,{{animate:false}})"); await page.wait_for_timeout(300)
     pt = await ev(f"(()=>{{const p=map.latLngToContainerPoint([CELLS[{k}].la,CELLS[{k}].lo]);return [p.x,p.y]}})()")
     await page.mouse.click(pt[0], pt[1]); await page.wait_for_timeout(500)
@@ -271,6 +271,7 @@ async def baked_suite(b, errs):
     await shot(page, '3b_poi')
     await ev("void (window.__keep=facLayer.getLayers().slice(0,20))")
     await ev("void map.panBy([25,15],{animate:false})"); await page.wait_for_timeout(300)
+    check(await ev("L.Draggable.prototype.options.clickTolerance>=10 && (()=>{const m=document.querySelector('.facility-marker');const r=m.getBoundingClientRect();return r.width>=44&&r.height>=44})()"), '地圖圖示的可點範圍 44×44；手指小幅移動（10px 內）仍算點擊')
     check(await ev("__keep.length>0 && __keep.filter(l=>facLayer.hasLayer(l)).length>=__keep.length*0.75"), '平移地圖時設施圖示沿用原本的標記，不會整批消失再出現（閃爍）')
     check(await ev("transitLayer.getLayers().length") == 0, '沒點站牌前不顯示任何路線')
     viewport_before = await ev("(()=>{const c=map.getCenter();return {lat:c.lat,lng:c.lng,zoom:map.getZoom()}})()")
@@ -462,9 +463,13 @@ async def baked_suite(b, errs):
     await ev("void map.setView([25.04,121.54],15,{animate:false});setSheet('peek',false)"); await page.wait_for_timeout(300)
     await long_press(page, 200, 470)
     pm = await ev("(()=>{const m=document.getElementById('pressMenu');const r=m.getBoundingClientRect();return {open:!m.hidden,n:m.querySelectorAll('[data-press]').length,txt:m.innerText.trim(),w:r.width,h:r.height,dot:pressLayer.getLayers().length}})()")
-    check(pm['open'] and pm['n'] == 3 and pm['txt'] == '' and pm['h'] <= 50 and pm['w'] <= 150 and pm['dot'] == 1, f"長按地圖：放下一個點，跳出只有圖示的小選單（{pm['n']} 個、{pm['w']:.0f}×{pm['h']:.0f}）")
+    check(pm['open'] and pm['n'] == 3 and pm['txt'] == '' and pm['h'] <= 56 and pm['w'] <= 170 and pm['dot'] == 1, f"長按地圖：放下一個點，跳出只有圖示的小選單（{pm['n']} 個、{pm['w']:.0f}×{pm['h']:.0f}）")
     check(await ev("state.view.type==='list'"), '長按不會同時觸發點地圖（不會打開位置卡）')
+    check(await ev("(()=>{const b=[...document.querySelectorAll('#pressMenu button')].map(e=>e.getBoundingClientRect());return b.every(r=>r.width>=44&&r.height>=44)})()"), '長按選單的按鈕至少 44×44，好按')
     await shot(page, '9_press')
+    # 長按放開時瀏覽器補的那一下點擊，不能打到手指下的區名／圖釘
+    await ev("(()=>{pressActive=true;document.dispatchEvent(new Event('touchend'));const el=document.querySelector('.dlabel')||document.getElementById('map');el.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));})()")
+    check(await ev("state.scope===''&&!document.getElementById('pressMenu').hidden&&state.view.type==='list'"), '長按放開時補上的點擊被吃掉：不會誤選區域、選單還在')
     await page.click('#pressMenu [data-press=life]')
     await page.wait_for_timeout(300)
     check(await ev("state.lifeCenters.length===1 && state.active.has('life') && document.querySelector('.chip[data-id=life]').getAttribute('aria-pressed')==='true' && state.res.act.includes('life') && document.getElementById('pressMenu').hidden"), '選「加入生活圈」：地點加入、生活圈類別自動勾選並併入分析')
