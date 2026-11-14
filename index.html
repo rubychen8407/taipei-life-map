@@ -290,7 +290,7 @@ let heat=null;
 
 const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,green:10,school:10,sport:10,bus:10,mrt:10,life:20},modeByLayer:{park:'walk',green:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
-  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,pins:true,fac:true,labels:true,transit:true}};
+  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true}};
 
 // ---------- geometry ----------
 function ringContains(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
@@ -394,7 +394,7 @@ function simplifyRing(r,tol){const pts=r.slice();if(pts.length>1&&pts[0][0]===pt
 function editRings(){const r=region();return polysOf(r).map(p=>{let tol=0.0004,out;do{out=simplifyRing(p[0],tol);tol*=1.3;}while(out.length>60);return out.map(([x,y])=>[y,x]);}).filter(r=>r.length>=3);}
 function startEdit(){if(!region())return;closePops();closeTune();closeDetail(true);render();
   state.editing={rings:editRings(),base:scopeName()};$('chips').style.display='none';$('categorySettings').style.display='none';$('scopeTag').hidden=true;$('editbar').style.display='block';
-  if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));editLayer.addTo(map);drawEdit();fit(L.latLngBounds(state.editing.rings.flat()));}
+  if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));outlineLayer.clearLayers();editLayer.addTo(map);drawEdit();fit(L.latLngBounds(state.editing.rings.flat()));}
 function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
   E.rings.forEach(ring=>{const pg=L.polygon(ring,{color:'#123B8A',weight:2.5,fillColor:'#F7931E',fillOpacity:.14,interactive:false}).addTo(editLayer);
     ring.forEach((p,i)=>{const m=L.marker(p,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh',iconSize:[18,18]}),zIndexOffset:2000,keyboard:false}).addTo(editLayer);
@@ -403,7 +403,7 @@ function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
     ring.forEach((p,i)=>{const q=ring[(i+1)%ring.length],mid=[(p[0]+q[0])/2,(p[1]+q[1])/2];
       const m=L.marker(mid,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh mid',iconSize:[12,12]}),zIndexOffset:1900,keyboard:false}).addTo(editLayer);
       m.on('dragstart',()=>ring.splice(i+1,0,mid.slice()));m.on('drag',e=>{const ll=e.target.getLatLng();ring[i+1]=[ll.lat,ll.lng];pg.setLatLngs(ring);});m.on('dragend',drawEdit);});});}
-function endEdit(){state.editing=null;editLayer.clearLayers();map.removeLayer(editLayer);pinLayer.addTo(map);facLayer.addTo(map);syncLabels();$('chips').style.display='';$('categorySettings').style.display='';$('editbar').style.display='none';fillScope();}
+function endEdit(){state.editing=null;editLayer.clearLayers();map.removeLayer(editLayer);pinLayer.addTo(map);facLayer.addTo(map);syncLabels();drawOutline();$('chips').style.display='';$('categorySettings').style.display='';$('editbar').style.display='none';fillScope();}
 $('editCancel').onclick=()=>{endEdit();drawScope(false);};
 $('editReset').onclick=()=>{state.editing.rings=editRings();drawEdit();};
 $('editDone').onclick=()=>{const E=state.editing,rs=E.rings.map(r=>{const c=r.map(([la,lo])=>[lo,la]);c.push(c[0]);return [c];});
@@ -486,8 +486,28 @@ function analyze(){const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).
 // 熱圖色帶：依「在目前範圍內的排名」上色（0＝最差、1＝最好），色階拉到最開：淡黃 → 橘 → 紅 → 紫紅 → 寶藍
 const DENSITY_STOPS=[[0,[255,246,204]],[0.2,[255,214,112]],[0.4,[247,147,30]],[0.6,[229,76,46]],[0.8,[160,40,104]],[1,[18,59,138]]];
 function densityColor(t){t=Math.max(0,Math.min(1,t));let i=1;while(i<DENSITY_STOPS.length-1&&t>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[i],u=(t-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*u).toString(16).padStart(2,'0')).join('');}
+
+// ---------- 完全符合條件的範圍：用等值線（marching squares）畫出邊界 ----------
+const outlineLayer=L.layerGroup().addTo(map);
+function matchRings(){const R=state.res;if(!R)return [];const W=NI+2,H=NJ+2,g=new Uint8Array(W*H),n=R.act.length;
+  for(const k of scopeCells())if(R.okc[k]===n){const c=CELLS[k];g[(c.j+1)*W+c.i+1]=1;}
+  const segs=[],P=(x,y)=>[CITY[0]+(y-.5)*dLat,CITY[1]+(x-.5)*dLon]; // 格點 (x,y) 為補邊後的格子中心
+  for(let y=0;y<H-1;y++)for(let x=0;x<W-1;x++){const a=g[y*W+x],b=g[y*W+x+1],c=g[(y+1)*W+x+1],d=g[(y+1)*W+x],idx=a|b<<1|c<<2|d<<3;if(idx===0||idx===15)continue;
+    const B=[x+.5,y],Rt=[x+1,y+.5],T=[x+.5,y+1],Lf=[x,y+.5];
+    const tab={1:[[Lf,B]],2:[[B,Rt]],3:[[Lf,Rt]],4:[[Rt,T]],5:[[Lf,T],[Rt,B]],6:[[B,T]],7:[[Lf,T]],8:[[T,Lf]],9:[[T,B]],10:[[T,Rt],[B,Lf]],11:[[T,Rt]],12:[[Rt,Lf]],13:[[Rt,B]],14:[[B,Lf]]}[idx];
+    tab.forEach(sg=>segs.push(sg));}
+  const key=p=>p[0]*2+','+p[1]*2,adj=new Map();segs.forEach((sg,i)=>[0,1].forEach(e=>{const k=key(sg[e]);(adj.get(k)||adj.set(k,[]).get(k)).push(i);}));
+  const used=new Uint8Array(segs.length),rings=[];
+  for(let i=0;i<segs.length;i++){if(used[i])continue;used[i]=1;const ring=[segs[i][0],segs[i][1]];let cur=segs[i][1];
+    for(;;){const nx=(adj.get(key(cur))||[]).find(j=>!used[j]);if(nx===undefined)break;used[nx]=1;const sg=segs[nx];cur=key(sg[0])===key(cur)?sg[1]:sg[0];ring.push(cur);}
+    if(ring.length>=4)rings.push(ring);}
+  const smooth=r=>{let pts=r.slice(0,-1);for(let it=0;it<2;it++){const o=[];pts.forEach((p,i)=>{const q=pts[(i+1)%pts.length];o.push([p[0]*.75+q[0]*.25,p[1]*.75+q[1]*.25],[p[0]*.25+q[0]*.75,p[1]*.25+q[1]*.75]);});pts=o;}return pts;};
+  return rings.map(r=>smooth(r).map(([x,y])=>P(x,y)));}
+function drawOutline(){outlineLayer.clearLayers();if(!state.res||state.transit||!state.layers.outline||state.editing)return;
+  const rs=matchRings();state.outlineRings=rs.length;
+  rs.forEach(r=>{L.polygon(r,{color:'#fff',weight:5,opacity:.85,fill:false,interactive:false}).addTo(outlineLayer);L.polygon(r,{color:'#123B8A',weight:2,opacity:1,fill:false,interactive:false,dashArray:null}).addTo(outlineLayer);});}
 let heatRank=null;
-function drawHeat(){const R=state.res;if(!R||state.transit||!state.layers.heat){if(heat){map.removeLayer(heat);heat=null;}return;}
+function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state.layers.heat){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   const ks=[],ds=[];
   for(const k of scopeCells()){let density=0;
@@ -672,7 +692,7 @@ function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop'
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');
-const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['deal','實價登錄','doc'],['land','土地價值','land']]}];
+const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['deal','實價登錄','doc'],['land','土地價值','land']]}];
 function loadPresets(){try{return JSON.parse(localStorage.getItem('tlm.layerPresets')||'[]');}catch(e){return [];}}
 function savePresets(a){try{localStorage.setItem('tlm.layerPresets',JSON.stringify(a));}catch(e){}}
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
