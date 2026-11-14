@@ -437,13 +437,21 @@ function analyze(){const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).
   state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
-const DENSITY_STOPS=[[0.08,[254,241,224]],[0.18,[253,226,190]],[0.35,[252,206,146]],[0.7,[250,182,100]],[1.2,[248,158,52]],[1.8,[240,130,20]],[2.6,[214,104,8]],[3.8,[176,78,6]],[6,[120,50,4]]];
-function densityColor(value){const v=Math.max(0.08,Math.min(6,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
+// 熱圖色帶：依「在目前範圍內的排名」上色（0＝最差、1＝最好），色階拉到最開：淡黃 → 橘 → 紅 → 紫紅 → 寶藍
+const DENSITY_STOPS=[[0,[255,246,204]],[0.2,[255,214,112]],[0.4,[247,147,30]],[0.6,[229,76,46]],[0.8,[160,40,104]],[1,[18,59,138]]];
+function densityColor(t){t=Math.max(0,Math.min(1,t));let i=1;while(i<DENSITY_STOPS.length-1&&t>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[i],u=(t-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*u).toString(16).padStart(2,'0')).join('');}
+let heatRank=null;
 function drawHeat(){const R=state.res;if(!R||state.transit||!state.layers.heat){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
-  for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;let density=0;
+  const ks=[],ds=[];
+  for(const k of scopeCells()){let density=0;
     for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k],R.act[i]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
-    if(density>0){const color=densityColor(density),hex=color.slice(1);p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.min(238,148+density*24);}}
+    if(density>0){ks.push(k);ds.push(density);}}
+  const sorted=Float64Array.from(ds).sort(),N=sorted.length;
+  const rank=v=>{let lo=0,hi=N-1;while(lo<hi){const m=(lo+hi+1)>>1;if(sorted[m]<=v)lo=m;else hi=m-1;}return N>1?lo/(N-1):1;};
+  heatRank=rank;
+  ks.forEach((k,j)=>{const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4,t=rank(ds[j]),hex=densityColor(t).slice(1);
+    p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.round(70+t*175);});
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   if(heat)heat.setUrl(url);else heat=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heatOpacity()}).addTo(map);heat.setOpacity(heatOpacity());}
 function heatOpacity(){const z=map.getZoom();return z<=13?0.9:z>=16?0.3:0.9-(z-13)/3*0.6;} // 放大到街區：熱圖淡出，讓設施圖示浮現
@@ -490,7 +498,7 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
   H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了　<b>${pct.toFixed(0)}%</b></span><span class="r">${state.zones.length} 個推薦</span></div>`;
-  let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FEF1E0,#FCCE92,#F89E34,#D66808,#783204)"></i><span>高</span></div>';
+  let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(state.zones.length){h+='<h2>推薦區域</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
   else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(state.scope===''){const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).sort((a,b)=>b.p-a.p);
