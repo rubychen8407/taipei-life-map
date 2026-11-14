@@ -5,7 +5,8 @@ taipei-life-map
 
 線上版：https://rubychen8407.github.io/taipei-life-map/
 
-- 資料：GitHub Actions 每週一執行 `scripts/build_data.py`，從 OpenStreetMap 預先下載到 `data/`（`city.json` 全市設施、`routes.json` 路線、各區檔）。app 開啟時只讀 `city.json`；沒有預建資料時才即時查 Overpass。
+- 生活圈：和其他類別一樣可選交通方式與時間；在地圖上點住家、公司等地點（最多 3 個），到任一地點在時間內就算符合，併入同一份分析。
+- 資料：GitHub Actions 每週一執行 `scripts/build_data.py`，從 OpenStreetMap 預先下載到 `data/`（`city.json` 全市設施、`routes.json` 路線）。app 開啟時只讀 `city.json`；沒有預建資料時才即時查 Overpass。
 - 步行時間以直線距離 ×1.25、每分鐘 80 公尺估算。行政區界線來自 taiwan-atlas（內政部國土測繪中心）。© OpenStreetMap 貢獻者。
 
 ## 測試

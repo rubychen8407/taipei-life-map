@@ -115,7 +115,7 @@ async def shot(page, name):
     await page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 
-READY = "state.res&&document.getElementById('head').innerText.includes('分類步行距離分析')"
+READY = "state.res&&document.getElementById('head').innerText.includes('分析結果')"
 LINES = "transitLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
 HANDLE = "(()=>{const r=document.querySelector('.handle').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()"
 
@@ -143,7 +143,7 @@ async def baked_suite(b, errs):
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=get;return a>=0.8})()"), 'Heatmap 放大到街道層級仍維持可辨識透明度')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
-    check(await ev("document.querySelectorAll('#chips .chip').length") == 6 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 6 個、預設選 3 個')
+    check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含生活圈）、預設選 3 個')
     check(await ev("[...document.querySelectorAll('#chips .chip')].every((b)=>b.querySelector('.chip-name')?.textContent.trim() && b.getBoundingClientRect().width>=82 && getComputedStyle(b).flexShrink==='0')"), '類別按鈕完整顯示名稱、圖示與分鐘數，不再被固定寬度擠壓')
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
@@ -266,21 +266,33 @@ async def baked_suite(b, errs):
             await page.click(f'.chip[data-id={i}]')
     check('選擇你在意的設施' in await ev("document.getElementById('head').innerText") and not await ev("!!heat"), '全部取消時提示選擇類別')
 
-    # 10b. 使用者自訂生活圈：最多三個中心、獨立分析、共用步行時間與路網
-    await page.click('.life-chip')
-    check(await ev("document.body.classList.contains('life-mode') && getComputedStyle(document.querySelector('.life-chip')).display==='flex' && parseFloat(getComputedStyle(document.getElementById('lifePanel')).maxHeight)>500"), '生活圈模式有獨立版面高度，設定卡片可捲動且按鈕樣式完整')
-    await ev("handleLifeMapPoint(L.latLng(25.0335,121.5436))")
+    # 10b. 生活圈是一個類別：和其他類別一樣設定交通方式與時間，地點直接點地圖新增，結果併入同一份分析
+    await page.click('.chip[data-id=life]')
+    check(await ev("state.active.has('life') && state.openDistanceLayer==='life' && document.querySelectorAll('#categorySettings .mode-option').length===5 && !!document.querySelector('#categorySettings [data-distance=life]') && !document.getElementById('lifePanel') && !document.querySelector('.life-chip')"),
+          '生活圈和其他類別一樣在類別列，點了出現交通方式（5 種）與時間設定')
+    await ev("map.fire('click',{latlng:L.latLng(25.0335,121.5436)})")
     await ev("map.fire('click',{latlng:L.latLng(25.045,121.55)})")
-    check(await ev("state.lifeCenters.length===2 && lifeLayer.getLayers().length===2"), '地圖點擊與生活圈中心標記同步更新')
-    await page.locator('[data-life-label="0"]').fill('住家')
-    await page.locator('[data-life-label="1"]').fill('公司')
-    await page.locator('#lifeMinutes').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}))}")
-    check(await ev("state.lifeCenters.length===2 && state.lifeCenters[0].label==='住家' && state.lifeCenters[1].label==='公司' && state.lifeMinutes===15"), '生活圈可新增兩個獨立中心、編輯名稱並共用步行時間')
-    await page.click('#lifeConfirm')
-    await page.wait_for_function("state.lifeResults.length===2 && state.lifeResults.every(r=>r.graph)", timeout=20000)
-    check(await ev("state.lifeResults[0].graph!==state.lifeResults[1].graph && document.querySelectorAll('.life-tabs button').length===2 && lifeLayer.getLayers().length>2"), '生活圈 A/B 分開計算並顯示各自的可步行路網')
-    check(await ev("lifeLayer.getLayers().filter(x=>x.options.className==='life-way').length===2"), '每個生活圈將可步行路網合併為單一圖層，避免大量 Leaflet 圖層拖慢繪製')
-    check(await ev("document.querySelector('.life-tabs').innerText.includes('住家') && document.querySelector('.life-tabs').innerText.includes('公司')"), '生活圈比較標籤顯示使用者自訂名稱')
+    check(await ev("state.lifeCenters.length===2 && lifeLayer.getLayers().length===2 && document.querySelectorAll('[data-life-label]').length===2 && state.view.type==='list'"), '設定開著時點地圖＝新增地點（A、B 標記），不會打開位置卡')
+    await page.locator('[data-life-label="0"]').fill('住家'); await page.locator('[data-life-label="0"]').dispatch_event('change')
+    await page.locator('[data-life-label="1"]').fill('公司'); await page.locator('[data-life-label="1"]').dispatch_event('change')
+    await page.click('#categorySettings [data-mode=car]')
+    await page.locator('#categorySettings [data-distance=life]').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('pointerup',{bubbles:true}))}")
+    await page.wait_for_timeout(700)
+    check(await ev("state.res.act.includes('life') && state.modeByLayer.life==='car' && state.minsByLayer.life===15 && state.openDistanceLayer==='life' && document.querySelector('.chip[data-id=life] [data-mins]').textContent==='15分'"),
+          '生活圈可改交通方式（開車）與時間（15 分），併入分析；調整後設定不會自動收起')
+    check(await ev("!document.querySelector('.life-tabs') && !/生活圈比較/.test(document.getElementById('head').innerText) && /分析結果/.test(document.getElementById('head').innerText)"), '底部不再開「生活圈比較」，仍是一般分析清單')
+    await shot(page, '7_life')
+    await page.click('[data-life-done]')
+    check(await ev("state.openDistanceLayer===null && document.getElementById('categorySettings').innerHTML===''"), '按「完成」收起設定')
+    k = await ev("(()=>{const R=state.res;for(const k of scopeCells())if(R.okc[k]===R.act.length)return k;return scopeCells()[0];})()")
+    await ev("state.openDistanceLayer='life';renderCategorySettings()")
+    await ev(f"openCell({k})")
+    txt = await ev("document.getElementById('body').innerText")
+    check(('住家' in txt or '公司' in txt) and '開車' in txt and await ev("document.getElementById('categorySettings').innerHTML===''"), '點位置：列出到最近生活圈地點的開車時間，並收起設定面板不擋地圖')
+    await page.click('#close')
+    await page.click('.chip[data-id=life]')
+    await page.click('[data-life-delete="1"]')
+    check(await ev("state.lifeCenters.length===1 && lifeLayer.getLayers().length===1"), '可刪除地點，地圖標記同步')
     await page.close()
 
     # 11. 桌機版面
@@ -291,11 +303,11 @@ async def baked_suite(b, errs):
     await shot(page, '6_desktop')
     await page.close()
 
-    # 12. 沒有 city.json 但有各區檔 → 仍用預建資料
+    # 12. 沒有 city.json → 改用即時查詢備援，不再去讀已移除的 12 區檔
     MODE['missing'] = {'city.json'}; d0 = len(data_hits); c0 = len(calls)
     page = await new_page(b, errs, **PHONE)
-    await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
-    check(len(calls) == c0 and len([d for d in data_hits[d0:] if d.endswith('區.json')]) == 12, '沒有 city.json 時改讀 12 區檔，仍不查 Overpass')
+    await page.goto(URL); await page.wait_for_function("!state.loading", timeout=20000)
+    check(len(calls) == c0 and not [d for d in data_hits[d0:] if d.endswith('區.json')] and '先選一個行政區' in await page.evaluate("document.getElementById('head').innerText"), '沒有 city.json 時不再讀各區檔，改請使用者先選行政區')
     MODE['missing'] = set()
     await page.close()
 
@@ -375,7 +387,7 @@ async def main():
             shutil.rmtree(DATA_DIR, ignore_errors=True)
             with contextlib.redirect_stdout(io.StringIO()):
                 idx = build_data.build(fetch=lambda q: {'elements': answer(q)}, out_dir=DATA_DIR, pause=0)
-            check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110, f"建置程式產生 12 區檔、全市檔（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
+            check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
             await baked_suite(b, errs)
             print('\n=== A. 沒有預建資料（即時查詢的備援流程）===')

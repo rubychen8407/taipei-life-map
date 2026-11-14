@@ -212,18 +212,10 @@ def build_routes(bb, fetch):
     return out
 
 
-def merge_city(out_dir, built=None):
-    """把 12 區檔案合併成一個去重複的 city.json（app 開啟時只讀這一個檔）"""
-    layers = {l[0]: {} for l in LAYERS}; dates = []
-    for name, _ in districts():
-        p = os.path.join(out_dir, name + '.json')
-        if not os.path.exists(p):
-            return None
-        d = json.load(open(p, encoding='utf-8'))
-        if built and d.get('built') != built:
-            print(f'  merge skipped: {name} is stale ({d.get("built")!r}, expected {built!r})', file=sys.stderr)
-            return None
-        dates.append(d.get('built', ''))
+def merge_city(out_dir, built, dists):
+    """把 12 區結果合併成一個去重複的 city.json（app 只讀這一個檔；不再另存各區檔，避免重複佔空間）"""
+    layers = {l[0]: {} for l in LAYERS}
+    for d in dists:
         for lid in layers:
             for f in d['layers'].get(lid, []):
                 layers[lid].setdefault(f['id'], f)
@@ -232,8 +224,12 @@ def merge_city(out_dir, built=None):
         k = re.sub('站$', '', f['n'])
         if k not in seen:
             seen.add(k); mrt.append(f)
-    city = {'built': built or min(dates), 'layers': {lid: (mrt if lid == 'mrt' else list(v.values())) for lid, v in layers.items()}}
+    city = {'built': built, 'layers': {lid: (mrt if lid == 'mrt' else list(v.values())) for lid, v in layers.items()}}
     json.dump(city, open(os.path.join(out_dir, 'city.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+    for name, _ in districts():   # 清掉舊版留下的各區檔
+        p = os.path.join(out_dir, name + '.json')
+        if os.path.exists(p):
+            os.remove(p)
     return {k: len(v) for k, v in city['layers'].items()}
 
 
@@ -241,11 +237,12 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
     os.makedirs(out_dir, exist_ok=True)
     ds = districts(); built = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     index = {'built': built, 'districts': {}, 'routes': False}
+    dists = []
     for name, bb in ds:
         print('district', name, flush=True)
         try:
             d = build_district(name, bb, fetch); d['built'] = built
-            json.dump(d, open(os.path.join(out_dir, name + '.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+            dists.append(d)
             index['districts'][name] = {k: len(v) for k, v in d['layers'].items()}
         except Exception as e:
             print('  FAILED', name, e, file=sys.stderr)
@@ -266,7 +263,7 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
     except Exception as e:
         print('  routes FAILED', e, file=sys.stderr)
     if len(index['districts']) == len(ds):
-        index['city'] = merge_city(out_dir, built)
+        index['city'] = merge_city(out_dir, built, dists)
     else:
         failed = [name for name, _ in ds if name not in index['districts']]
         index['failed_districts'] = failed
@@ -278,7 +275,5 @@ def build(fetch=overpass, out_dir=os.path.join(ROOT, 'data'), pause=10):
 
 
 if __name__ == '__main__':
-    if sys.argv[1:] == ['merge']:
-        print(merge_city(os.path.join(ROOT, 'data'))); sys.exit(0)
     idx = build()
     sys.exit(0 if len(idx['districts']) == len(districts()) and idx.get('city') else 1)
