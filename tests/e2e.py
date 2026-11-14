@@ -299,6 +299,7 @@ async def baked_suite(b, errs):
     await page.wait_for_function("state.res.key==='m:松山區,大安區'", timeout=5000)
     check(await ev("state.scope==='m:3,4' && scopeCells().length>0 && scopeCells().every(k=>CELLS[k].d===3||CELLS[k].d===4) && scopeCells().some(k=>CELLS[k].d===3) && scopeCells().some(k=>CELLS[k].d===4)"), '複選松山＋大安：只分析這兩區')
     check(await ev("document.getElementById('scopeTag').innerText.includes('松山區、大安區') && document.querySelectorAll('#regionPop [aria-pressed=true]').length===2"), '小標籤顯示「松山區、大安區」，彈窗兩區都標示已選')
+    check(await ev("(()=>{const b=document.querySelector('#head .sumline b');return /%$/.test(b.innerText)&&b.scrollWidth<=b.clientWidth+1&&b.getBoundingClientRect().right<=innerWidth})()"), '名稱很長時，摘要的百分比仍完整顯示')
     check(await ev("[...document.querySelectorAll('#body .drow .n')].map(e=>e.innerText).sort().join()==='大安區,松山區'"), '各區比較只比較選到的區')
     await shot(page, '5b_multi')
     await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)

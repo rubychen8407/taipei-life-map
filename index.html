@@ -190,7 +190,7 @@ html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-sys
 .sumline{display:flex;align-items:center;gap:8px;font-size:15px;height:28px}
 .sumline .dot{flex:none;width:10px;height:10px;border-radius:5px;background:var(--A)}
 .sumline .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sumline b{color:var(--D);font-weight:600}.sumline .r{flex:none;color:#5F6368;font-size:13px}
+.sumline b{flex:none;color:var(--D);font-weight:600}.sumline .r{flex:none;color:#5F6368;font-size:13px}
 .rank,.zpin{background:var(--D)!important}
 .drow .b i{background:var(--A)}
 .dlabel{font-size:11px;font-weight:500;letter-spacing:.08em;color:rgba(29,29,31,.6);cursor:pointer}
@@ -505,7 +505,7 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
-  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了　<b>${pct.toFixed(0)}%</b></span><span class="r">${state.zones.length} 個推薦</span></div>`;
+  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span><b>${pct.toFixed(0)}%</b><span class="r">${state.zones.length} 個推薦</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(state.zones.length){h+='<h2>推薦區域</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
   else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
