@@ -1,99 +1,99 @@
 {
- "built": "2026-11-13",
+ "built": "2026-11-14",
  "districts": {
   "大安區": {
    "park": 459,
-   "green": 3970,
    "school": 245,
-   "sport": 781,
+   "sport": 780,
+   "market": 172,
    "bus": 1336,
    "mrt": 40
   },
   "文山區": {
    "park": 309,
-   "green": 2289,
    "school": 175,
-   "sport": 690,
+   "sport": 688,
+   "market": 121,
    "bus": 1135,
    "mrt": 20
   },
   "信義區": {
    "park": 337,
-   "green": 2026,
    "school": 145,
    "sport": 471,
+   "market": 105,
    "bus": 851,
    "mrt": 26
   },
   "萬華區": {
    "park": 267,
-   "green": 1303,
    "school": 141,
    "sport": 566,
+   "market": 138,
    "bus": 1014,
    "mrt": 21
   },
   "中正區": {
    "park": 387,
-   "green": 3312,
    "school": 236,
-   "sport": 798,
+   "sport": 797,
+   "market": 163,
    "bus": 1227,
    "mrt": 29
   },
   "南港區": {
    "park": 289,
-   "green": 1111,
    "school": 105,
    "sport": 425,
+   "market": 75,
    "bus": 1045,
    "mrt": 13
   },
   "松山區": {
    "park": 378,
-   "green": 1362,
    "school": 159,
    "sport": 583,
+   "market": 120,
    "bus": 962,
-   "mrt": 31
+   "mrt": 30
   },
   "大同區": {
    "park": 197,
-   "green": 1033,
    "school": 109,
    "sport": 427,
+   "market": 77,
    "bus": 725,
    "mrt": 19
   },
   "中山區": {
    "park": 469,
-   "green": 2100,
    "school": 218,
    "sport": 848,
+   "market": 142,
    "bus": 1398,
-   "mrt": 44
+   "mrt": 43
   },
   "內湖區": {
    "park": 385,
-   "green": 798,
    "school": 161,
-   "sport": 635,
+   "sport": 634,
+   "market": 118,
    "bus": 1247,
-   "mrt": 26
+   "mrt": 25
   },
   "士林區": {
    "park": 603,
-   "green": 1397,
    "school": 268,
-   "sport": 1348,
+   "sport": 1320,
+   "market": 197,
    "bus": 2521,
-   "mrt": 37
+   "mrt": 36
   },
   "北投區": {
    "park": 346,
-   "green": 1081,
    "school": 166,
-   "sport": 798,
+   "sport": 770,
+   "market": 97,
    "bus": 1708,
    "mrt": 18
   }
@@ -101,11 +101,10 @@
  "routes": 2400,
  "city": {
   "park": 1475,
-  "green": 6422,
   "school": 708,
   "sport": 2934,
+  "market": 552,
   "bus": 5787,
-  "mrt": 102
- },
- "routes_built": "2026-11-14"
+  "mrt": 101
+ }
 }
