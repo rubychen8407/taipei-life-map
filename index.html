@@ -15,7 +15,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFa
 button{font:inherit;color:inherit;cursor:pointer}
 #map{position:absolute;inset:0;background:#e8eaed}
 .leaflet-control-attribution{font-size:9px;opacity:.75}
-#top{position:absolute;z-index:1000;top:10px;left:10px;right:10px;pointer-events:none;max-height:48vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}#top::-webkit-scrollbar{display:none}
+#top{position:absolute;z-index:1000;top:10px;left:10px;right:10px;pointer-events:none;max-height:48vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}body.life-mode #top{max-height:calc(100dvh - 20px)}#top::-webkit-scrollbar{display:none}
 #top>*{pointer-events:auto}
 .search{position:relative;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;background:#fff;border-radius:24px;box-shadow:var(--shadow);font-size:16px;font-weight:600}
 .search .caret{margin-left:auto;color:var(--sub)}
@@ -88,7 +88,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .facility-marker svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .facility-marker .facility-name{position:absolute;left:50%;top:35px;transform:translateX(-50%);max-width:150px;padding:3px 7px;border-radius:7px;background:#fff;color:#202124;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 4px rgba(60,64,67,.25);pointer-events:auto;cursor:pointer}
  .detail-category{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-bottom:5px;padding:3px 8px;border-radius:12px;background:#f1f3f4;color:#5f6368;font-size:12px;font-weight:600}.detail-category svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
- .distance-settings{display:grid;gap:8px;margin:8px 0 0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18)}.distance-title{font-size:12px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:32px}.distance-row .swatch{width:9px;height:9px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:12px;font-weight:600}.distance-row select{height:30px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px}.category-settings{max-height:38vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.category-settings::-webkit-scrollbar{display:none}.life-panel{margin:8px 0 0;padding:12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18);display:grid;gap:9px}.life-panel[hidden]{display:none}.life-panel .life-heading{font-size:13px;font-weight:700}.life-panel .life-hint{font-size:12px;color:var(--sub);line-height:1.4}.life-center-row{display:flex;align-items:center;gap:6px}.life-center-row input{min-width:0;flex:1;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font-size:13px}.life-center-row button{height:30px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px}.life-actions{display:flex;gap:8px}.life-actions .btn{flex:1}.life-chip svg,.chip svg{width:18px;height:18px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.life-tabs{display:flex;gap:7px;margin:8px 0}.life-tabs button{border:1px solid var(--line);border-radius:16px;background:#fff;padding:6px 12px;font-size:12px}.life-tabs button[aria-pressed=true]{background:var(--bluebg);border-color:var(--blue);color:var(--blue)}.life-way{stroke-linecap:round;stroke-linejoin:round}.life-center-marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid #fff;color:#fff;font-weight:800;font-size:13px;box-shadow:0 1px 5px rgba(0,0,0,.4)}.life-result-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line)}.life-result-row .life-result-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;flex:none}.life-result-row .life-result-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.life-result-row .life-result-distance{margin-left:auto;font-weight:700;white-space:nowrap;font-size:13px}.distance-title{font-size:13px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:34px}.distance-row .swatch{width:10px;height:10px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:13px;font-weight:600}.distance-row select{height:32px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
+ .distance-settings{display:grid;gap:8px;margin:8px 0 0;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18)}.distance-title{font-size:12px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:32px}.distance-row .swatch{width:9px;height:9px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:12px;font-weight:600}.distance-row select{height:30px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px}.category-settings{max-height:38vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.category-settings::-webkit-scrollbar{display:none}.life-panel{margin:8px 0 0;padding:12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18);display:grid;gap:9px;max-height:calc(100dvh - 180px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}.life-panel[hidden]{display:none}.life-panel .life-heading{font-size:13px;font-weight:700}.life-panel .life-hint{font-size:12px;color:var(--sub);line-height:1.4}.life-center-row{display:flex;align-items:center;gap:6px}.life-center-row input{min-width:0;flex:1;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font-size:13px}.life-center-row button{height:30px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px}.life-actions{display:flex;gap:8px}.life-actions .btn{flex:1}.life-chip{flex:none;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px 0 10px;border:0;border-radius:18px;background:#fff;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);font-size:14px;font-weight:500;white-space:nowrap}.life-chip[aria-pressed=true]{background:var(--bluebg);color:var(--blue)}.life-chip svg,.chip svg{width:18px;height:18px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.life-tabs{display:flex;gap:7px;margin:8px 0}.life-tabs button{border:1px solid var(--line);border-radius:16px;background:#fff;padding:6px 12px;font-size:12px}.life-tabs button[aria-pressed=true]{background:var(--bluebg);border-color:var(--blue);color:var(--blue)}.life-way{stroke-linecap:round;stroke-linejoin:round}.life-center-marker{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid #fff;color:#fff;font-weight:800;font-size:13px;box-shadow:0 1px 5px rgba(0,0,0,.4)}.life-result-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--line)}.life-result-row .life-result-icon{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;flex:none}.life-result-row .life-result-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.life-result-row .life-result-distance{margin-left:auto;font-weight:700;white-space:nowrap;font-size:13px}.distance-title{font-size:13px;font-weight:700;color:#3c4043}.distance-row{display:flex;align-items:center;gap:8px;min-height:34px}.distance-row .swatch{width:10px;height:10px;border-radius:50%;flex:none}.distance-row .name{flex:1;font-size:13px;font-weight:600}.distance-row select{height:32px;min-width:96px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
 .me{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.2)}
 .tr-end{background:#fff;border:2px solid #333;border-radius:6px;font-size:11px;font-weight:700;padding:0 4px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);width:auto!important;height:auto!important}
 .tr-origin{border-radius:50%;background:#ea4335;border:3px solid #fff;box-shadow:0 0 0 5px rgba(234,67,53,.3);color:#fff;font-weight:700;font-size:12px;text-align:center;line-height:20px}
@@ -315,16 +315,16 @@ function analyze(){const act=LAYERS.filter(l=>state.active.has(l.id)&&data(l.id)
   state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
-const DENSITY_STOPS=[[0.08,[255,244,178]],[0.45,[255,209,102]],[0.9,[255,159,64]],[1.5,[239,83,80]],[2.3,[183,28,28]],[3.2,[106,4,15]]];
-function densityColor(value){const v=Math.max(0.08,Math.min(3.2,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
+const DENSITY_STOPS=[[0.08,[255,246,168]],[0.18,[255,224,64]],[0.35,[255,165,32]],[0.7,[244,81,30]],[1.2,[213,0,0]],[2.2,[142,0,28]],[4.5,[55,0,24]]];
+function densityColor(value){const v=Math.max(0.08,Math.min(4.5,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
 function drawHeat(){const R=state.res;if(!R||state.transit){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;let density=0;
     for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
-    if(density>0){const color=densityColor(density),hex=color.slice(1);p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.min(210,82+density*42);}}
+    if(density>0){const color=densityColor(density),hex=color.slice(1);p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.min(238,148+density*24);}}
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   if(heat)heat.setUrl(url);else heat=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heatOpacity()}).addTo(map);heat.setOpacity(heatOpacity());}
-function heatOpacity(){const z=map.getZoom();return z<=12.5?0.92:z>=15.5?0:Math.max(0,Math.min(0.92,(15.5-z)/3*0.92));}
+function heatOpacity(){const z=map.getZoom();return z<=12.5?0.94:z>=15.5?0.86:0.94-(z-12.5)/3*0.08;}
 function drawPins(){pinLayer.clearLayers();if(!state.res||state.transit||state.view.type!=='list')return;
   state.zones.forEach((z,i)=>{const c=CELLS[z.best];L.marker([c.la,c.lo],{icon:L.divIcon({className:'zpin',html:String(i+1),iconSize:[26,26]}),zIndexOffset:500}).on('click',()=>{if(!state.drawing)openZone(i);}).addTo(pinLayer);});}
 function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res)return;const z=map.getZoom();if(!ROUTE_DATA&&!routeLabelsLoading&&!routeLabelsAttempted&&((state.active.has('mrt')&&z>=12.5)||(state.active.has('bus')&&z>=15.5))){routeLabelsAttempted=true;routeLabelsLoading=true;bakedRoutes().then(()=>{routeLabelsLoading=false;if(!state.transit)drawFacilities();});}const b=map.getBounds().pad(.15),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast();let cnt=0;
@@ -333,10 +333,10 @@ function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res)re
       const closed=f.polys&&f.polys.length&&f.polys.every(p=>p.length>3&&p[0][0]===p[p.length-1][0]&&p[0][1]===p[p.length-1][1]);
       if(closed){if(!polyOK)continue;lyr=L.polygon(f.polys,{color:l.color,weight:1,fillColor:l.color,fillOpacity:.22});}
       else{if(!ptOK)continue;const px=map.latLngToContainerPoint(f.center),cell=Math.floor(px.x/118)+':'+Math.floor(px.y/54);const showLabel=z>=17&&!!f.name&&!occupied.has(cell);if(showLabel)occupied.add(cell);lyr=L.marker(f.center,{icon:facilityIcon(l,f,z,showLabel),keyboard:false,zIndexOffset:l.id==='mrt'?250:0});}
-      lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
+      lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(state.lifeMode){handleLifeMapPoint(ev.latlng);return;}if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
 map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
-map.on('click',e=>{if(state.lifeMode){if(state.lifeSelectedIndex>=0){state.lifeCenters[state.lifeSelectedIndex].center=[e.latlng.lat,e.latlng.lng];state.lifeSelectedIndex=-1;renderLifePanel();drawLifeCenters();}else if(state.lifeCenters.length<3){state.lifeCenters.push({label:['住家','公司','常去地點'][state.lifeCenters.length],center:[e.latlng.lat,e.latlng.lng]});renderLifePanel();drawLifeCenters();}else toast('最多設定 3 個生活圈');return;}if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
+map.on('click',e=>{if(handleLifeMapPoint(e.latlng))return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
 
 // ---------- sheet rendering ----------
@@ -392,7 +392,7 @@ function closeDetail(silent){closeTransit();selLayer.clearLayers();if(state.view
 const LIFE_COLORS=['#2563eb','#d97706','#0f766e'];
 function startLifeMode(){
   closeTransit();closeDetail(true);state.lifeMode=true;state.lifeCenters=[];state.lifeResults=[];state.lifeSelectedIndex=-1;
-  lifeLayer.clearLayers();$('lifePanel').hidden=false;lifeButton.setAttribute('aria-pressed','true');
+  lifeLayer.clearLayers();facLayer.clearLayers();pinLayer.clearLayers();document.body.classList.add('life-mode');$('lifePanel').hidden=false;lifeButton.setAttribute('aria-pressed','true');
   $('categorySettings').style.display='none';renderLifePanel();toast('請直接在地圖上點選生活圈中心，最多 3 個');
   if(isMob())setSheet('peek');
 }
@@ -407,13 +407,14 @@ function renderLifePanel(){
   $('lifeMinutes').oninput=e=>{state.lifeMinutes=+e.target.value;const mm=state.lifeMinutes,dd=Math.round(mm*SPEED*DETOUR/10)*10;el.querySelector('[data-life-minutes]').textContent=mm+' 分鐘・約 '+dd+' 公尺';};
   $('lifeCancel').onclick=cancelLifeMode;$('lifeConfirm').onclick=confirmLifeCenters;
 }
+function handleLifeMapPoint(latlng){if(!state.lifeMode)return false;const point=[latlng.lat,latlng.lng];if(state.lifeSelectedIndex>=0){state.lifeCenters[state.lifeSelectedIndex].center=point;state.lifeSelectedIndex=-1;}else if(state.lifeCenters.length<3){state.lifeCenters.push({label:['住家','公司','常去地點'][state.lifeCenters.length],center:point});}else toast('最多設定 3 個生活圈');renderLifePanel();drawLifeCenters();return true;}
 function drawLifeCenters(){
   lifeLayer.clearLayers();
   state.lifeCenters.forEach((c,i)=>L.marker(c.center,{icon:L.divIcon({className:'',html:'<div class="life-center-marker" style="background:'+LIFE_COLORS[i]+'">'+String.fromCharCode(65+i)+'</div>',iconSize:[30,30],iconAnchor:[15,15]}),zIndexOffset:1200})
     .bindTooltip(esc(c.label),{direction:'top',offset:[0,-15]}).addTo(lifeLayer));
 }
 function cancelLifeMode(){
-  state.lifeMode=false;state.lifeSelectedIndex=-1;$('lifePanel').hidden=true;$('categorySettings').style.display='';
+  state.lifeMode=false;document.body.classList.remove('life-mode');state.lifeSelectedIndex=-1;$('lifePanel').hidden=true;$('categorySettings').style.display='';
   lifeButton.setAttribute('aria-pressed','false');lifeLayer.clearLayers();if(isMob())setSheet('half');
 }
 function lifeKey(lat,lon){return lat.toFixed(5)+','+lon.toFixed(5);}
@@ -451,7 +452,7 @@ function drawLifeNetwork(graph,color){
 }
 async function confirmLifeCenters(){
   if(!state.lifeCenters.length){toast('請至少新增一個生活圈中心');return;}
-  state.lifeMode=false;$('lifePanel').hidden=true;$('categorySettings').style.display='';lifeButton.setAttribute('aria-pressed','false');
+  state.lifeMode=false;document.body.classList.remove('life-mode');$('lifePanel').hidden=true;$('categorySettings').style.display='';lifeButton.setAttribute('aria-pressed','false');
   state.lifeResults=[];state.lifeActiveIndex=0;drawLifeCenters();busy(true);renderLifeResults();
   for(let i=0;i<state.lifeCenters.length;i++){
     try{const graph=await fetchWalkGraph(state.lifeCenters[i].center);state.lifeResults[i]=graph?{graph,items:[]}:{graph:null,items:[],error:'附近沒有可用的步行路網資料'};
@@ -479,7 +480,7 @@ function renderLifeResults(){
   }
   html+='<div class="life-actions"><button class="btn" id="lifeEdit">編輯生活圈</button><button class="btn" id="lifeNew">重新設定</button></div><div class="foot">步行時間依可步行路網最短路徑估算，包含中心點與設施到路網的接近距離；資料：© OpenStreetMap 貢獻者。</div>';
   B.innerHTML=html;B.querySelectorAll('[data-life-tab]').forEach(b=>b.onclick=()=>{state.lifeActiveIndex=+b.dataset.lifeTab;lifeLayer.clearLayers();drawLifeCenters();state.lifeResults.forEach((x,j)=>{if(x.graph)drawLifeNetwork(x.graph,LIFE_COLORS[j]);});renderLifeResults();});
-  $('lifeEdit').onclick=()=>{state.lifeMode=true;state.lifeSelectedIndex=-1;lifeButton.setAttribute('aria-pressed','true');$('categorySettings').style.display='none';renderLifePanel();};
+  $('lifeEdit').onclick=()=>{state.lifeMode=true;document.body.classList.add('life-mode');state.lifeSelectedIndex=-1;lifeButton.setAttribute('aria-pressed','true');$('categorySettings').style.display='none';renderLifePanel();};
   $('lifeNew').onclick=startLifeMode;
 }
 
