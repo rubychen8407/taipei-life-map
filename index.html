@@ -315,7 +315,7 @@ function analyze(){const act=LAYERS.filter(l=>state.active.has(l.id)&&data(l.id)
   state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
-const DENSITY_STOPS=[[0.08,[255,246,168]],[0.18,[255,224,64]],[0.35,[255,165,32]],[0.7,[244,81,30]],[1.2,[213,0,0]],[2.2,[142,0,28]],[4.5,[55,0,24]]];
+const DENSITY_STOPS=[[0.08,[255,255,178]],[0.22,[255,237,110]],[0.48,[255,190,55]],[0.85,[255,125,35]],[1.35,[235,55,35]],[2.1,[190,12,48]],[3.1,[112,0,55]],[4.5,[42,0,66]]];
 function densityColor(value){const v=Math.max(0.08,Math.min(4.5,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
 function drawHeat(){const R=state.res;if(!R||state.transit){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
@@ -435,9 +435,11 @@ function buildWalkGraph(elements,origin){
   dist[start]=near;push([near,start]);
   while(heap.length){const [d,u]=pop();if(d!==dist[u]||d>limit)continue;for(const [v,w] of adj[u]){const nd=d+w;if(nd<dist[v]&&nd<=limit){dist[v]=nd;push([nd,v]);}}}
   const cell=120,buckets=new Map(),xy=nodes.map((p,i)=>{const x=(p[1]-origin[1])*KX,y=(p[0]-origin[0])*KY,k=Math.floor(x/cell)+':'+Math.floor(y/cell);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(i);return[x,y];});
-  function snap(point){const x=(point[1]-origin[1])*KX,y=(point[0]-origin[0])*KY,bx=Math.floor(x/cell),by=Math.floor(y/cell);let bi=-1,bd=Infinity;
+  const snapCache=new Map();
+  function snap(point){const cacheKey=lifeKey(point[0],point[1]);if(snapCache.has(cacheKey))return snapCache.get(cacheKey);
+    const x=(point[1]-origin[1])*KX,y=(point[0]-origin[0])*KY,bx=Math.floor(x/cell),by=Math.floor(y/cell);let bi=-1,bd=Infinity;
     for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const a=buckets.get((bx+dx)+':'+(by+dy))||[];for(const i of a){const d=Math.hypot(x-xy[i][0],y-xy[i][1]);if(d<bd){bd=d;bi=i;}}}
-    return bd<=180?{i:bi,d:bd}:null;}
+    const result=bd<=180?{i:bi,d:bd}:null;snapCache.set(cacheKey,result);return result;}
   return{nodes,adj,ways,dist,snap,limit,origin};
 }
 async function fetchWalkGraph(center){
@@ -453,13 +455,17 @@ function drawLifeNetwork(graph,color){
 async function confirmLifeCenters(){
   if(!state.lifeCenters.length){toast('請至少新增一個生活圈中心');return;}
   state.lifeMode=false;document.body.classList.remove('life-mode');$('lifePanel').hidden=true;$('categorySettings').style.display='';lifeButton.setAttribute('aria-pressed','false');
-  state.lifeResults=[];state.lifeActiveIndex=0;drawLifeCenters();busy(true);renderLifeResults();
-  for(let i=0;i<state.lifeCenters.length;i++){
-    try{const graph=await fetchWalkGraph(state.lifeCenters[i].center);state.lifeResults[i]=graph?{graph,items:[]}:{graph:null,items:[],error:'附近沒有可用的步行路網資料'};
-      if(graph){for(const layer of LAYERS){const feats=data(layer.id)||[],items=[];for(const f of feats){const d=lifeDistance(graph,f.center);if(d<=graph.limit)items.push({f,l:layer,d});}items.sort((a,b)=>a.d-b.d);state.lifeResults[i].items.push(...items);}}
-    }catch(e){state.lifeResults[i]={graph:null,items:[],error:'步行路網暫時無法載入，請稍後重試'};}
-  }
-  busy(false);renderLifeResults();drawLifeCenters();
+  const centers=state.lifeCenters.map(c=>({label:c.label,center:[...c.center]}));
+  state.lifeResults=centers.map(()=>null);state.lifeActiveIndex=0;drawLifeCenters();busy(true);renderLifeResults();
+  // Each center has an independent graph; run network requests and Dijkstra builds concurrently
+  // so total wait time is close to the slowest center rather than the sum of all centers.
+  const results=await Promise.all(centers.map(async center=>{
+    try{const graph=await fetchWalkGraph(center.center);if(!graph)return{graph:null,items:[],error:'附近沒有可用的步行路網資料'};
+      const items=[];for(const layer of LAYERS){const feats=data(layer.id)||[];for(const f of feats){const d=lifeDistance(graph,f.center);if(d<=graph.limit)items.push({f,l:layer,d});}}
+      items.sort((a,b)=>a.d-b.d);return{graph,items};
+    }catch(e){return{graph:null,items:[],error:'步行路網暫時無法載入，請稍後重試'};}
+  }));
+  state.lifeResults=results;busy(false);renderLifeResults();drawLifeCenters();
   state.lifeResults.forEach((r,i)=>{if(r.graph)drawLifeNetwork(r.graph,LIFE_COLORS[i]);});
   const centers=state.lifeCenters.map(c=>c.center);if(centers.length)fit(L.latLngBounds(centers).pad(.35),{maxZoom:15});
 }
