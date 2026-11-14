@@ -260,6 +260,7 @@ function categoryIcon(id){const paths={
  sport:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17M3.5 12h17M6 6c3.5 3 3.5 9 0 12M18 6c-3.5 3-3.5 9 0 12"/>',
  bus:'<rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8.5 14.5h.01M15.5 14.5h.01M7.5 17.5V20M16.5 17.5V20"/>',
  mrt:'<rect x="6" y="3" width="12" height="14" rx="4"/><path d="M6 10h12M9.5 13.5h.01M14.5 13.5h.01M9 17l-2 3.5M15 17l2 3.5M8 20h8"/>',
+ sidewalk:'<path d="M7 21 10 3M17 21 14 3"/><path d="M12 6.5v1.5M12 11v2M12 16v2.5"/>',
  life:'<path d="M4 10.5 12 4l8 6.5"/><path d="M6 9v10.5h12V9M10 19.5v-5h4v5"/>',
  region:'<path d="M4 6.5 9 4l6 2.5L20 4v13.5L15 20l-6-2.5L4 20V6.5Z"/><path d="M9 4v13.5M15 6.5V20"/>',
  layers:'<path d="m12 4 8.5 4.5L12 13 3.5 8.5 12 4Z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5"/>',
@@ -284,6 +285,8 @@ const LAYERS = [
   {id:'bus',   name:'公車站',icon:categoryIcon('bus'), color:'#8e24aa', bg:'#f3e8fd', geom:false, q:'node["highway"="bus_stop"]', is:t=>t.highway==='bus_stop'},
   {id:'mrt',   name:'捷運站',icon:categoryIcon('mrt'), color:'#d93025', bg:'#fce8e6', geom:false, q:'nwr["railway"="station"]["station"="subway"];nwr["public_transport"="station"]["subway"="yes"]',
    is:t=>(t.railway==='station'&&t.station==='subway')||(t.public_transport==='station'&&t.subway==='yes')},
+  // 人行道：預建資料來自內政部「各縣市人行道資訊」（scripts/build_sidewalk.py，只收淨寬 ≥ 1.5 公尺）；沒有預建資料時退回 OpenStreetMap 的人行道
+  {id:'sidewalk',name:'人行道',icon:categoryIcon('sidewalk'),color:'#8d6e63',bg:'#efebe9',geom:true,q:'way["footway"="sidewalk"]',is:t=>t.footway==='sidewalk'},
 ];
 const LIFE={id:'life',name:'生活圈',icon:categoryIcon('life'),color:'#d81b60',bg:'#fce4ec',geom:false};
 const CATS=[...LAYERS,LIFE];
@@ -305,7 +308,7 @@ const scopeLayer=L.layerGroup().addTo(map),labelLayer=L.layerGroup().addTo(map),
   selLayer=L.layerGroup().addTo(map),transitLayer=L.layerGroup().addTo(map),drawLayer=L.layerGroup().addTo(map),meLayer=L.layerGroup().addTo(map),lifeLayer=L.layerGroup().addTo(map);
 let heat=null;
 
-const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,school:10,sport:10,bus:10,mrt:10,life:20},modeByLayer:{park:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
+const state={active:new Set(['park','school','mrt']),minsByLayer:{sidewalk:3,park:10,school:10,sport:10,bus:10,mrt:10,life:20},modeByLayer:{sidewalk:'walk',park:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
   lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true}};
 
@@ -438,8 +441,11 @@ function prep(list){return list.map(f=>{const o={name:f.n!=null?f.n:(f.name||'')
   if(o.polys){let a=90,b=-90,c=180,d=-180;o.polys.forEach(p=>p.forEach(([la,lo])=>{a=Math.min(a,la);b=Math.max(b,la);c=Math.min(c,lo);d=Math.max(d,lo);}));o.bb=[a,c,b,d];}return o;});}
 async function getJSON(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' '+r.status);return r.json();}
 async function loadBaked(){ // 預先下載好的全市資料（GitHub Actions 每週更新）
-  try{const d=await getJSON('data/city.json');if(!d.layers)throw 0;const S={};LAYERS.forEach(l=>S[l.id]=prep(d.layers[l.id]||[]));state.store.city=S;state.built=d.built;state.baked=true;return;}catch(e){}
+  try{const d=await getJSON('data/city.json');if(!d.layers)throw 0;const S={};LAYERS.forEach(l=>{if(l.id!=='sidewalk')S[l.id]=prep(d.layers[l.id]||[]);});state.store.city=S;state.built=d.built;state.baked=true;return;}catch(e){}
   state.baked=false;}
+async function loadSidewalk(){ // 人行道檔較大，勾選「人行道」時才下載
+  const S=state.store.city;if(!S||S.sidewalk)return;try{const sw=await getJSON('data/sidewalk.json');S.sidewalk=prep(sw.features||[]);state.sidewalkInfo={period:sw.period,min:sw.min_net};}
+  catch(e){S.sidewalk=[];toast('人行道資料還沒建好，暫時無法使用這個類別',true);}}
 async function overpass(q){let err;for(const url of OVERPASS){try{
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({data:q}).toString()});
     if(!r.ok)throw new Error(url.split('/')[2]+' HTTP '+r.status);return await r.json();}catch(e){err=e;}}throw err;}
@@ -581,7 +587,7 @@ function renderCategorySettings(){const el=$('categorySettings');if(!el)return;e
   if(slider){slider.oninput=()=>{const m=+slider.value,id=slider.dataset.distance;state.minsByLayer[id]=m;slider.style.setProperty('--p',(m-1)/19*100+'%');slider.setAttribute('aria-valuetext',m+' 分鐘');el.querySelector('[data-distance-value]').textContent=m+' 分';const chip=$('chips').querySelector('[data-id="'+id+'"] [data-mins]');if(chip)chip.textContent=m+' 分';if(state.res){analyze();drawHeat();drawPins();}render();};}}
 function closeTune(){if(!state.openDistanceLayer&&!state.modeMenu)return false;state.openDistanceLayer=null;state.modeMenu=false;state.lifeMoving=-1;renderCategorySettings();return true;}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
-function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
+function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
 function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
   const H=$('head'),Bd=$('body'),R=state.res;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -787,6 +793,7 @@ async function run(){const seq=++state.seq;state.err=null;drawLifeCenters();
     if(need.some(id=>!data(id))){state.res=null;drawHeat();drawPins();render();busy(true);
       try{await ensureLive(need);}catch(e){busy(false);if(seq===state.seq){state.err=e;render();toast('下載失敗：'+e.message,true);}return;}
       busy(false);if(seq!==state.seq)return;}}
+  if(state.baked&&state.active.has('sidewalk')&&!state.store.city.sidewalk){busy(true);await loadSidewalk();busy(false);if(seq!==state.seq)return;}
   analyze();drawHeat();drawPins();drawFacilities();render();}
 (async()=>{fillScope();renderCategorySettings();setSheet('peek',false);render();drawScope(true);busy(true);
   await loadBaked();busy(false);state.loading=false;run();})();

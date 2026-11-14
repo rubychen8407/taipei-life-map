@@ -15,7 +15,7 @@ LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
 PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
-SNIP = {'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
+SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
 OUT = os.path.join(HERE, 'out')
 DATA_DIR = os.path.join(OUT, 'data')
 MODE = {'baked': False, 'missing': set(), 'fail': set(), 'dir': DATA_DIR}
@@ -192,17 +192,30 @@ async def baked_suite(b, errs):
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=()=>12;const b=heatOpacity();map.getZoom=get;return a<=0.35&&b>=0.85})()"), '熱圖：全市看得清楚，放大到街區自動淡化，讓設施圖示浮現')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
-    check(await ev("document.querySelectorAll('#chips .chip').length") == 6 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 6 個（已移除綠地）（含生活圈）、預設選 3 個')
+    check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含人行道，已移除綠地）（含生活圈）、預設選 3 個')
     check(await ev("[...document.querySelectorAll('#chips .chip')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.querySelector('.chip-icon svg')&&b.querySelector('.chip-name').textContent.trim()}) && document.getElementById('chips').scrollWidth<=document.getElementById('chips').clientWidth+1"),
-          '6 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
+          '7 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
     check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
           '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
-    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '6 個類別包在同一個毛玻璃小組裡')
+    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '7 個類別包在同一個毛玻璃小組裡')
     check(await ev("[...document.querySelectorAll('#sheet,#chips,.fab,#scopeTag')].every(e=>{const c=getComputedStyle(e);return (c.backdropFilter||'none')==='none'&&(c.webkitBackdropFilter||'none')==='none'}) && getComputedStyle(document.body).position!=='fixed'"), '手機（觸控）上不用即時模糊、body 不固定定位，避免 iPhone Safari 漏畫閃爍')
     z = await ev("(()=>{const ev=new Event('gesturestart',{cancelable:true});document.dispatchEvent(ev);return {g:ev.defaultPrevented,ta:getComputedStyle(document.body).touchAction,top:getComputedStyle(document.getElementById('sheet')).touchAction}})()")
     check(z['g'] and z['ta'] == 'pan-x pan-y' and z['top'] == 'manipulation', f"擋掉整個網頁的雙指縮放與連點放大（{z}），地圖本身仍可縮放")
     zz = await ev("map.touchZoom.enabled() && map.doubleClickZoom.enabled()")
     check(zz, '地圖的兩指縮放與連點放大仍然開著')
+    # 人行道類別：讀預建的 data/sidewalk.json（不查 Overpass），和其他類別一樣併入分析
+    c0 = len(calls)
+    await page.click('.chip[data-id=sidewalk]'); await page.wait_for_function("state.res&&state.res.act.includes('sidewalk')", timeout=10000)
+    sw = await ev("({n:data('sidewalk').length,poly:data('sidewalk').every(f=>f.polys&&f.polys[0].length>=4),mode:state.modeByLayer.sidewalk,m:state.minsByLayer.sidewalk,info:state.sidewalkInfo,hits:" + "0})")
+    check(len(calls) == c0 and sw['n'] == MODE['sw']['kept'] and sw['poly'] and 'sidewalk.json' in data_hits, f"人行道類別讀預建資料（{sw['n']} 段淨寬 ≥1.5m 的人行道），不查 Overpass")
+    check(sw['mode'] == 'walk' and sw['m'] == 3 and sw['info']['min'] == 1.5, '人行道預設「步行 3 分鐘內有淨寬 1.5 公尺以上的人行道」')
+    k = await ev("(()=>{const i=state.res.act.indexOf('sidewalk');return scopeCells().find(k=>state.res.D[i].d[k]===0)})()")
+    check(k is not None, '站在人行道上的位置距離算 0（面狀資料，不是只看中心點）')
+    await ev("void map.setView(data('sidewalk')[0].center,17,{animate:false})"); await page.wait_for_timeout(400)
+    check(await ev("facLayer.getLayers().some(l=>l instanceof L.Polygon&&l.options.color==='#8d6e63')"), '放大後地圖畫出人行道的範圍')
+    await ev("state.openDistanceLayer='sidewalk';renderCategorySettings()"); await page.click('.chip[data-id=sidewalk]')
+    await page.wait_for_function("!state.res.act.includes('sidewalk')", timeout=5000)
+    await ev("void map.fitBounds([[CITY[0],CITY[1]],[CITY[2],CITY[3]]],{animate:false})"); await page.wait_for_timeout(300)
     check(await ev("!document.querySelector('#top .search')||getComputedStyle(document.querySelector('#top .search')).display==='none'"), '上方不再常駐區域選擇列')
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
@@ -212,10 +225,10 @@ async def baked_suite(b, errs):
     await shot(page, '1_home')
 
     # 2. 類別按鈕、各類別獨立距離設定
-    t0 = time.time()
+    h0 = len(data_hits); t0 = time.time()
     await page.click('.chip[data-id=bus]')
     await page.wait_for_function("state.res.act.includes('bus')", timeout=5000)
-    check(len(calls) == n0 and len(data_hits) == 1 and time.time() - t0 < 1.5, f'點「公車站」立即重算（{time.time()-t0:.2f} 秒），不下載任何東西')
+    check(len(calls) == n0 and len(data_hits) == h0 and time.time() - t0 < 1.5, f'點「公車站」立即重算（{time.time()-t0:.2f} 秒），不下載任何東西')
     g10 = await ev("state.res.good")
     await page.locator('#chips .chip[data-id="park"]').click()
     await page.locator('input[data-distance="park"]').evaluate("(el)=>{el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}))}")
@@ -583,6 +596,8 @@ async def main():
             shutil.rmtree(DATA_DIR, ignore_errors=True)
             with contextlib.redirect_stdout(io.StringIO()):
                 idx = build_data.build(fetch=lambda q: {'elements': answer(q)}, out_dir=DATA_DIR, pause=0)
+                import build_sidewalk, sidewalk_mock
+                MODE['sw'] = build_sidewalk.build(sidewalk_mock.mock(), DATA_DIR, built='2026-11-14', period='202606', log=lambda *a: None)
             check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
             await baked_suite(b, errs)
