@@ -1,0 +1,45 @@
+name: Probe sidewalk data
+on:
+  push:
+    branches: ["probe/**"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dataset metadata
+        run: |
+          curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/58791" -o ds.json || true
+          python3 - <<'PY'
+          import json
+          j=json.load(open('ds.json'))
+          r=j.get('result',j)
+          for d in r.get('distribution',[]):
+              print(d.get('resourceDescription'),'|',d.get('resourceFormat'),'|',d.get('resourceDownloadUrl'))
+          PY
+      - name: Download newest and inspect
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,zipfile,io,os,collections
+          r=json.load(open('ds.json')).get('result')
+          ds=r['distribution']
+          pick=[d for d in ds if '202606' in (d.get('resourceDescription') or '')] or ds
+          for d in pick[:2]:
+              u=d['resourceDownloadUrl'];print('URL',u)
+              try:
+                  b=urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=300).read()
+              except Exception as e:
+                  print('ERR',e);continue
+              print('bytes',len(b),b[:4])
+              if b[:2]==b'PK':
+                  z=zipfile.ZipFile(io.BytesIO(b))
+                  for n in z.namelist()[:40]:print(' ',n,z.getinfo(n).file_size)
+                  for n in z.namelist():
+                      if n.lower().endswith(('.json','.geojson')):
+                          j=json.loads(z.read(n).decode('utf-8-sig'))
+                          fs=j.get('features',[]);print(n,'features',len(fs))
+                          c=collections.Counter(f['properties'].get('COUNTY_NA') or f['properties'].get('COUNTYNAME') for f in fs);print(c.most_common(30))
+                          tp=[f for f in fs if '臺北' in str(f['properties']) or '台北' in str(f['properties'])]
+                          print('taipei',len(tp));print(json.dumps(tp[:2],ensure_ascii=False)[:1500]);print(j.get('crs'))
+              else:
+                  j=json.loads(b.decode('utf-8-sig'));print(type(j),str(j)[:1500])
+          PY
