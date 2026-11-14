@@ -380,7 +380,7 @@ async def real_suite(b, errs):
     print('  transit at', name, await ev("state.transit.n"), 'routes')
     await shot(page, 'real_5_mrt')
     await page.click('#close')
-    name = await ev("(()=>{const c=DISTRICTS[3].ctr;const s=data('bus').slice().sort((a,b)=>md(a.center,c)-md(b.center,c))[0];void openPlace(s,LAYER.bus);return s.name})()")
+    name = await ev("(()=>{const s=data('bus').find(f=>/臺北科技大學 ?\\(忠孝\\)/.test(f.name))||data('bus')[0];map.setView(s.center,15,{animate:false});void openPlace(s,LAYER.bus);return s.name})()")
     await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=90000)
     print('  transit at', name, await ev("state.transit.n"), 'routes', await ev(LINES + ".map(l=>l.options.weight)"))
     await shot(page, 'real_6_bus')
