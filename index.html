@@ -224,6 +224,12 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 /* 不讓整個網頁被放大縮小（iPhone 會忽略 user-scalable=no）；地圖本身仍可用兩指縮放 */
 html,body{touch-action:pan-x pan-y}
 #top,#sheet,#fabs,.pop,#pressMenu,#toast{touch-action:manipulation}
+
+/* 點擊目標放大：地圖圖示 44px、長按選單按鈕 44px；長按地圖不跳出 iOS 的系統選單 */
+.facility-marker{display:flex!important;align-items:center;justify-content:center}
+.facility-marker .facility-name{top:40px}
+#pressMenu{height:52px}#pressMenu button{width:44px;height:44px;border-radius:22px}
+#map{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 </style>
 </head>
 <body>
@@ -270,7 +276,7 @@ function categoryIcon(id){const paths={
  edit:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
  land:'<path d="M3.5 18.5 9 9l4 5.5 2.5-3.5 5 7H3.5Z"/>'
 };return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[id]||paths.park)+'</svg>';}
-function facilityIcon(l,f,z,showLabel){const text=showLabel?facilityLabel(f,l):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[34,38],iconAnchor:[17,17]});}
+function facilityIcon(l,f,z,showLabel){const text=showLabel?facilityLabel(f,l):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[44,44],iconAnchor:[22,22]});}
 const LAYERS = [
   {id:'park',  name:'公園',  icon:categoryIcon('park'), color:'#2e7d32', bg:'#e6f4ea', geom:true,  q:'nwr["leisure"="park"]', is:t=>t.leisure==='park'},
   {id:'green', name:'綠地',  icon:categoryIcon('green'), color:'#7cb342', bg:'#f1f8e9', geom:true,  q:'nwr["landuse"~"^(grass|forest|meadow|recreation_ground|village_green)$"];nwr["leisure"="garden"];nwr["natural"~"^(wood|scrub|grassland)$"]',
@@ -291,6 +297,7 @@ const $=id=>document.getElementById(id);
 const isMob=()=>window.innerWidth<700;
 
 // ---------- map ----------
+L.Draggable.prototype.options.clickTolerance=10; // 手指點下去難免會小小移動；超過 3px 就被當成拖曳、點擊失效，放寬到 10px
 const map=L.map('map',{preferCanvas:true,zoomControl:false,zoomSnap:.5}).setView([25.07,121.56],12);
 map.attributionControl.setPrefix(false);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
@@ -712,6 +719,9 @@ document.addEventListener('scroll',e=>{const t=e.target;if(t===document||t===doc
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1&&!(e.target.closest&&e.target.closest('#map')))e.preventDefault();},{passive:false});
 let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouchEnd<300&&!(e.target.closest&&e.target.closest('#map,input,textarea')))e.preventDefault();lastTouchEnd=now;},{passive:false});
+// 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
+['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
+document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
 $('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();}
@@ -735,7 +745,8 @@ function applyLayers(){drawHeat();drawPins();drawFacilities();if(state.layers.tr
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
-function openPress(ll){if(state.drawing||state.editing)return;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
+let pressActive=false,swallowUntil=0;
+function openPress(ll,fromTouch){if(state.drawing||state.editing)return;pressActive=!!fromTouch;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
   L.marker(ll,{icon:L.divIcon({className:'press-dot',iconSize:[16,16]}),interactive:false,zIndexOffset:1500}).addTo(pressLayer);
   const p=map.latLngToContainerPoint(ll),m=$('pressMenu');
   m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button>`;
@@ -749,7 +760,7 @@ function pressAction(a){const ll=pressLL;closePress();if(!ll)return;const pt=[ll
     if(!best){toast('附近 600 公尺內沒有車站');return;}openPlace(best,bl);}}
 (()=>{const mc=map.getContainer();let p0=null,last=0;
   const start=(x,y,multi)=>{if(multi){clearTimeout(pressT);p0=null;return;}const now=Date.now();if(p0&&now-last<50)return;last=now;p0=[x,y];clearTimeout(pressT);
-    pressT=setTimeout(()=>{const r=mc.getBoundingClientRect();if(p0)openPress(map.containerPointToLatLng(L.point(p0[0]-r.left,p0[1]-r.top)));p0=null;},520);};
+    pressT=setTimeout(()=>{const r=mc.getBoundingClientRect();if(p0)openPress(map.containerPointToLatLng(L.point(p0[0]-r.left,p0[1]-r.top)),true);p0=null;},520);};
   const move=(x,y)=>{if(p0&&Math.hypot(x-p0[0],y-p0[1])>8){clearTimeout(pressT);p0=null;}};
   const end=()=>{clearTimeout(pressT);p0=null;};
   mc.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;start(e.clientX,e.clientY,e.isPrimary===false);},true);
