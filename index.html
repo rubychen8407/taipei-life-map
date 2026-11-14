@@ -206,6 +206,12 @@ html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-sys
 
 #regionPop .rp-h{font-size:11px;color:#5F6368;text-align:center;height:auto}
 .dlabel.on span{color:#123B8A;font-weight:700}
+
+#editbar{display:none;margin-top:10px;padding:10px 12px;border-radius:18px;font-size:13px;background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);box-shadow:var(--shadow)}
+#editbar .btns{display:flex;gap:8px;margin-top:8px}
+#scopeTag svg{width:13px;height:13px;margin:auto}
+.vh{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#fff;border:2.5px solid #123B8A;box-shadow:0 1px 4px rgba(0,0,0,.3);box-sizing:border-box}
+.vh.mid{width:12px!important;height:12px!important;margin:-6px 0 0 -6px!important;border:2px solid #F7931E;opacity:.85}
 </style>
 </head>
 <body>
@@ -218,6 +224,8 @@ html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-sys
   <div id="scopeTag" hidden></div>
   <div id="drawbar"><div>在地圖上點 <b>2 個點</b>拉出矩形，或點 <b>3 個點以上</b>圍成範圍。</div>
     <div class="btns"><button class="btn primary" id="fin">完成</button><button class="btn" id="undo">復原</button><button class="btn" id="cancel">取消</button></div></div>
+  <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
+    <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
 <div id="fabs"><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
@@ -247,6 +255,7 @@ function categoryIcon(id){const paths={
  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/>',
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
  doc:'<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/>',
+ edit:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
  land:'<path d="M3.5 18.5 9 9l4 5.5 2.5-3.5 5 7H3.5Z"/>'
 };return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[id]||paths.park)+'</svg>';}
 function facilityIcon(l,f,z,showLabel){const text=showLabel?facilityLabel(f,l):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[34,38],iconAnchor:[17,17]});}
@@ -310,7 +319,7 @@ function scopeFor(list){list=[...new Set(list)].sort((a,b)=>a-b);return !list.le
 const _mr={};function region(){const s=state.scope;if(s==='custom')return state.custom;if(s==='')return null;if(!s.startsWith('m:'))return DISTRICTS[+s];
   if(_mr[s])return _mr[s];const ds=selDistricts().map(i=>DISTRICTS[i]),r={name:ds.map(d=>d.name).join('、'),type:'MultiPolygon',coords:ds.flatMap(d=>polysOf(d))};r.bb=bboxOf(r);return _mr[s]=r;}
 function scopeKey(){return state.scope===''?'city':state.scope==='custom'?'custom:'+state.custom.bb.map(v=>v.toFixed(4)).join(','):state.scope.startsWith('m:')?'m:'+selDistricts().map(i=>DISTRICTS[i].name).join(','):'d:'+DISTRICTS[+state.scope].name;}
-function scopeName(){if(state.scope==='')return '全臺北市';if(state.scope==='custom')return '自選範圍';const ds=selDistricts().map(i=>DISTRICTS[i].name);return ds.length<=3?ds.join('、'):ds.slice(0,2).join('、')+' 等 '+ds.length+' 區';}
+function scopeName(){if(state.scope==='')return '全臺北市';if(state.scope==='custom')return state.custom.name||'自選範圍';const ds=selDistricts().map(i=>DISTRICTS[i].name);return ds.length<=3?ds.join('、'):ds.slice(0,2).join('、')+' 等 '+ds.length+' 區';}
 function srcKey(){return state.baked?'city':scopeKey();}
 let LIFE_FEATS=null,LIFE_SIG='';
 function lifeSig(){return state.lifeCenters.map(c=>c.center[0].toFixed(5)+','+c.center[1].toFixed(5)).join(';');}
@@ -346,7 +355,7 @@ CATS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.d
   b.title=l.name;b.setAttribute('aria-label',l.name+'，'+state.minsByLayer[l.id]+'分鐘');b.innerHTML=`<span class="chip-icon">${l.icon}<span class="badge" data-badge></span></span><span class="chip-name">${esc(l.name)}</span><span class="mins" data-mins>${state.minsByLayer[l.id]} 分</span>`;
   b.onclick=()=>{const selected=state.active.has(l.id),isOpen=state.openDistanceLayer===l.id;if(selected&&isOpen){state.active.delete(l.id);state.openDistanceLayer=null;}else{state.active.add(l.id);state.openDistanceLayer=l.id;if(l.id==='life'&&!state.lifeCenters.length)toast('長按地圖，或在設定開著時點地圖，加入住家、公司等地點');}if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();closePops();run();};
   $('chips').appendChild(b);});
-function fillScope(){const tg=$('scopeTag');if(tg){tg.hidden=state.scope==='';tg.innerHTML=state.scope===''?'':`<span>${esc(scopeName())}</span><button type="button" id="scopeClear" aria-label="回到全臺北市">✕</button>`;const c=$('scopeClear');if(c)c.onclick=()=>setScope('');}
+function fillScope(){const tg=$('scopeTag');if(tg){tg.hidden=state.scope==='';tg.innerHTML=state.scope===''?'':`<span>${esc(scopeName())}</span><button type="button" id="scopeEdit" aria-label="調整範圍邊界" title="調整邊界">${categoryIcon('edit')}</button><button type="button" id="scopeClear" aria-label="回到全臺北市">✕</button>`;const ed=$('scopeEdit');if(ed)ed.onclick=startEdit;const c=$('scopeClear');if(c)c.onclick=()=>setScope('');}
   renderRegionPop();$('scope').innerHTML='<option value="">全臺北市</option>'+DISTRICTS.map((d,i)=>`<option value="${i}">${d.name}</option>`).join('')+(state.custom?'<option value="custom">自選範圍</option>':'')+'<option value="draw">✏️ 自己框選範圍…</option>';$('scope').value=state.scope;$('scopeName').textContent=scopeName();}
 function renderRegionPop(){const el=$('regionPop');if(!el)return;const sel=new Set(selDistricts());
   el.innerHTML=`<div class="wide rp-h">可複選</div><button type="button" class="wide" data-region="" aria-pressed="${state.scope===''}">全臺北市</button>`+DISTRICTS.map((d,i)=>`<button type="button" data-region="${i}" aria-pressed="${sel.has(i)}">${d.name.replace(/區$/,'')}</button>`).join('')+`<button type="button" class="wide draw" data-region="draw">${categoryIcon('region')}在地圖上框選</button>`;
@@ -372,6 +381,35 @@ function drawRing(){const p=state.drawPts;if(p.length===2){const[a,b]=p;return[[
 function previewDraw(){drawLayer.clearLayers();state.drawPts.forEach(p=>L.circleMarker(p,{radius:6,color:'#d81b60',fillColor:'#fff',fillOpacity:1,weight:3,interactive:false}).addTo(drawLayer));
   if(state.drawPts.length>=2)L.polygon(drawRing(),{color:'#d81b60',weight:2,dashArray:'6 6',fillOpacity:.1,interactive:false}).addTo(drawLayer);}
 function addDrawPt(ll){state.drawPts.push([ll.lat,ll.lng]);previewDraw();}
+
+// ---------- 手動調整範圍邊界 ----------
+const editLayer=L.layerGroup();
+function simplifyRing(r,tol){const pts=r.slice();if(pts.length>1&&pts[0][0]===pts[pts.length-1][0]&&pts[0][1]===pts[pts.length-1][1])pts.pop();if(pts.length<=4)return pts;
+  const keep=new Uint8Array(pts.length+1),P=i=>pts[i%pts.length];
+  const dp=(a,b)=>{let md=0,mi=-1;const [x1,y1]=P(a),[x2,y2]=P(b),dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy;
+    for(let i=a+1;i<b;i++){const [x,y]=P(i);const t=L2?Math.max(0,Math.min(1,((x-x1)*dx+(y-y1)*dy)/L2)):0,d=Math.hypot(x-(x1+t*dx),y-(y1+t*dy));if(d>md){md=d;mi=i;}}
+    if(md>tol){keep[mi]=1;dp(a,mi);dp(mi,b);}};
+  let far=0;pts.forEach((p,i)=>{if(Math.hypot(p[0]-pts[0][0],p[1]-pts[0][1])>Math.hypot(pts[far][0]-pts[0][0],pts[far][1]-pts[0][1]))far=i;});
+  keep[0]=keep[far]=1;dp(0,far);dp(far,pts.length);return pts.filter((p,i)=>keep[i]);}
+function editRings(){const r=region();return polysOf(r).map(p=>{let tol=0.0004,out;do{out=simplifyRing(p[0],tol);tol*=1.3;}while(out.length>60);return out.map(([x,y])=>[y,x]);}).filter(r=>r.length>=3);}
+function startEdit(){if(!region())return;closePops();closeTune();closeDetail(true);render();
+  state.editing={rings:editRings(),base:scopeName()};$('chips').style.display='none';$('categorySettings').style.display='none';$('scopeTag').hidden=true;$('editbar').style.display='block';
+  if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));editLayer.addTo(map);drawEdit();fit(L.latLngBounds(state.editing.rings.flat()));}
+function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
+  E.rings.forEach(ring=>{const pg=L.polygon(ring,{color:'#123B8A',weight:2.5,fillColor:'#F7931E',fillOpacity:.14,interactive:false}).addTo(editLayer);
+    ring.forEach((p,i)=>{const m=L.marker(p,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh',iconSize:[18,18]}),zIndexOffset:2000,keyboard:false}).addTo(editLayer);
+      m.on('drag',e=>{const ll=e.target.getLatLng();ring[i]=[ll.lat,ll.lng];pg.setLatLngs(ring);});m.on('dragend',drawEdit);
+      m.on('dblclick',e=>{L.DomEvent.stop(e);if(ring.length>3){ring.splice(i,1);drawEdit();}else toast('至少要留 3 個點');});});
+    ring.forEach((p,i)=>{const q=ring[(i+1)%ring.length],mid=[(p[0]+q[0])/2,(p[1]+q[1])/2];
+      const m=L.marker(mid,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh mid',iconSize:[12,12]}),zIndexOffset:1900,keyboard:false}).addTo(editLayer);
+      m.on('dragstart',()=>ring.splice(i+1,0,mid.slice()));m.on('drag',e=>{const ll=e.target.getLatLng();ring[i+1]=[ll.lat,ll.lng];pg.setLatLngs(ring);});m.on('dragend',drawEdit);});});}
+function endEdit(){state.editing=null;editLayer.clearLayers();map.removeLayer(editLayer);pinLayer.addTo(map);facLayer.addTo(map);syncLabels();$('chips').style.display='';$('categorySettings').style.display='';$('editbar').style.display='none';fillScope();}
+$('editCancel').onclick=()=>{endEdit();drawScope(false);};
+$('editReset').onclick=()=>{state.editing.rings=editRings();drawEdit();};
+$('editDone').onclick=()=>{const E=state.editing,rs=E.rings.map(r=>{const c=r.map(([la,lo])=>[lo,la]);c.push(c[0]);return [c];});
+  const c=rs.length===1?{type:'Polygon',coords:rs[0]}:{type:'MultiPolygon',coords:rs};c.bb=bboxOf(c);c.name=E.base.replace(/（已調整）$/,'')+'（已調整）';
+  if(!ALL.some(i=>inPoly(c,CELLS[i].la,CELLS[i].lo))){toast('調整後的範圍不在臺北市內');return;}
+  state.custom=c;endEdit();setScope('custom');};
 $('fin').onclick=()=>{if(state.drawPts.length<2){toast('至少要點 2 個點');return;}const ring=drawRing().map(([la,lo])=>[lo,la]);ring.push(ring[0]);
   const c={name:'自選範圍',type:'Polygon',coords:[ring]};c.bb=bboxOf(c);
   if(!ALL.some(i=>inPoly(c,CELLS[i].la,CELLS[i].lo))){toast('框選的範圍不在臺北市內');return;}
@@ -474,7 +512,7 @@ function drawFacilities(){facLayer.clearLayers();if(state.transit||!state.res||!
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);cnt++;}}}
 map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
-map.on('click',e=>{if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
+map.on('click',e=>{if(state.editing)return;if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
 
 // ---------- sheet rendering ----------
@@ -652,7 +690,7 @@ function applyLayers(){drawHeat();drawPins();drawFacilities();if(state.layers.tr
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
-function openPress(ll){if(state.drawing)return;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
+function openPress(ll){if(state.drawing||state.editing)return;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
   L.marker(ll,{icon:L.divIcon({className:'press-dot',iconSize:[16,16]}),interactive:false,zIndexOffset:1500}).addTo(pressLayer);
   const p=map.latLngToContainerPoint(ll),m=$('pressMenu');
   m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button>`;

@@ -129,6 +129,17 @@ async def long_press(page, x, y, ms=750):
     await page.wait_for_timeout(250)
 
 
+async def touch_drag(page, x, y, dx, dy, steps=10):
+    '''用真的觸控事件（CDP）拖曳'''
+    cdp = await page.context.new_cdp_session(page)
+    await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y}]})
+    for i in range(1, steps + 1):
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x + dx * i / steps, 'y': y + dy * i / steps}]})
+        await page.wait_for_timeout(16)
+    await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+    await page.wait_for_timeout(300)
+
+
 async def baked_suite(b, errs):
     page = await new_page(b, errs, **PHONE, geolocation={'latitude': 25.0335, 'longitude': 121.5436}, permissions=['geolocation'])
     ev = page.evaluate
@@ -316,6 +327,39 @@ async def baked_suite(b, errs):
     await page.click('#toCity'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
     await page.click('.drow'); await page.wait_for_function("state.res.key.startsWith('d:')", timeout=5000)
     check(True, '「各區比較」點一區即可切換')
+
+    # 7b. 手動調整範圍邊界
+    await ev("setScope('4')"); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)
+    before = await ev("scopeCells().length")
+    await page.click('#scopeEdit'); await page.wait_for_timeout(500)
+    e = await ev("({on:!!state.editing,n:state.editing.rings[0].length,bar:getComputedStyle(document.getElementById('editbar')).display,chips:getComputedStyle(document.getElementById('chips')).display,vh:document.querySelectorAll('.vh:not(.mid)').length,mid:document.querySelectorAll('.vh.mid').length})")
+    check(e['on'] and 3 <= e['n'] <= 60 and e['bar'] == 'block' and e['chips'] == 'none' and e['vh'] == e['n'] and e['mid'] == e['n'], f"按標籤上的筆：進入調整模式，邊界簡化成 {e['n']} 個可拖曳的白點與中間的小點")
+    check(await ev("!map.hasLayer(pinLayer)&&!map.hasLayer(facLayer)"), '調整時先藏起推薦圖釘與設施圖示，避免擋住白點')
+    await shot(page, '5c_edit')
+    pt = await ev("(()=>{const r=state.editing.rings[0];let bi=0;r.forEach((p,i)=>{if(p[1]>r[bi][1])bi=i});const q=map.latLngToContainerPoint(r[bi]);return {i:bi,x:q.x,y:q.y}})()")
+    await page.wait_for_timeout(500)
+    pt = await ev("(()=>{const r=state.editing.rings[0];let bi=0;r.forEach((p,i)=>{if(p[1]>r[bi][1])bi=i});const q=map.latLngToContainerPoint(r[bi]);return {i:bi,x:q.x,y:q.y}})()")
+    await touch_drag(page, pt['x'], pt['y'], 40, 10)
+    moved = await ev(f"(()=>{{const p=state.editing.rings[0][{pt['i']}],q=map.latLngToContainerPoint(p);return q.x}})()")
+    if moved <= pt['x'] + 25:   # 沒有觸控支援的瀏覽器（CI 的無頭 Chromium）改用滑鼠拖曳
+        await page.mouse.move(pt['x'], pt['y']); await page.mouse.down(); await page.mouse.move(pt['x']+40, pt['y']+10, steps=10); await page.mouse.up(); await page.wait_for_timeout(300)
+        moved = await ev(f"(()=>{{const p=state.editing.rings[0][{pt['i']}],q=map.latLngToContainerPoint(p);return q.x}})()")
+    check(moved > pt['x'] + 25, f"拖曳白點把邊界往外拉（{pt['x']:.0f}→{moved:.0f}px）")
+    await ev(f"window.__dragged=state.editing.rings[0][{pt['i']}].slice()")
+    n1 = await ev("state.editing.rings[0].length")
+    mp = await ev("(()=>{for(const el of document.querySelectorAll('.vh.mid')){const m=el.getBoundingClientRect(),x=m.x+m.width/2,y=m.y+m.height/2;if(x>30&&x<330&&y>200&&y<700&&document.elementFromPoint(x,y)===el)return {x,y};}return null})()")
+    await touch_drag(page, mp['x'], mp['y'], 20, 20)
+    if await ev("state.editing.rings[0].length") == n1:
+        await page.mouse.move(mp['x'], mp['y']); await page.mouse.down(); await page.mouse.move(mp['x']+20, mp['y']+20, steps=8); await page.mouse.up(); await page.wait_for_timeout(300)
+    n2 = await ev("state.editing.rings[0].length")
+    check(n2 == n1 + 1, f'拖曳小點：新增一個轉折點（{n1}→{n2}）')
+    check(await ev("document.getElementById('pressMenu').hidden && state.view.type==='list'"), '調整時不會誤觸長按選單或位置卡')
+    await page.click('#editDone'); await page.wait_for_function("state.res&&state.res.key.startsWith('custom')", timeout=5000)
+    after = await ev("scopeCells().length")
+    check(await ev("state.scope==='custom' && state.custom.name==='大安區（已調整）' && document.getElementById('scopeTag').innerText.includes('大安區（已調整）') && getComputedStyle(document.getElementById('chips')).display!=='none' && polysOf(state.custom).some(p=>p[0].some(([x,y])=>Math.abs(y-window.__dragged[0])<1e-7&&Math.abs(x-window.__dragged[1])<1e-7))") and after > 0, f'完成：改用調整後的範圍分析（{before}→{after} 格），拖過的點在新範圍上，標籤顯示「大安區（已調整）」')
+    await page.click('#scopeEdit'); await page.wait_for_timeout(300); await page.click('#editCancel')
+    check(await ev("!state.editing && state.scope==='custom'"), '取消：不改動目前範圍')
+    await page.click('#scopeClear'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
 
     # 8. 框選
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="draw"]'); await page.wait_for_timeout(900)
