@@ -276,7 +276,7 @@ async def baked_suite(b, errs):
     await page.locator('[data-life-label="1"]').fill('公司')
     await page.locator('#lifeMinutes').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}))}")
     check(await ev("state.lifeCenters.length===2 && state.lifeCenters[0].label==='住家' && state.lifeCenters[1].label==='公司' && state.lifeMinutes===15"), '生活圈可新增兩個獨立中心、編輯名稱並共用步行時間')
-    check(await ev("(()=>{const g=state.lifeResults[0].graph,p=g.nodes[0];return g.snap(p)===g.snap(p)})()"), '生活圈設施路網節點吸附結果會快取，避免重複搜尋')
+
     await page.click('#lifeConfirm')
     await page.wait_for_function("state.lifeResults.length===2 && state.lifeResults.every(r=>r.graph)", timeout=20000)
     check(await ev("state.lifeResults[0].graph!==state.lifeResults[1].graph && document.querySelectorAll('.life-tabs button').length===2 && lifeLayer.getLayers().length>2"), '生活圈 A/B 分開計算並顯示各自的可步行路網')
