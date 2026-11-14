@@ -371,7 +371,7 @@ function headDetail(title,sub,category){const cat=category?`<div class="detail-c
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
   const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
-  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的步行距離':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定距離'}</div>`;
+  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
     h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(id)+' '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
   $('body').innerHTML=h+foot();}
