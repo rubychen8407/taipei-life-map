@@ -167,6 +167,12 @@ async def baked_suite(b, errs):
       const sg=good.filter((k,i)=>i%7===0),sb=bad.filter((k,i)=>i%7===0);
       const gi=sg.filter(k=>inside(CELLS[k].la,CELLS[k].lo)).length/sg.length,bo=sb.filter(k=>!inside(CELLS[k].la,CELLS[k].lo)).length/sb.length;
       return {rings:rings.length,gi,bo}})()""")
+    px = await ev("""new Promise(res=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=NI;c.height=NJ;const x=c.getContext('2d');x.drawImage(im,0,0);const d=x.getImageData(0,0,NI,NJ).data;
+      const n=state.res.act.length,at=k=>{const C=CELLS[k],o=((NJ-1-C.j)*NI+C.i)*4;return [d[o],d[o+1],d[o+2],d[o+3]]};
+      const gray=p=>p[3]>0&&Math.abs(p[0]-p[1])<12&&Math.abs(p[1]-p[2])<12,col=p=>p[3]>0&&!gray(p);
+      const cs=scopeCells(),good=cs.filter(k=>state.res.okc[k]===n),bad=cs.filter(k=>state.res.okc[k]!==n);
+      res({good:good.filter(k=>col(at(k))).length/good.length,bad:bad.filter(k=>gray(at(k))).length/bad.length,badColor:bad.filter(k=>col(at(k))).length});};im.src=heat._url;})""")
+    check(px['good'] > 0.95 and px['bad'] > 0.95 and px['badColor'] == 0, f"熱圖只畫在完全符合條件的地方（{px['good']*100:.0f}% 有色），不符合的地方反灰（{px['bad']*100:.0f}%，0 格上色）")
     check(o['rings'] > 0 and o['gi'] > 0.9 and o['bo'] > 0.9, f"完全符合條件的地方畫出邊界（{o['rings']} 圈；符合的格子 {o['gi']*100:.0f}% 在圈內、不符合的 {o['bo']*100:.0f}% 在圈外）")
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=outline]')
     check(await ev("outlineLayer.getLayers().length===0"), '圖層面板可以關掉「符合條件的邊界」')
@@ -442,7 +448,7 @@ async def baked_suite(b, errs):
     check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=deal],#layersPop [data-layer=land]')].every(b=>b.disabled)"), '房屋出售、實價登錄、土地價值歸在「房市」，先預留（不能開）')
     await shot(page, '8_layers')
     await page.click('#layersPop [data-layer=heat]')
-    check(await ev("!state.layers.heat && !heat"), '關掉熱圖：地圖上的色塊消失')
+    check(await ev("!state.layers.heat && (!heat || heat._flags==='o')"), '關掉熱圖：彩色色塊消失（只留不符合處的反灰）')
     await page.click('#layersPop [data-layer=pins]')
     check(await ev("!state.layers.pins && pinLayer.getLayers().length===0"), '關掉推薦區域：編號圖釘消失')
     await page.click('#layersPop [data-group="0"]')
