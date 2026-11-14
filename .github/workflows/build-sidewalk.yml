@@ -1,0 +1,27 @@
+name: Build sidewalk data
+# 每月用內政部「各縣市人行道資訊」產生 data/sidewalk.json（資料源每半年更新）
+on:
+  schedule:
+    - cron: '23 19 1 * *'   # 每月 2 日 03:23（台北時間）
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: build-sidewalk
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 scripts/build_sidewalk.py
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sidewalk.json
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "Update sidewalk data $(date -u +%F)"
+          git pull --rebase origin master
+          git push
