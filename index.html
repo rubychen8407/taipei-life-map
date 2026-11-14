@@ -315,8 +315,8 @@ function analyze(){const act=LAYERS.filter(l=>state.active.has(l.id)&&data(l.id)
   state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
-const DENSITY_STOPS=[[0.08,[255,246,168]],[0.18,[255,224,64]],[0.35,[255,165,32]],[0.7,[244,81,30]],[1.2,[213,0,0]],[2.2,[142,0,28]],[4.5,[55,0,24]]];
-function densityColor(value){const v=Math.max(0.08,Math.min(4.5,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
+const DENSITY_STOPS=[[0.08,[179,229,252]],[0.18,[79,195,247]],[0.35,[2,136,209]],[0.7,[38,166,154]],[1.2,[139,195,74]],[1.8,[255,235,59]],[2.6,[255,152,0]],[3.8,[244,67,54]],[6,[120,0,20]]];
+function densityColor(value){const v=Math.max(0.08,Math.min(6,value));let i=1;while(i<DENSITY_STOPS.length&&v>DENSITY_STOPS[i][0])i++;const a=DENSITY_STOPS[i-1],b=DENSITY_STOPS[Math.min(i,DENSITY_STOPS.length-1)],t=(v-a[0])/(b[0]-a[0]);return '#'+a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t).toString(16).padStart(2,'0')).join('');}
 function drawHeat(){const R=state.res;if(!R||state.transit){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;let density=0;
@@ -356,7 +356,7 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
   H.innerHTML=`<h1>分類步行距離分析</h1><div class="sub">${scopeName()}有 <b>${pct.toFixed(0)}%</b> 的地方符合所有已選類別的個別距離</div>`;
-  let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#fff4b2,#ffd166,#ff9f40,#ef5350,#b71c1c,#6a040f)"></i><span>高</span></div>';
+  let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#b3e5fc,#4fc3f7,#0288d1,#26a69a,#8bc34a,#ffeb3b,#ff9800,#f44336,#780014)"></i><span>高</span></div>';
   if(state.zones.length){h+='<h2>推薦生活圈</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
   else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(state.scope===''){const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).sort((a,b)=>b.p-a.p);
@@ -438,29 +438,37 @@ function buildWalkGraph(elements,origin){
   function snap(point){const x=(point[1]-origin[1])*KX,y=(point[0]-origin[0])*KY,bx=Math.floor(x/cell),by=Math.floor(y/cell);let bi=-1,bd=Infinity;
     for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const a=buckets.get((bx+dx)+':'+(by+dy))||[];for(const i of a){const d=Math.hypot(x-xy[i][0],y-xy[i][1]);if(d<bd){bd=d;bi=i;}}}
     return bd<=180?{i:bi,d:bd}:null;}
-  return{nodes,adj,ways,dist,snap,limit,origin};
+  return{nodes,adj,ways,dist,snap,limit,origin,distanceCache:new Map()};
 }
 async function fetchWalkGraph(center){
   const [la,lo]=center,radius=Math.max(1300,state.lifeMinutes*SPEED+300);
   const q=`[out:json][timeout:45];way(around:${radius},${la},${lo})["highway"]["highway"!~"^(motorway|trunk|motorway_link|trunk_link|construction|proposed|raceway)$"]["foot"!~"no"]["access"!~"private|no"];out geom;`;
   const j=await overpass(q);return buildWalkGraph(j.elements||[],center);
 }
-function lifeDistance(graph,point){const p=graph.snap(point);return p&&Number.isFinite(graph.dist[p.i])?graph.dist[p.i]+p.d:Infinity;}
+function lifeDistance(graph,point){const key=lifeKey(point[0],point[1]);if(graph.distanceCache.has(key))return graph.distanceCache.get(key);const p=graph.snap(point),d=p&&Number.isFinite(graph.dist[p.i])?graph.dist[p.i]+p.d:Infinity;graph.distanceCache.set(key,d);return d;}
 function drawLifeNetwork(graph,color){
-  graph.ways.forEach(line=>{let run=[];const flush=()=>{if(run.length>1)L.polyline(run,{color,weight:3,opacity:.56,interactive:false,className:'life-way'}).addTo(lifeLayer);run=[];};
+  const segments=[];graph.ways.forEach(line=>{let run=[];const flush=()=>{if(run.length>1)segments.push(run);run=[];};
     line.forEach(i=>{if(graph.dist[i]<=graph.limit)run.push(graph.nodes[i]);else flush();});flush();});
+  if(segments.length)L.polyline(segments,{color,weight:3,opacity:.56,interactive:false,className:'life-way'}).addTo(lifeLayer);
 }
 async function confirmLifeCenters(){
   if(!state.lifeCenters.length){toast('請至少新增一個生活圈中心');return;}
   state.lifeMode=false;document.body.classList.remove('life-mode');$('lifePanel').hidden=true;$('categorySettings').style.display='';lifeButton.setAttribute('aria-pressed','false');
   state.lifeResults=[];state.lifeActiveIndex=0;drawLifeCenters();busy(true);renderLifeResults();
-  for(let i=0;i<state.lifeCenters.length;i++){
-    try{const graph=await fetchWalkGraph(state.lifeCenters[i].center);state.lifeResults[i]=graph?{graph,items:[]}:{graph:null,items:[],error:'附近沒有可用的步行路網資料'};
-      if(graph){for(const layer of LAYERS){const feats=data(layer.id)||[],items=[];for(const f of feats){const d=lifeDistance(graph,f.center);if(d<=graph.limit)items.push({f,l:layer,d});}items.sort((a,b)=>a.d-b.d);state.lifeResults[i].items.push(...items);}}
-    }catch(e){state.lifeResults[i]={graph:null,items:[],error:'步行路網暫時無法載入，請稍後重試'};}
+  // 最多三個中心的路網請求同時發出，避免前一個中心的下載與計算結束後才開始下一個。
+  const loaded=await Promise.all(state.lifeCenters.map(async center=>{
+    try{return{graph:await fetchWalkGraph(center.center)};}
+    catch(e){return{graph:null,error:'步行路網暫時無法載入，請稍後重試'};}
+  }));
+  for(let i=0;i<loaded.length;i++){
+    const {graph,error}=loaded[i];
+    state.lifeResults[i]=graph?{graph,items:[]}:{graph:null,items:[],error:error||'附近沒有可用的步行路網資料'};
+    if(graph){for(const layer of LAYERS){const feats=data(layer.id)||[],items=[];for(const f of feats){const d=lifeDistance(graph,f.center);if(d<=graph.limit)items.push({f,l:layer,d});}items.sort((a,b)=>a.d-b.d);state.lifeResults[i].items.push(...items);}
+      drawLifeNetwork(graph,LIFE_COLORS[i]);}
+    if(i===state.lifeActiveIndex)renderLifeResults();
+    await new Promise(resolve=>requestAnimationFrame(resolve));
   }
-  busy(false);renderLifeResults();drawLifeCenters();
-  state.lifeResults.forEach((r,i)=>{if(r.graph)drawLifeNetwork(r.graph,LIFE_COLORS[i]);});
+  busy(false);renderLifeResults();
   const centers=state.lifeCenters.map(c=>c.center);if(centers.length)fit(L.latLngBounds(centers).pad(.35),{maxZoom:15});
 }
 function renderLifeResults(){
