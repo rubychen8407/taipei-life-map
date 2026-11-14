@@ -11,14 +11,14 @@ jobs:
           python3 - <<'PY'
           import json,urllib.request,urllib.parse,time
           def q(s):
-              for u in ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter']:
+              for u in ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.kumi.systems/api/interpreter']*2:
                   try:
                       d=urllib.parse.urlencode({'data':s}).encode()
                       return json.load(urllib.request.urlopen(urllib.request.Request(u,data=d,headers={'User-Agent':'taipei-life-map'}),timeout=300))
-                  except Exception as e: print('ERR',u,e)
-          bb='25.020,121.530,25.045,121.555'
+                  except Exception as e: print('ERR',u,e); time.sleep(10)
+          bb='25.030,121.535,25.040,121.548'
           r=q(f'[out:json][timeout:200];way["building"]({bb});out tags;')
-          els=r['elements'];n=len(els)
+          els=(r or {}).get('elements',[]);n=len(els)
           lv=sum(1 for e in els if 'building:levels' in e.get('tags',{}));h=sum(1 for e in els if 'height' in e.get('tags',{}))
           print('Daan sample buildings',n,'with levels',lv,'with height',h)
           from collections import Counter
