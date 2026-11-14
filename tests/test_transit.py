@@ -108,12 +108,12 @@ with tempfile.TemporaryDirectory() as d:
 
 import build_data as B
 with tempfile.TemporaryDirectory() as d:
-    # 合併時拒絕混用本輪與舊輪次的行政區快照。
+    # 舊版留下的各區檔會在合併時清掉，只留 city.json
     for name, _ in B.districts():
-        json.dump({'built': 'old', 'layers': {k: [] for k, *_ in B.LAYERS}},
-                  open(os.path.join(d, name + '.json'), 'w', encoding='utf-8'))
-    check(B.merge_city(d, 'new') is None and not os.path.exists(os.path.join(d, 'city.json')),
-          '行政區快照日期不一致時拒絕產生 city.json')
+        json.dump({'built': 'old', 'layers': {}}, open(os.path.join(d, name + '.json'), 'w', encoding='utf-8'))
+    f = {'id': 'n1', 'n': '捷運站', 'c': [25.0, 121.5]}
+    r = B.merge_city(d, 'new', [{'layers': {'mrt': [f], 'park': [{'id': 'n2', 'n': '', 'c': [25, 121.5]}]}}, {'layers': {'mrt': [f]}}])
+    check(r['mrt'] == 1 and r['park'] == 1 and os.listdir(d) == ['city.json'], f'合併成單一 city.json（去重複），舊的各區檔被移除 → {sorted(os.listdir(d))}')
 
 with tempfile.TemporaryDirectory() as d:
     json.dump({'built': 'x', 'src': 'tdx', 'routes': [{'id': 1}]}, open(os.path.join(d, 'routes.json'), 'w'))
