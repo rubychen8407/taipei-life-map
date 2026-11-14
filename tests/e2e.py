@@ -115,9 +115,18 @@ async def shot(page, name):
     await page.screenshot(path=os.path.join(OUT, name + '.png'))
 
 
-READY = "state.res&&document.getElementById('head').innerText.includes('分析結果')"
+READY = "state.res&&!!document.querySelector('#head .sumline')"
 LINES = "transitLayer.getLayers().flatMap(g=>g.getLayers&&!(g instanceof L.Polyline)?g.getLayers():[g]).filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
 HANDLE = "(()=>{const r=document.querySelector('.handle').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()"
+
+
+async def long_press(page, x, y, ms=750):
+    '''用真的觸控事件（CDP）在手機上長按'''
+    cdp = await page.context.new_cdp_session(page)
+    await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y}]})
+    await page.wait_for_timeout(ms)
+    await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+    await page.wait_for_timeout(250)
 
 
 async def baked_suite(b, errs):
@@ -126,7 +135,10 @@ async def baked_suite(b, errs):
     n0 = len(calls)
     t0 = time.time()
     await page.goto(URL)
-    await page.wait_for_function(READY, timeout=20000)
+    try:
+        await page.wait_for_function(READY, timeout=20000)
+    except Exception:
+        print('ERRS', errs[:3]); raise
     labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],park=data('park').find(f=>f.name),old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(park,LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();const marker=L.marker(park.center,{icon:facilityIcon(LAYER.park,park,17,true)}).on('click',()=>window.__labelClicked=true).addTo(map);marker._icon.querySelector('.facility-name').dispatchEvent(new MouseEvent('click',{bubbles:true}));result.labelClick=!!window.__labelClicked;marker.remove();delete window.__labelClicked;FACILITY_LABEL_CACHE.delete(bus);FACILITY_LABEL_CACHE.delete(mrt);return result;})()""")
     check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
     check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
@@ -144,11 +156,16 @@ async def baked_suite(b, errs):
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
     check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含生活圈）、預設選 3 個')
-    check(await ev("[...document.querySelectorAll('#chips .chip')].every((b)=>b.querySelector('.chip-name')?.textContent.trim() && b.getBoundingClientRect().width>=82 && getComputedStyle(b).flexShrink==='0')"), '類別按鈕完整顯示名稱、圖示與分鐘數，不再被固定寬度擠壓')
+    check(await ev("[...document.querySelectorAll('#chips .chip')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.querySelector('.chip-icon svg')&&b.querySelector('.chip-name').textContent.trim()}) && document.getElementById('chips').scrollWidth<=document.getElementById('chips').clientWidth+1"),
+          '7 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
+    check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
+          '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
+    check(await ev("!document.querySelector('#top .search')||getComputedStyle(document.querySelector('#top .search')).display==='none'"), '上方不再常駐區域選擇列')
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
     r = await ev("(()=>{const s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return {sheetTop:s.top,topBottom:t.bottom}})()")
-    check(r['topBottom'] < 330 and 380 < r['sheetTop'] < 520, f"版面：搜尋、類別與距離設定位於地圖上方，下方為結果卡片（{r['topBottom']:.0f}px／{r['sheetTop']:.0f}px）")
+    check(r['topBottom'] < 90 and r['sheetTop'] > 760, f"進場：地圖是主角，上方只有類別列、下方面板收到只剩一行（{r['topBottom']:.0f}px／{r['sheetTop']:.0f}px）")
+    check(await ev("!!document.querySelector('#head .sumline b')&&/%/.test(document.querySelector('#head .sumline').innerText)"), '底部一行摘要顯示符合比例與推薦數')
     await shot(page, '1_home')
 
     # 2. 類別按鈕、各類別獨立距離設定
@@ -161,6 +178,16 @@ async def baked_suite(b, errs):
     await page.locator('input[data-distance="park"]').evaluate("(el)=>{el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}))}")
     check(await ev("state.res.thresholds[state.res.act.indexOf('park')]===5 && state.minsByLayer.park===5 && state.minsByLayer.school===10"), '公園距離可獨立調整為 5 分鐘，不影響學校的 10 分鐘設定')
     await page.locator('input[data-distance="park"]').evaluate("(el)=>{el.value='10';el.dispatchEvent(new Event('input',{bubbles:true}))}")
+    t = await ev("(()=>{const t=document.querySelector('#categorySettings .tune').getBoundingClientRect(),c=document.querySelector('.chip[data-id=park] .chip-icon').getBoundingClientRect();return {h:t.height,w:t.width,top:t.top,cb:c.bottom}})()")
+    check(t['h'] <= 56 and t['w'] <= 270 and t['top'] > t['cb'], f"通勤小彈窗是一條細長膠囊（{t['w']:.0f}×{t['h']:.0f}），出現在類別圖示下方")
+    check(await ev("document.querySelector('#categorySettings .mode-menu').hidden && !!document.querySelector('[data-mode-toggle] svg')"), '交通方式預設收起，只顯示目前方式的圖示')
+    await page.click('[data-mode-toggle]')
+    m = await ev("(()=>{const m=document.querySelector('#categorySettings .mode-menu');const r=m.getBoundingClientRect();return {open:!m.hidden,w:r.width,n:m.querySelectorAll('[data-mode]').length,txt:m.innerText.trim()}})()")
+    check(m['open'] and m['n'] == 5 and m['w'] <= 50 and m['txt'] == '', f"點交通方式：往下拉出只有圖示的細長選單（{m['n']} 個、寬 {m['w']:.0f}px）")
+    await page.click('#categorySettings [data-mode=bike]')
+    check(await ev("state.modeByLayer.park==='bike' && document.querySelector('#categorySettings .mode-menu').hidden && document.querySelector('.chip[data-id=park] .badge').innerHTML.includes('5.5')"), '選腳踏車：選單收起，類別角標改成腳踏車')
+    await page.click('[data-mode-toggle]'); await page.click('#categorySettings [data-mode=walk]')
+    await shot(page, '2b_tune')
 
     # 3. 卡片拖拉
     box = await ev(HANDLE)
@@ -248,24 +275,36 @@ async def baked_suite(b, errs):
     await page.click('#close'); await page.wait_for_timeout(200)
 
     # 7. 行政區
-    await page.select_option('#scope', '4')
+    await page.click('#regionBtn')
+    check(await ev("!document.getElementById('regionPop').hidden && document.querySelectorAll('#regionPop [data-region]').length===14"), '右側「選區域」按鈕：彈出全臺北市、12 區與框選')
+    await shot(page, '5a_region')
+    await page.click('#regionPop [data-region="4"]')
     await page.wait_for_function("state.res&&state.res.key==='d:大安區'", timeout=5000); await page.wait_for_timeout(400)
     check(len(calls) == n0 and len([d for d in data_hits if d.endswith('區.json')]) == 0, '切到大安區即時顯示，不下載')
     check(await ev("scopeCells().every(k=>CELLS[k].d===4)") and '大安區' in await ev("document.getElementById('head').innerText") and await ev("document.getElementById('scopeName').textContent") == '大安區', '只分析大安區，標題與上方列同步')
     used = await ev("(()=>{const i=state.res.act.indexOf('mrt'),D=state.res.D[i];return scopeCells().filter(k=>{const f=data('mrt')[D.nf[k]];return f&&!inPoly(DISTRICTS[4],f.center[0],f.center[1])}).length})()")
     check(used > 0, f'靠區界的位置會用區界外較近的設施計算（{used} 格用到別區的捷運站）')
     await shot(page, '5_district')
+    check(await ev("!document.getElementById('scopeTag').hidden && document.getElementById('scopeTag').innerText.includes('大安區') && document.getElementById('regionPop').hidden"), '選了區域：類別列下方出現「大安區 ✕」小標籤，彈窗收起')
+    await page.click('#scopeClear'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
+    check(await ev("document.getElementById('scopeTag').hidden"), '按 ✕ 回到全臺北市，標籤消失')
+    await ev("void map.setView([25.06,121.56],12,{animate:false})"); await page.wait_for_timeout(300)
+    await ev("[...document.querySelectorAll('.dlabel')].find(e=>e.innerText.includes('松山')).dispatchEvent(new MouseEvent('click',{bubbles:true}))")
+    await page.wait_for_function("state.res.key==='d:松山區'", timeout=5000)
+    check(True, '在地圖上點區名也能選區域')
+    await page.click('#scopeClear'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
+    await page.click('#regionBtn'); await page.click('#regionPop [data-region="4"]'); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)
     await page.click('#toCity'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
     await page.click('.drow'); await page.wait_for_function("state.res.key.startsWith('d:')", timeout=5000)
     check(True, '「各區比較」點一區即可切換')
 
     # 8. 框選
-    await page.select_option('#scope', 'draw'); await page.wait_for_timeout(300)
+    await page.click('#regionBtn'); await page.click('#regionPop [data-region="draw"]'); await page.wait_for_timeout(900)
     check(await ev("state.drawing&&getComputedStyle(document.getElementById('drawbar')).display==='block'"), '選「自己框選範圍」進入框選模式')
-    await page.mouse.click(120, 350); await page.mouse.click(280, 520); await page.click('#fin')
+    await page.mouse.click(120, 350); await page.wait_for_timeout(250); await page.mouse.click(280, 520); await page.wait_for_timeout(300); await page.click('#fin')
     await page.wait_for_function("state.res&&state.res.key.startsWith('custom')", timeout=5000)
     check(await ev("scopeCells().length>0&&scopeCells().every(k=>inPoly(state.custom,CELLS[k].la,CELLS[k].lo))") and len(calls) == n0, '框選 2 點成矩形，只分析框內')
-    await page.select_option('#scope', '')
+    await page.click('#scopeClear')
     await page.wait_for_function("state.res.key==='city'", timeout=5000)
 
     # 9. 我的位置
@@ -289,12 +328,13 @@ async def baked_suite(b, errs):
     check(await ev("state.lifeCenters.length===2 && lifeLayer.getLayers().length===2 && document.querySelectorAll('[data-life-label]').length===2 && state.view.type==='list'"), '設定開著時點地圖＝新增地點（A、B 標記），不會打開位置卡')
     await page.locator('[data-life-label="0"]').fill('住家'); await page.locator('[data-life-label="0"]').dispatch_event('change')
     await page.locator('[data-life-label="1"]').fill('公司'); await page.locator('[data-life-label="1"]').dispatch_event('change')
-    await page.click('#categorySettings [data-mode=car]')
+    await page.click('[data-mode-toggle]'); await page.click('#categorySettings [data-mode=car]')
     await page.locator('#categorySettings [data-distance=life]').evaluate("el=>{el.value='15';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('pointerup',{bubbles:true}))}")
     await page.wait_for_timeout(700)
-    check(await ev("state.res.act.includes('life') && state.modeByLayer.life==='car' && state.minsByLayer.life===15 && state.openDistanceLayer==='life' && document.querySelector('.chip[data-id=life] [data-mins]').textContent==='15分'"),
+    check(await ev("(()=>{const c=document.querySelector('#categorySettings .life-card').getBoundingClientRect();return c.right<=innerWidth&&[...document.querySelectorAll('[data-life-delete]')].every(b=>b.getBoundingClientRect().right<=c.right)})()"), '生活圈地點卡片完整顯示在畫面內（刪除按鈕不被切掉）')
+    check(await ev("state.res.act.includes('life') && state.modeByLayer.life==='car' && state.minsByLayer.life===15 && state.openDistanceLayer==='life' && document.querySelector('.chip[data-id=life] [data-mins]').textContent.replace(' ','')==='15分'"),
           '生活圈可改交通方式（開車）與時間（15 分），併入分析；調整後設定不會自動收起')
-    check(await ev("!document.querySelector('.life-tabs') && !/生活圈比較/.test(document.getElementById('head').innerText) && /分析結果/.test(document.getElementById('head').innerText)"), '底部不再開「生活圈比較」，仍是一般分析清單')
+    check(await ev("!document.querySelector('.life-tabs') && !/生活圈比較/.test(document.getElementById('head').innerText) && !!document.querySelector('#head .sumline')"), '底部不再開「生活圈比較」，仍是一般分析清單')
     await shot(page, '7_life')
     await page.click('[data-life-done]')
     check(await ev("state.openDistanceLayer===null && document.getElementById('categorySettings').innerHTML===''"), '按「完成」收起設定')
@@ -307,6 +347,49 @@ async def baked_suite(b, errs):
     await page.click('.chip[data-id=life]')
     await page.click('[data-life-delete="1"]')
     check(await ev("state.lifeCenters.length===1 && lifeLayer.getLayers().length===1"), '可刪除地點，地圖標記同步')
+    # 10c. 圖層：分組、開關、全選、儲存組合
+    await page.click('#layersBtn')
+    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===3 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市三組')
+    check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=deal],#layersPop [data-layer=land]')].every(b=>b.disabled)"), '房屋出售、實價登錄、土地價值歸在「房市」，先預留（不能開）')
+    await shot(page, '8_layers')
+    await page.click('#layersPop [data-layer=heat]')
+    check(await ev("!state.layers.heat && !heat"), '關掉熱圖：地圖上的色塊消失')
+    await page.click('#layersPop [data-layer=pins]')
+    check(await ev("!state.layers.pins && pinLayer.getLayers().length===0"), '關掉推薦區域：編號圖釘消失')
+    await page.click('#layersPop [data-group="0"]')
+    check(await ev("state.layers.heat && state.layers.pins && state.layers.fac && state.layers.labels && !!heat"), '「全選」一次打開整組')
+    await page.click('#layersPop [data-group="0"]')
+    check(await ev("!state.layers.heat && !state.layers.pins && !state.layers.fac && !state.layers.labels"), '再按一次「全部關閉」')
+    await page.click('#layersPop [data-save-preset]')
+    check(await ev("JSON.parse(localStorage.getItem('tlm.layerPresets')).length===1 && document.querySelector('#layersPop [data-preset=\"0\"]').getAttribute('aria-pressed')==='true'"), '「儲存」把目前開關存成組合（存在這台裝置）')
+    await page.click('#layersPop [data-group="0"]')
+    await page.click('#layersPop [data-preset="0"]')
+    check(await ev("!state.layers.heat && !state.layers.pins"), '點儲存的組合：一鍵套回')
+    await page.click('#layersPop [data-group="0"]')
+    await page.click('#layersBtn')
+    check(await ev("document.getElementById('layersPop').hidden && !!heat"), '再點圖層按鈕關閉面板')
+
+    # 10d. 長按地圖：圖示工具選單 → 加入生活圈，生活圈自動勾選
+    await ev("state.active.delete('life');state.lifeCenters=[];run()")
+    await ev("void map.setView([25.04,121.54],15,{animate:false});setSheet('peek',false)"); await page.wait_for_timeout(300)
+    await long_press(page, 200, 470)
+    pm = await ev("(()=>{const m=document.getElementById('pressMenu');const r=m.getBoundingClientRect();return {open:!m.hidden,n:m.querySelectorAll('[data-press]').length,txt:m.innerText.trim(),w:r.width,h:r.height,dot:pressLayer.getLayers().length}})()")
+    check(pm['open'] and pm['n'] == 3 and pm['txt'] == '' and pm['h'] <= 50 and pm['w'] <= 150 and pm['dot'] == 1, f"長按地圖：放下一個點，跳出只有圖示的小選單（{pm['n']} 個、{pm['w']:.0f}×{pm['h']:.0f}）")
+    check(await ev("state.view.type==='list'"), '長按不會同時觸發點地圖（不會打開位置卡）')
+    await shot(page, '9_press')
+    await page.click('#pressMenu [data-press=life]')
+    await page.wait_for_timeout(300)
+    check(await ev("state.lifeCenters.length===1 && state.active.has('life') && document.querySelector('.chip[data-id=life]').getAttribute('aria-pressed')==='true' && state.res.act.includes('life') && document.getElementById('pressMenu').hidden"), '選「加入生活圈」：地點加入、生活圈類別自動勾選並併入分析')
+    await ev("setSheet('peek',false)")
+    await long_press(page, 150, 560)
+    await page.click('#pressMenu [data-press=info]'); await page.wait_for_timeout(400)
+    check(await ev("state.view.type==='cell' && document.querySelector('#head h1').innerText.includes('這個位置')"), '選「這裡的生活機能」：打開該位置的卡片')
+    await page.click('#close'); await ev("setSheet('peek',false)")
+    await long_press(page, 150, 560)
+    await page.click('#pressMenu [data-press=transit]')
+    await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=20000)
+    check(await ev("state.view.type==='place'"), '選「附近的大眾運輸」：打開最近車站的路線')
+    await page.click('#close')
     await page.close()
 
     # 11. 桌機版面
@@ -374,7 +457,7 @@ async def real_suite(b, errs):
     for i in ['bus', 'sport', 'green']:
         await page.click(f'.chip[data-id={i}]')
     await page.click('[data-z="0"]'); await shot(page, 'real_3_zone'); await page.click('#close')
-    await page.select_option('#scope', '3'); await page.wait_for_function("state.res.key==='d:松山區'"); await shot(page, 'real_4_songshan')
+    await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:松山區'"); await shot(page, 'real_4_songshan')
     name = await ev("(()=>{const m=data('mrt').find(f=>/南京三民|小巨蛋|松山/.test(f.name))||data('mrt')[0];void openPlace(m,LAYER.mrt);return m.name})()")
     await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=90000)
     print('  transit at', name, await ev("state.transit.n"), 'routes')
