@@ -203,6 +203,9 @@ html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-sys
 .chip .chip-name,.chip .mins{text-shadow:none}
 .facility-marker .facility-bubble{width:30px;height:30px;background:rgba(255,255,255,.9)!important;color:var(--D);border:0;box-shadow:inset 0 0 0 1.5px var(--D),0 2px 6px rgba(0,0,0,.18)}
 .facility-marker svg{width:17px;height:17px;stroke-width:1.6}
+
+#regionPop .rp-h{font-size:11px;color:#5F6368;text-align:center;height:auto}
+.dlabel.on span{color:#123B8A;font-weight:700}
 </style>
 </head>
 <body>
@@ -301,9 +304,13 @@ const N=CELLS.length, ALL=Array.from({length:N},(_,k)=>k);
 function cellAtLatLng(la,lo){const i=Math.floor((lo-CITY[1])/dLon),j=Math.floor((la-CITY[0])/dLat);return i<0||j<0||i>=NI||j>=NJ?-1:CELLAT[j*NI+i];}
 
 // ---------- scope ----------
-function region(){return state.scope==='custom'?state.custom:(state.scope===''?null:DISTRICTS[+state.scope]);}
-function scopeKey(){return state.scope===''?'city':state.scope==='custom'?'custom:'+state.custom.bb.map(v=>v.toFixed(4)).join(','):'d:'+DISTRICTS[+state.scope].name;}
-function scopeName(){return state.scope===''?'全臺北市':state.scope==='custom'?'自選範圍':DISTRICTS[+state.scope].name;}
+// 範圍：''＝全市、'3'＝單一區、'm:3,4,10'＝多個區、'custom'＝框選
+function selDistricts(){const s=state.scope;return s===''||s==='custom'?[]:s.startsWith('m:')?s.slice(2).split(',').map(Number):[+s];}
+function scopeFor(list){list=[...new Set(list)].sort((a,b)=>a-b);return !list.length||list.length===DISTRICTS.length?'':list.length===1?String(list[0]):'m:'+list.join(',');}
+const _mr={};function region(){const s=state.scope;if(s==='custom')return state.custom;if(s==='')return null;if(!s.startsWith('m:'))return DISTRICTS[+s];
+  if(_mr[s])return _mr[s];const ds=selDistricts().map(i=>DISTRICTS[i]),r={name:ds.map(d=>d.name).join('、'),type:'MultiPolygon',coords:ds.flatMap(d=>polysOf(d))};r.bb=bboxOf(r);return _mr[s]=r;}
+function scopeKey(){return state.scope===''?'city':state.scope==='custom'?'custom:'+state.custom.bb.map(v=>v.toFixed(4)).join(','):state.scope.startsWith('m:')?'m:'+selDistricts().map(i=>DISTRICTS[i].name).join(','):'d:'+DISTRICTS[+state.scope].name;}
+function scopeName(){if(state.scope==='')return '全臺北市';if(state.scope==='custom')return '自選範圍';const ds=selDistricts().map(i=>DISTRICTS[i].name);return ds.length<=3?ds.join('、'):ds.slice(0,2).join('、')+' 等 '+ds.length+' 區';}
 function srcKey(){return state.baked?'city':scopeKey();}
 let LIFE_FEATS=null,LIFE_SIG='';
 function lifeSig(){return state.lifeCenters.map(c=>c.center[0].toFixed(5)+','+c.center[1].toFixed(5)).join(';');}
@@ -311,7 +318,7 @@ function data(id){if(id==='life'){if(!state.lifeCenters.length)return null;const
 const _sc={};function scopeCells(){const k=scopeKey();if(_sc[k])return _sc[k];
   if(state.scope==='')return _sc[k]=ALL;
   if(state.scope==='custom')return _sc[k]=ALL.filter(i=>inPoly(state.custom,CELLS[i].la,CELLS[i].lo));
-  const d=+state.scope;return _sc[k]=ALL.filter(i=>CELLS[i].d===d);}
+  const set=new Set(selDistricts());return _sc[k]=ALL.filter(i=>set.has(CELLS[i].d));}
 function bufferedBBox(){const b=region().bb,pl=BUFFER/KY,po=BUFFER/KX;return[b[0]-pl,b[1]-po,b[2]+pl,b[3]+po];}
 
 // ---------- UI helpers ----------
@@ -341,21 +348,22 @@ CATS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.d
   $('chips').appendChild(b);});
 function fillScope(){const tg=$('scopeTag');if(tg){tg.hidden=state.scope==='';tg.innerHTML=state.scope===''?'':`<span>${esc(scopeName())}</span><button type="button" id="scopeClear" aria-label="回到全臺北市">✕</button>`;const c=$('scopeClear');if(c)c.onclick=()=>setScope('');}
   renderRegionPop();$('scope').innerHTML='<option value="">全臺北市</option>'+DISTRICTS.map((d,i)=>`<option value="${i}">${d.name}</option>`).join('')+(state.custom?'<option value="custom">自選範圍</option>':'')+'<option value="draw">✏️ 自己框選範圍…</option>';$('scope').value=state.scope;$('scopeName').textContent=scopeName();}
-function renderRegionPop(){const el=$('regionPop');if(!el)return;
-  el.innerHTML=`<button type="button" class="wide" data-region="" aria-pressed="${state.scope===''}">全臺北市</button>`+DISTRICTS.map((d,i)=>`<button type="button" data-region="${i}" aria-pressed="${state.scope===String(i)}">${d.name.replace(/區$/,'')}</button>`).join('')+`<button type="button" class="wide draw" data-region="draw">${categoryIcon('region')}在地圖上框選</button>`;
-  el.querySelectorAll('[data-region]').forEach(b=>b.onclick=()=>{closePops();const v=b.dataset.region;if(v==='draw')startDraw();else setScope(v);});}
+function renderRegionPop(){const el=$('regionPop');if(!el)return;const sel=new Set(selDistricts());
+  el.innerHTML=`<div class="wide rp-h">可複選</div><button type="button" class="wide" data-region="" aria-pressed="${state.scope===''}">全臺北市</button>`+DISTRICTS.map((d,i)=>`<button type="button" data-region="${i}" aria-pressed="${sel.has(i)}">${d.name.replace(/區$/,'')}</button>`).join('')+`<button type="button" class="wide draw" data-region="draw">${categoryIcon('region')}在地圖上框選</button>`;
+  el.querySelectorAll('[data-region]').forEach(b=>b.onclick=()=>{const v=b.dataset.region;if(v==='draw'){closePops();startDraw();return;}if(v===''){closePops();setScope('');return;}toggleDistrict(+v);});}
+function toggleDistrict(i){const sel=new Set(selDistricts());if(sel.has(i))sel.delete(i);else sel.add(i);setScope(scopeFor([...sel]));}
 $('scope').onchange=()=>{const v=$('scope').value;if(v==='draw'){$('scope').value=state.scope;startDraw();return;}setScope(v);};
 
 // ---------- scope on map ----------
-function drawScope(doFit){scopeLayer.clearLayers();labelLayer.clearLayers();const r=region();
-  if(!r){DISTRICTS.forEach((d,i)=>{L.polygon(latlngs(d),{color:'#5f6368',weight:1,opacity:.6,fill:false,interactive:false}).addTo(scopeLayer);
-      L.marker(d.ctr,{icon:L.divIcon({className:'dlabel',html:`<span>${d.name}</span>`,iconSize:[0,0]}),keyboard:false}).on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}setScope(String(i));}).addTo(labelLayer);});
-    syncLabels();if(doFit)fit([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);return;}
+function drawScope(doFit){scopeLayer.clearLayers();labelLayer.clearLayers();const r=region(),sel=new Set(selDistricts()),multi=state.scope!=='custom';
+  if(multi)DISTRICTS.forEach((d,i)=>{if(!r)L.polygon(latlngs(d),{color:'#5f6368',weight:1,opacity:.6,fill:false,interactive:false}).addTo(scopeLayer);
+      L.marker(d.ctr,{icon:L.divIcon({className:'dlabel'+(sel.has(i)?' on':''),html:`<span>${d.name}</span>`,iconSize:[0,0]}),keyboard:false}).on('click',e=>{if(state.drawing){addDrawPt(e.latlng);return;}if(state.scope==='')setScope(String(i));else toggleDistrict(i);}).addTo(labelLayer);});
+  if(!r){syncLabels();if(doFit)fit([[CITY[0],CITY[1]],[CITY[2],CITY[3]]]);return;}
   const ll=latlngs(r),world=[[-90,-180],[-90,180],[90,180],[90,-180]];
   L.polygon([world,...ll.map(p=>p[0])],{stroke:false,fillColor:'#202124',fillOpacity:.22,interactive:false}).addTo(scopeLayer);
   const pl=L.polygon(ll,{color:state.scope==='custom'?'#d81b60':'#3c4043',weight:2.5,fill:false,interactive:false}).addTo(scopeLayer);
-  if(doFit)fit(pl.getBounds());}
-function syncLabels(){const show=state.scope===''&&map.getZoom()<=13.5&&!state.transit;if(show&&!map.hasLayer(labelLayer))labelLayer.addTo(map);if(!show&&map.hasLayer(labelLayer))map.removeLayer(labelLayer);}
+  syncLabels();if(doFit)fit(pl.getBounds());}
+function syncLabels(){const show=state.scope!=='custom'&&map.getZoom()<=13.5&&!state.transit;if(show&&!map.hasLayer(labelLayer))labelLayer.addTo(map);if(!show&&map.hasLayer(labelLayer))map.removeLayer(labelLayer);}
 function setScope(v){closeTransit();state.scope=v;state.view={type:'list'};selLayer.clearLayers();fillScope();
   if(isMob())setSheet('half');drawScope(true);run();}
 function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('categorySettings').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
@@ -501,7 +509,7 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(state.zones.length){h+='<h2>推薦區域</h2>'+state.zones.map((z,i)=>`<div class="card" data-z="${i}"><span class="rank">${i+1}</span><div><div class="t">${z.mrt?z.mrt+'周邊':z.district}</div><div class="m">${z.district}・最遠的一類走 ${Math.max(1,Math.ceil(R.worst[z.best]))} 分・約 ${z.area.toFixed(0)} 公頃</div></div><span class="go">›</span></div>`).join('');}
   else h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
-  if(state.scope===''){const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).sort((a,b)=>b.p-a.p);
+  if(state.scope===''||state.scope.startsWith('m:')){const only=state.scope===''?null:new Set(selDistricts());const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).filter(r=>!only||only.has(r.i)).sort((a,b)=>b.p-a.p);
     h+='<h2>各區比較</h2>'+rk.map(r=>`<div class="drow" data-d="${r.i}"><span class="n">${r.n}</span><span class="b"><i style="width:${r.p}%"></i></span><span class="p">${r.p.toFixed(0)}%</span></div>`).join('');}
   else h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
   Bd.innerHTML=h+foot();
