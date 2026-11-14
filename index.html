@@ -528,13 +528,16 @@ let outlineSig=null;function drawOutline(){if(!state.res||state.transit||!state.
   rs.forEach(r=>{L.polygon(r,{color:'#fff',weight:5,opacity:.85,fill:false,interactive:false}).addTo(outlineLayer);L.polygon(r,{color:'#123B8A',weight:2,opacity:1,fill:false,interactive:false,dashArray:null}).addTo(outlineLayer);});}
 let heatRank=null;
 let heatAll=[];function clearHeat(){heatAll.forEach(o=>map.removeLayer(o));heatAll=[];heat=null;}
-function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state.layers.heat){clearHeat();return;}
-  if(heat&&heat._sig===R&&heat._scope===scopeKey()){heat.setOpacity(heatOpacity());return;} // 結果沒變就不重畫，避免閃爍
+function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||(!state.layers.heat&&!state.layers.outline)){clearHeat();return;}
+  const flags=(state.layers.heat?'h':'')+(state.layers.outline?'o':'');
+  if(heat&&heat._sig===R&&heat._scope===scopeKey()&&heat._flags===flags){heat.setOpacity(heatOpacity());return;} // 結果沒變就不重畫，避免閃爍
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   const ks=[],ds=[];
-  for(const k of scopeCells()){let density=0;
+  // 只有「完全符合所有條件」的地方上熱圖色；不符合的地方反灰（開著「符合條件的邊界」時）
+  for(const k of scopeCells()){if(R.okc[k]!==n){if(state.layers.outline){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;p[o]=70;p[o+1]=74;p[o+2]=80;p[o+3]=125;}continue;}
+    if(!state.layers.heat)continue;let density=0;
     for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k],R.act[i]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
-    if(density>0){ks.push(k);ds.push(density);}}
+    ks.push(k);ds.push(density);}
   const sorted=Float64Array.from(ds).sort(),N=sorted.length;
   const rank=v=>{let lo=0,hi=N-1;while(lo<hi){const m=(lo+hi+1)>>1;if(sorted[m]<=v)lo=m;else hi=m-1;}return N>1?lo/(N-1):1;};
   heatRank=rank;
@@ -542,7 +545,7 @@ function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||!state
     p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.round(70+t*175);});
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   // 雙緩衝：新圖載好才換掉舊圖，換圖時不會先變成空白
-  const nh=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heat?0:heatOpacity()}).addTo(map);nh._sig=R;nh._scope=scopeKey();heatAll.push(nh);heat=nh;
+  const nh=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heat?0:heatOpacity()}).addTo(map);nh._sig=R;nh._scope=scopeKey();nh._flags=flags;heatAll.push(nh);heat=nh;
   const swap=()=>{if(heat!==nh){map.removeLayer(nh);heatAll=heatAll.filter(o=>o!==nh);return;}nh.setOpacity(heatOpacity());heatAll.filter(o=>o!==nh).forEach(o=>map.removeLayer(o));heatAll=[nh];};
   const el=nh.getElement();if(el&&el.complete&&el.naturalWidth)swap();else{nh.once('load',swap);setTimeout(swap,400);}}
 function heatOpacity(){const z=map.getZoom();return z<=13?0.9:z>=16?0.3:0.9-(z-13)/3*0.6;} // 放大到街區：熱圖淡出，讓設施圖示浮現
