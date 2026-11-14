@@ -192,6 +192,7 @@ async def baked_suite(b, errs):
     check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
           '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
     check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '7 個類別包在同一個毛玻璃小組裡')
+    check(await ev("[...document.querySelectorAll('#sheet,#chips,.fab,#scopeTag')].every(e=>{const c=getComputedStyle(e);return (c.backdropFilter||'none')==='none'&&(c.webkitBackdropFilter||'none')==='none'}) && getComputedStyle(document.body).position!=='fixed'"), '手機（觸控）上不用即時模糊、body 不固定定位，避免 iPhone Safari 漏畫閃爍')
     check(await ev("!document.querySelector('#top .search')||getComputedStyle(document.querySelector('#top .search')).display==='none'"), '上方不再常駐區域選擇列')
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')

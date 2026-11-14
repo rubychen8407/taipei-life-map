@@ -105,7 +105,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 }
 /* ===== 新版：寶藍＋橘、毛玻璃 ===== */
 :root{--D:#123B8A;--A:#F7931E;--ink:#1D1D1F;--sub:#86868B;--line:rgba(60,60,67,.12);--blue:#123B8A;--bluebg:#E9EEF8;--teal:#123B8A;--glass:rgba(255,255,255,.72);--shadow:0 .5px 0 rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.09)}
-html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-system,"SF Pro Text","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-apple-system,"SF Pro Text","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
 .glass,.fab,#sheet,.chip .chip-icon,#scopeTag,.tune,.mode-menu,.life-card{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6)}
 #top svg,#fabs svg,.pop svg,#pressMenu svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block}
 #top{top:14px;left:12px;right:12px;max-height:none;overflow:visible}
@@ -212,6 +212,14 @@ html,body{position:fixed;inset:0;overscroll-behavior:none;font-family:-apple-sys
 #scopeTag svg{width:13px;height:13px;margin:auto}
 .vh{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:#fff;border:2.5px solid #123B8A;box-shadow:0 1px 4px rgba(0,0,0,.3);box-sizing:border-box}
 .vh.mid{width:12px!important;height:12px!important;margin:-6px 0 0 -6px!important;border:2px solid #F7931E;opacity:.85}
+
+/* iPhone Safari：大量毛玻璃（backdrop-filter）疊在會重繪的地圖上，會讓 Safari 漏畫圖層、畫面一直閃。
+   觸控裝置改用不透明度較高的白色玻璃，不做即時模糊。 */
+@media (hover:none),(pointer:coarse){
+  .glass,.fab,#sheet,.chip .chip-icon,#scopeTag,.tune,.mode-menu,.life-card,#chips,#editbar,.pop,#pressMenu{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  :root{--glass:rgba(255,255,255,.93)}
+  .chip .chip-icon{background:#F4F5F7}
+}
 </style>
 </head>
 <body>
