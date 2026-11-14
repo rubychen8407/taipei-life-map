@@ -570,15 +570,16 @@ async def real_suite(b, errs):
     ev = page.evaluate
     t0 = time.time()
     await page.goto(URL); await page.wait_for_function(READY, timeout=90000)
-    print(f'real data: ready in {time.time()-t0:.1f}s', await ev("({built:state.built,n:Object.fromEntries(LAYERS.map(l=>[l.id,data(l.id).length])),good:state.res.good,total:state.res.total,zones:state.zones.map(z=>z.mrt||z.district)})"))
+    print(f'real data: ready in {time.time()-t0:.1f}s', await ev("({built:state.built,n:Object.fromEntries(LAYERS.map(l=>[l.id,(data(l.id)||[]).length])),good:state.res.good,total:state.res.total,zones:state.zones.map(z=>z.mrt||z.district)})"))
     check(await ev("state.zones.length") > 0, '真實資料：算出推薦生活圈')
     await shot(page, 'real_1_home')
-    for i in ['bus', 'sport']:
+    for i in ['market', 'bus', 'sport']:
         t0 = time.time(); await page.click(f'.chip[data-id={i}]'); await page.wait_for_function(f"state.res.act.includes('{i}')", timeout=30000)
         print(f'  + {i}: {time.time()-t0:.2f}s')
     await shot(page, 'real_2_all')
-    for i in ['bus', 'sport']:
+    for i in ['market', 'bus', 'sport']:
         await page.click(f'.chip[data-id={i}]')
+    await page.click('#resultBtn'); await page.wait_for_timeout(350)
     await page.click('[data-z="0"]'); await shot(page, 'real_3_zone'); await page.click('#close')
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:松山區'"); await page.click('#regionBtn'); await shot(page, 'real_4_songshan')
     name = await ev("(()=>{const m=data('mrt').find(f=>/南京三民|小巨蛋|松山/.test(f.name))||data('mrt')[0];void openPlace(m,LAYER.mrt);return m.name})()")
