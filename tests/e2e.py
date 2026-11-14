@@ -339,10 +339,15 @@ async def baked_suite(b, errs):
     pt = await ev("(()=>{const r=state.editing.rings[0];let bi=0;r.forEach((p,i)=>{if(p[1]>r[bi][1])bi=i});const q=map.latLngToContainerPoint(r[bi]);return {i:bi,x:q.x,y:q.y}})()")
     await touch_drag(page, pt['x'], pt['y'], 80, 10)
     moved = await ev(f"(()=>{{const p=state.editing.rings[0][{pt['i']}],q=map.latLngToContainerPoint(p);return q.x}})()")
+    if moved <= pt['x'] + 50:   # 沒有觸控支援的瀏覽器（CI 的無頭 Chromium）改用滑鼠拖曳
+        await page.mouse.move(pt['x'], pt['y']); await page.mouse.down(); await page.mouse.move(pt['x']+80, pt['y']+10, steps=10); await page.mouse.up(); await page.wait_for_timeout(300)
+        moved = await ev(f"(()=>{{const p=state.editing.rings[0][{pt['i']}],q=map.latLngToContainerPoint(p);return q.x}})()")
     check(moved > pt['x'] + 50, f"拖曳白點把邊界往外拉（{pt['x']:.0f}→{moved:.0f}px）")
     n1 = await ev("state.editing.rings[0].length")
     mp = await ev("(()=>{const m=[...document.querySelectorAll('.vh.mid')][0].getBoundingClientRect();return {x:m.x+m.width/2,y:m.y+m.height/2}})()")
     await touch_drag(page, mp['x'], mp['y'], 20, 20)
+    if await ev("state.editing.rings[0].length") == n1:
+        await page.mouse.move(mp['x'], mp['y']); await page.mouse.down(); await page.mouse.move(mp['x']+20, mp['y']+20, steps=8); await page.mouse.up(); await page.wait_for_timeout(300)
     check(await ev("state.editing.rings[0].length") == n1 + 1, '拖曳小點：新增一個轉折點')
     check(await ev("document.getElementById('pressMenu').hidden && state.view.type==='list'"), '調整時不會誤觸長按選單或位置卡')
     await page.click('#editDone'); await page.wait_for_function("state.res&&state.res.key.startsWith('custom')", timeout=5000)
