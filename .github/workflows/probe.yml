@@ -1,0 +1,33 @@
+name: Probe building data
+on:
+  push:
+    branches: ["probe/**"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: OSM buildings coverage (Da'an district sample + whole city counts)
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.parse,time
+          def q(s):
+              for u in ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter']:
+                  try:
+                      d=urllib.parse.urlencode({'data':s}).encode()
+                      return json.load(urllib.request.urlopen(urllib.request.Request(u,data=d,headers={'User-Agent':'taipei-life-map'}),timeout=300))
+                  except Exception as e: print('ERR',u,e)
+          bb='25.020,121.530,25.045,121.555'
+          r=q(f'[out:json][timeout:200];way["building"]({bb});out tags;')
+          els=r['elements'];n=len(els)
+          lv=sum(1 for e in els if 'building:levels' in e.get('tags',{}));h=sum(1 for e in els if 'height' in e.get('tags',{}))
+          print('Daan sample buildings',n,'with levels',lv,'with height',h)
+          from collections import Counter
+          print(Counter(e['tags'].get('building:levels') for e in els).most_common(15))
+          r=q('[out:json][timeout:300];area["name"="臺北市"]["admin_level"="4"]->.a;(way["building"](area.a););out count;')
+          print('city count',r and r['elements'])
+          r=q('[out:json][timeout:300];area["name"="臺北市"]["admin_level"="4"]->.a;(way["building"]["building:levels"](area.a););out count;')
+          print('city with levels',r and r['elements'])
+          PY
+      - name: NLSC 3D building download pages
+        run: |
+          for u in "https://3dmaps.nlsc.gov.tw" "https://3dmaps.nlsc.gov.tw/download" "https://data.gov.tw/api/v2/rest/dataset/169808"; do echo "== $u"; curl -sSL -m 60 "$u" | head -c 1500; echo; done
