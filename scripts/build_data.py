@@ -14,6 +14,7 @@ LAYERS = [  # 與 index.html 的 LAYERS 相同
     ('school', False, 'nwr["amenity"~"^(school|kindergarten|university|college)$"]', lambda t: bool(re.match(r'^(school|kindergarten|university|college)$', t.get('amenity', '')))),
     ('sport', False, 'nwr["leisure"~"^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$"]',
      lambda t: bool(re.match(r'^(sports_centre|pitch|stadium|track|swimming_pool|fitness_centre)$', t.get('leisure', '')))),
+    ('market', False, 'nwr["shop"~"^(supermarket|wholesale)$"]', lambda t: bool(re.match(r'^(supermarket|wholesale)$', t.get('shop', '')))),
     ('bus', False, 'node["highway"="bus_stop"]', lambda t: t.get('highway') == 'bus_stop'),
     ('mrt', False, 'nwr["railway"="station"]["station"="subway"];nwr["public_transport"="station"]["subway"="yes"]',
      lambda t: (t.get('railway') == 'station' and t.get('station') == 'subway') or (t.get('public_transport') == 'station' and t.get('subway') == 'yes')),
