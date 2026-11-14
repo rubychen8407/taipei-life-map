@@ -22,11 +22,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .search select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px}
 #chips{display:flex;gap:8px;margin:10px -10px 0;padding:0 10px 6px;overflow-x:auto;scrollbar-width:none}
 #chips::-webkit-scrollbar{display:none}
-.chip{flex:none;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px 0 10px;border:none;border-radius:18px;background:#fff;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);font-size:14px;font-weight:500;white-space:nowrap}
+.chip{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;height:36px;width:48px;padding:0 6px;border:none;border-radius:18px;background:#fff;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);font-size:14px;font-weight:500;white-space:nowrap}
 .chip[aria-pressed=true]{background:var(--bluebg);color:var(--blue)}
 .chip .ck{display:none;font-size:12px}
 .chip .mins{margin-left:2px;padding:2px 6px;border-radius:10px;background:#f1f3f4;color:#5f6368;font-size:11px;font-weight:700}.chip[aria-expanded=true]{outline:2px solid var(--blue);outline-offset:1px}
-.distance-settings{display:grid;gap:9px;margin:8px 0 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18)}.distance-title{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:#3c4043}.distance-value{font-size:14px;color:var(--blue);font-weight:750;font-variant-numeric:tabular-nums}.distance-range{width:100%;height:28px;margin:0;accent-color:var(--blue);cursor:pointer;touch-action:pan-y}.distance-scale{display:flex;justify-content:space-between;color:var(--sub);font-size:11px}.distance-hint{font-size:11px;color:var(--sub)}
+.distance-settings{display:grid;gap:9px;margin:8px 0 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(60,64,67,.18)}.distance-title{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:#3c4043}.distance-value{font-size:14px;color:var(--blue);font-weight:750;font-variant-numeric:tabular-nums}.distance-range{width:100%;height:28px;margin:0;accent-color:var(--blue);cursor:pointer;touch-action:pan-y}.distance-scale{display:flex;justify-content:space-between;color:var(--sub);font-size:11px}.distance-hint{font-size:11px;color:var(--sub)}.mode-options{display:flex;gap:8px;align-items:center}.mode-option{width:42px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:11px;background:#fff;color:#5f6368}.mode-option svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.mode-option.selected{color:var(--blue);background:var(--bluebg);border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.chip>span:first-child svg{width:21px;height:21px}.chip .mins{font-size:10px;padding:2px 4px}
 .chip[aria-pressed=true] .ck{display:inline}
 #drawbar{display:none;margin-top:10px;background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:10px 12px;font-size:13px}
 #drawbar .btns{display:flex;gap:8px;margin-top:8px}
@@ -141,7 +141,7 @@ const LAYERS = [
 ];
 const LAYER=Object.fromEntries(LAYERS.map(l=>[l.id,l]));
 const OVERPASS = ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
-const DETOUR=1.25, SPEED=80, CELL=100, BUFFER=1400, MAXD=1400; // 步行≈直線×1.25；每分鐘80公尺；格子100公尺；最遠算到1.4公里
+const DETOUR=1.25, SPEED=80, CELL=100, BUFFER=7000, MAXD=7000; // 以直線距離與各交通方式平均速度估算；格子100公尺
 const MINS=[5,10,15,20], PEEK=148;
 const $=id=>document.getElementById(id);
 const isMob=()=>window.innerWidth<700;
@@ -156,7 +156,7 @@ const scopeLayer=L.layerGroup().addTo(map),labelLayer=L.layerGroup().addTo(map),
   selLayer=L.layerGroup().addTo(map),transitLayer=L.layerGroup().addTo(map),drawLayer=L.layerGroup().addTo(map),meLayer=L.layerGroup().addTo(map),lifeLayer=L.layerGroup().addTo(map);
 let heat=null;
 
-const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,green:10,school:10,sport:10,bus:10,mrt:10},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
+const state={active:new Set(['park','school','mrt']),minsByLayer:{park:10,green:10,school:10,sport:10,bus:10,mrt:10},modeByLayer:{park:'walk',green:'walk',school:'walk',sport:'walk',bus:'walk',mrt:'walk'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
   lifeMode:false,lifeCenters:[],lifeSelectedIndex:-1,lifeMinutes:10,lifeActiveIndex:0,lifeResults:[]};
 
@@ -214,7 +214,7 @@ function padding(){return isMob()?{paddingTopLeft:[28,$('top').offsetHeight+28],
 function fit(b,o={}){map.fitBounds(b,Object.assign(padding(),o));}
 
 LAYERS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.dataset.id=l.id;b.setAttribute('aria-pressed',state.active.has(l.id));b.setAttribute('aria-expanded','false');
-  b.innerHTML=`<span>${l.icon}</span>${l.name}<span class="mins" data-mins>${state.minsByLayer[l.id]}分</span><span class="ck">✓</span>`;
+  b.title=l.name;b.setAttribute('aria-label',l.name+'，'+state.minsByLayer[l.id]+'分鐘');b.innerHTML=`<span>${l.icon}</span><span class="mins" data-mins>${state.minsByLayer[l.id]}分</span><span class="ck">✓</span>`;
   b.onclick=()=>{const selected=state.active.has(l.id),isOpen=state.openDistanceLayer===l.id;if(selected&&isOpen){state.active.delete(l.id);state.openDistanceLayer=null;}else{state.active.add(l.id);state.openDistanceLayer=l.id;}if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();if(isMob()&&snap!=='half')setSheet('half');run();};
   $('chips').appendChild(b);});
 renderCategorySettings();
@@ -298,12 +298,12 @@ function layerDist(id){const key=srcKey()+'|'+id;return DIST[key]||(DIST[key]=co
 const MRTN={};function mrtNear(){const key=srcKey();if(MRTN[key])return MRTN[key];const m=data('mrt')||[],a=new Int32Array(N).fill(-1);
   if(m.length)for(const k of (state.baked?ALL:scopeCells())){const c=CELLS[k];let b=-1,bd=Infinity;for(let i=0;i<m.length;i++){const dd=Math.hypot((m[i].center[0]-c.la)*KY,(m[i].center[1]-c.lo)*KX);if(dd<bd){bd=dd;b=i;}}a[k]=b;}
   return MRTN[key]=a;}
-const tmin=d=>d*DETOUR/SPEED;
+const MODE_INFO={walk:{label:'步行',speed:80,icon:'<circle cx="12" cy="5" r="2"/><path d="m10 9-2 5 4 2 2 5m-6-7-3 4m5-4 4-3 3 2"/>'},scooter:{label:'機車',speed:350,icon:'<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 18h5l2-5h-4l-2-3H7m8 3 2-4h3"/>'},bike:{label:'腳踏車',speed:220,icon:'<circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="m6 18 4-8 4 8H6l4-8h5l3 8m-8-11h3"/>'},car:{label:'開車',speed:250,icon:'<path d="m5 11 1.5-5h11L19 11l2 2v5h-2m-14 0H3v-5l2-2Zm0 0h14M7 18h10"/><circle cx="7" cy="16" r="1"/><circle cx="17" cy="16" r="1"/>'},transit:{label:'大眾運輸',speed:180,icon:'<rect x="5" y="3" width="14" height="17" rx="3"/><path d="M8 7h8v5H8zM8 16h.01M16 16h.01M8 20l-2 2m10-2 2 2"/>'}};const modeIcon=id=>'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+MODE_INFO[id].icon+'</svg>';const modeName=id=>MODE_INFO[id]?.label||'步行';const tmin=(d,id)=>d*DETOUR/(MODE_INFO[state.modeByLayer[id]||'walk']||MODE_INFO.walk).speed;
 
 function analyze(){const act=LAYERS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id);if(!act.length){state.res=null;state.zones=[];return;}
   const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
   const dstat=DISTRICTS.map(()=>({t:0,g:0})),goodIdx=[];
-  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k]);if(t<=thresholds[i])o++;if(t>w)w=t;}worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
+  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k],act[i]);if(t<=thresholds[i])o++;if(t>w)w=t;}worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
     if(o===act.length){good++;goodIdx.push(k);dstat[CELLS[k].d].g++;}}
   const mn=mrtNear(),mrt=data('mrt')||[],groups=new Map(); // 推薦生活圈：以最近的捷運站分組
   for(const k of goodIdx){const g=mn[k];groups.has(g)?groups.get(g).push(k):groups.set(g,[k]);}
@@ -320,7 +320,7 @@ function densityColor(value){const v=Math.max(0.08,Math.min(6,value));let i=1;wh
 function drawHeat(){const R=state.res;if(!R||state.transit){if(heat){map.removeLayer(heat);heat=null;}return;}
   const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
   for(const k of scopeCells()){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;let density=0;
-    for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
+    for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k],R.act[i]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
     if(density>0){const color=densityColor(density),hex=color.slice(1);p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.min(238,148+density*24);}}
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   if(heat)heat.setUrl(url);else heat=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heatOpacity()}).addTo(map);heat.setOpacity(heatOpacity());}
@@ -341,10 +341,10 @@ map.on('click',e=>{if(handleLifeMapPoint(e.latlng))return;if(state.drawing){addD
 
 // ---------- sheet rendering ----------
 function actNames(){return state.res.act.map(id=>LAYER[id].name).join('、');}
-function distanceSettingsHTML(){const id=state.openDistanceLayer;if(!id||!state.active.has(id))return '';const l=LAYER[id],m=state.minsByLayer[id]||10,meters=Math.round(m*SPEED*DETOUR/10)*10;return `<section class="distance-settings" aria-label="${l.name}步行距離設定"><div class="distance-title"><span>${l.name}・步行距離</span><output class="distance-value" data-distance-value>${m} 分鐘・約 ${meters} 公尺</output></div><input class="distance-range" type="range" min="5" max="20" step="1" value="${m}" data-distance="${id}" aria-label="${l.name}步行距離" aria-valuetext="${m} 分鐘"><div class="distance-scale"><span>5 分鐘</span><span>20 分鐘</span></div><div class="distance-hint">拖曳調整範圍，放開後設定面板會自動收合</div></section>`;}
-function renderCategorySettings(){const el=$('categorySettings');if(!el)return;el.innerHTML=distanceSettingsHTML();$('chips').querySelectorAll('.chip').forEach(b=>{const id=b.dataset.id,on=state.active.has(id);b.setAttribute('aria-pressed',on);b.setAttribute('aria-expanded',String(on&&state.openDistanceLayer===id));const v=b.querySelector('[data-mins]');if(v)v.textContent=(state.minsByLayer[id]||10)+'分';});const slider=el.querySelector('[data-distance]');if(slider){slider.oninput=()=>{const m=+slider.value;state.minsByLayer[slider.dataset.distance]=m;slider.setAttribute('aria-valuetext',m+' 分鐘');const meters=Math.round(m*SPEED*DETOUR/10)*10;el.querySelector('[data-distance-value]').textContent=m+' 分鐘・約 '+meters+' 公尺';const chip=$('chips').querySelector('[data-id="'+slider.dataset.distance+'"] [data-mins]');if(chip)chip.textContent=m+'分';if(state.res){analyze();drawHeat();drawPins();}render();};const collapse=()=>{if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);state.distanceCloseTimer=setTimeout(()=>{state.openDistanceLayer=null;renderCategorySettings();},500);};slider.addEventListener('pointerup',collapse);slider.addEventListener('touchend',collapse);slider.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='Home'||e.key==='End')collapse();});}}
+function distanceSettingsHTML(){const id=state.openDistanceLayer;if(!id||!state.active.has(id))return '';const l=LAYER[id],m=state.minsByLayer[id]||10,mode=state.modeByLayer[id]||'walk',meters=Math.round(m*MODE_INFO[mode].speed/DETOUR/10)*10;return `<section class="distance-settings" aria-label="${l.name}交通時間設定"><div class="distance-title"><span>${l.name}・${modeName(mode)}時間</span><output class="distance-value" data-distance-value>${m} 分鐘・約 ${meters} 公尺</output></div><div class="mode-options" role="group" aria-label="${l.name}交通方式">${Object.entries(MODE_INFO).map(([key,v])=>`<button type="button" class="mode-option ${mode===key?'selected':''}" data-mode="${key}" title="${v.label}" aria-label="${v.label}" aria-pressed="${mode===key}">${modeIcon(key)}</button>`).join('')}</div><input class="distance-range" type="range" min="1" max="20" step="1" value="${m}" data-distance="${id}" aria-label="${l.name}時間" aria-valuetext="${m} 分鐘"><div class="distance-scale"><span>1 分鐘</span><span>20 分鐘</span></div><div class="distance-hint">選擇交通方式後調整可接受時間</div></section>`;}
+function renderCategorySettings(){const el=$('categorySettings');if(!el)return;el.innerHTML=distanceSettingsHTML();$('chips').querySelectorAll('.chip').forEach(b=>{const id=b.dataset.id,on=state.active.has(id);b.setAttribute('aria-pressed',on);b.setAttribute('aria-expanded',String(on&&state.openDistanceLayer===id));const v=b.querySelector('[data-mins]');if(v)v.textContent=(state.minsByLayer[id]||10)+'分';});el.querySelectorAll('[data-mode]').forEach(btn=>btn.onclick=()=>{const id=state.openDistanceLayer;state.modeByLayer[id]=btn.dataset.mode;renderCategorySettings();if(state.res){analyze();drawHeat();drawPins();}render();});const slider=el.querySelector('[data-distance]');if(slider){slider.oninput=()=>{const m=+slider.value,id=slider.dataset.distance,mode=state.modeByLayer[id]||'walk';state.minsByLayer[id]=m;slider.setAttribute('aria-valuetext',m+' 分鐘');const meters=Math.round(m*MODE_INFO[mode].speed/DETOUR/10)*10;el.querySelector('[data-distance-value]').textContent=m+' 分鐘・約 '+meters+' 公尺';const chip=$('chips').querySelector('[data-id="'+slider.dataset.distance+'"] [data-mins]');if(chip)chip.textContent=m+'分';if(state.res){analyze();drawHeat();drawPins();}render();};const collapse=()=>{if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);state.distanceCloseTimer=setTimeout(()=>{state.openDistanceLayer=null;renderCategorySettings();},500);};slider.addEventListener('pointerup',collapse);slider.addEventListener('touchend',collapse);slider.addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='Home'||e.key==='End')collapse();});}}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
-function foot(){return `<div class="foot">步行時間以直線距離 ×1.25、每分鐘 80 公尺估算；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
+function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX${state.built?'（'+state.built+' 更新）':''}</div>`;}
 function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
   const H=$('head'),Bd=$('body'),R=state.res;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -370,10 +370,10 @@ function headDetail(title,sub,category){const cat=category?`<div class="detail-c
   $('back').onclick=$('close').onclick=()=>closeDetail();}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
-  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k])>R.thresholds[i]);
-  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的步行距離':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定距離'}</div>`;
-  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k]),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
-    h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'20 分以上':'步行 '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
+  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
+  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>`;
+  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
+    h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(id)+' '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
   $('body').innerHTML=h+foot();}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
 function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
@@ -400,7 +400,7 @@ function renderLifePanel(){
   const el=$('lifePanel');if(!state.lifeMode){el.hidden=true;return;}el.hidden=false;
   const rows=state.lifeCenters.map((c,i)=>`<div class="life-center-row"><b style="color:${LIFE_COLORS[i]}">${String.fromCharCode(65+i)}</b><input data-life-label="${i}" maxlength="18" value="${esc(c.label)}" aria-label="生活圈 ${String.fromCharCode(65+i)} 名稱"><button type="button" data-life-move="${i}">${state.lifeSelectedIndex===i?'點地圖定位中':'移動'}</button><button type="button" data-life-delete="${i}" aria-label="刪除生活圈 ${String.fromCharCode(65+i)}">刪除</button></div>`).join('');
   const m=state.lifeMinutes,meters=Math.round(m*SPEED*DETOUR/10)*10;
-  el.innerHTML=`<div class="life-heading">設定日常生活圈</div><div class="life-hint">點地圖新增中心點；可設定住家、公司或常去的地方。每個中心分開分析，不會合併結果。</div>${rows||'<div class="life-hint">尚未新增中心點（${state.lifeCenters.length}/3）</div>'}<div class="distance-title"><span>共用步行時間</span><output class="distance-value" data-life-minutes>${m} 分鐘・約 ${meters} 公尺</output></div><input class="distance-range" id="lifeMinutes" type="range" min="5" max="20" step="1" value="${m}" aria-label="生活圈共用步行時間"><div class="distance-scale"><span>5 分鐘</span><span>20 分鐘</span></div><div class="life-actions"><button class="btn" id="lifeCancel">取消</button><button class="btn primary" id="lifeConfirm" ${state.lifeCenters.length?'':'disabled'}>完成並分析</button></div>`;
+  el.innerHTML=`<div class="life-heading">設定日常生活圈</div><div class="life-hint">點地圖新增中心點；可設定住家、公司或常去的地方。每個中心分開分析，不會合併結果。</div>${rows||'<div class="life-hint">尚未新增中心點（${state.lifeCenters.length}/3）</div>'}<div class="distance-title"><span>共用步行時間</span><output class="distance-value" data-life-minutes>${m} 分鐘・約 ${meters} 公尺</output></div><input class="distance-range" id="lifeMinutes" type="range" min="1" max="20" step="1" value="${m}" aria-label="生活圈共用步行時間"><div class="distance-scale"><span>1 分鐘</span><span>20 分鐘</span></div><div class="life-actions"><button class="btn" id="lifeCancel">取消</button><button class="btn primary" id="lifeConfirm" ${state.lifeCenters.length?'':'disabled'}>完成並分析</button></div>`;
   el.querySelectorAll('[data-life-label]').forEach(input=>input.onchange=()=>{state.lifeCenters[+input.dataset.lifeLabel].label=input.value.trim()||'生活圈';drawLifeCenters();});
   el.querySelectorAll('[data-life-move]').forEach(btn=>btn.onclick=()=>{state.lifeSelectedIndex=+btn.dataset.lifeMove;toast('請在地圖上點選新的中心位置');renderLifePanel();});
   el.querySelectorAll('[data-life-delete]').forEach(btn=>btn.onclick=()=>{state.lifeCenters.splice(+btn.dataset.lifeDelete,1);state.lifeSelectedIndex=-1;renderLifePanel();drawLifeCenters();});

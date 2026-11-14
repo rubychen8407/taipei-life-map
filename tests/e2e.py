@@ -313,7 +313,7 @@ async def live_suite(b, errs):
     bb = list(map(float, re.search(r'\[bbox:([^\]]+)\]', c1[0]['q']).group(1).split(',')))
     dbb = await ev("DISTRICTS[4].bb")
     pad_m = min((dbb[0] - bb[0]) * 110540, (bb[2] - dbb[2]) * 110540)
-    check(1300 < pad_m < 1500, f'查詢範圍＝大安區外擴約 1.4 公里（{pad_m:.0f} 公尺）')
+    check(6800 < pad_m < 7200, f'查詢範圍＝大安區外擴約 7 公里（{pad_m:.0f} 公尺）')
     check(any(c['host'] != 'overpass-api.de' for c in calls[n0:]) and all('x-www-form-urlencoded' in c['ct'] for c in calls[n0:]), '主伺服器失敗會改用備用伺服器；請求格式正確')
     check(await ev("state.zones.length") > 0 and await ev("!!heat"), '算出推薦生活圈並顯示色塊')
     MODE['fail'] = {'sport'}
