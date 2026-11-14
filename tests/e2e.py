@@ -152,7 +152,7 @@ async def baked_suite(b, errs):
     check(await ev("!!heat&&map.hasLayer(heat)"), '地圖上有符合範圍的色塊圖層')
     check(await ev("densityColor(0.2)!==densityColor(2.5) && densityColor(2.5)!==densityColor(3.2)"), 'Heatmap 依跨類別累積密度使用連續分級色帶')
     check(await ev("new Set([0.1,0.18,0.35,0.7,1.2,1.8,2.6,3.8,6].map(densityColor)).size===9"), 'Heatmap 九個密度節點都有清楚區別的顏色')
-    check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=get;return a>=0.8})()"), 'Heatmap 放大到街道層級仍維持可辨識透明度')
+    check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=()=>12;const b=heatOpacity();map.getZoom=get;return a<=0.35&&b>=0.85})()"), '熱圖：全市看得清楚，放大到街區自動淡化，讓設施圖示浮現')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
     check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含生活圈）、預設選 3 個')
@@ -160,6 +160,7 @@ async def baked_suite(b, errs):
           '7 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
     check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
           '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
+    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '7 個類別包在同一個毛玻璃小組裡')
     check(await ev("!document.querySelector('#top .search')||getComputedStyle(document.querySelector('#top .search')).display==='none'"), '上方不再常駐區域選擇列')
     check(await ev("document.querySelectorAll('.dlabel').length") == 12, '全市檢視顯示 12 區名稱')
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
@@ -230,6 +231,8 @@ async def baked_suite(b, errs):
     exp = [rel for rel in ROUTES if (lambda st: any(mdist(p, hub) <= 40 for p in st[:-1]))([(mm['lat'], mm['lon']) for mm in rel['members'] if mm['type'] == 'node'])]
     await ev(f"void map.setView([{hub[0]},{hub[1]}],18,{{animate:false}})"); await page.wait_for_timeout(400)
     check(await ev("facLayer.getLayers().length") > 3, '放大後才顯示附近的設施點')
+    check(await ev("(()=>{const m=document.querySelector('.facility-marker .facility-bubble');if(!m)return false;const id=Object.keys(LAYER).find(k=>m.innerHTML.includes(categoryIcon(k).slice(40,90)));const top=document.querySelector('.chip[data-id='+id+'] .chip-icon svg');return !!top&&m.querySelector('svg').innerHTML===top.innerHTML&&getComputedStyle(m).backgroundColor.startsWith('rgba(255, 255, 255')})()"), '地圖上的設施 POI 和上方類別用同一個圖示、同樣的白底細線樣式')
+    await shot(page, '3b_poi')
     check(await ev("transitLayer.getLayers().length") == 0, '沒點站牌前不顯示任何路線')
     viewport_before = await ev("(()=>{const c=map.getCenter();return {lat:c.lat,lng:c.lng,zoom:map.getZoom()}})()")
     pt = await ev(f"(()=>{{const p=map.latLngToContainerPoint([{hub[0]},{hub[1]}]);return [p.x,p.y]}})()")
