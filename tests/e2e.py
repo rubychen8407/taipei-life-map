@@ -15,7 +15,7 @@ LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
 PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
-SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'bus': 'bus_stop', 'mrt': 'subway'}
+SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'market': 'supermarket', 'bus': 'bus_stop', 'mrt': 'subway'}
 OUT = os.path.join(HERE, 'out')
 DATA_DIR = os.path.join(OUT, 'data')
 MODE = {'baked': False, 'missing': set(), 'fail': set(), 'dir': DATA_DIR}
@@ -60,7 +60,7 @@ def answer(q):
             la, lo = center(el)
             if not (s <= la <= n and w <= lo <= e):
                 continue
-            if el['type'] == 'way' and lid in ('school', 'sport') and 'out center' in q:
+            if el['type'] == 'way' and lid in ('school', 'sport', 'market') and 'out center' in q:
                 el = {'type': 'way', 'id': el['id'], 'center': {'lat': la, 'lon': lo}, 'tags': el['tags']}
             out.append(el)
     return out
@@ -192,17 +192,25 @@ async def baked_suite(b, errs):
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=()=>12;const b=heatOpacity();map.getZoom=get;return a<=0.35&&b>=0.85})()"), '熱圖：全市看得清楚，放大到街區自動淡化，讓設施圖示浮現')
     check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length") > 0 and await ev("pinLayer.getLayers().length") > 0, '有推薦生活圈清單與地圖編號標記')
-    check(await ev("document.querySelectorAll('#chips .chip').length") == 7 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 7 個（含人行道，已移除綠地）（含生活圈）、預設選 3 個')
+    check(await ev("document.querySelectorAll('#chips .chip').length") == 8 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 8 個（含超市、人行道，已移除綠地）（含生活圈）、預設選 3 個')
     check(await ev("[...document.querySelectorAll('#chips .chip')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.querySelector('.chip-icon svg')&&b.querySelector('.chip-name').textContent.trim()}) && document.getElementById('chips').scrollWidth<=document.getElementById('chips').clientWidth+1"),
-          '7 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
+          '8 個類別圓形圖示一排放得下（不用橫向捲動），每個都有圖示與名稱')
     check(await ev("[...document.querySelectorAll('#chips .chip[aria-pressed=true]')].every(b=>getComputedStyle(b.querySelector('.badge')).display==='flex'&&b.querySelector('.badge svg')&&/10 分/.test(b.querySelector('.mins').textContent)) && getComputedStyle(document.querySelector('.chip[data-id=bus] .badge')).display==='none'"),
           '已選類別：右下角顯示交通方式小角標，下方顯示分鐘數；未選的不顯示')
-    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '7 個類別包在同一個毛玻璃小組裡')
+    check(await ev("(()=>{const c=getComputedStyle(document.getElementById('chips'));return parseFloat(c.borderTopLeftRadius)>=20&&c.boxShadow!=='none'})()"), '8 個類別包在同一個毛玻璃小組裡')
     check(await ev("[...document.querySelectorAll('#sheet,#chips,.fab,#scopeTag')].every(e=>{const c=getComputedStyle(e);return (c.backdropFilter||'none')==='none'&&(c.webkitBackdropFilter||'none')==='none'}) && getComputedStyle(document.body).position!=='fixed'"), '手機（觸控）上不用即時模糊、body 不固定定位，避免 iPhone Safari 漏畫閃爍')
     z = await ev("(()=>{const ev=new Event('gesturestart',{cancelable:true});document.dispatchEvent(ev);return {g:ev.defaultPrevented,ta:getComputedStyle(document.body).touchAction,top:getComputedStyle(document.getElementById('sheet')).touchAction}})()")
     check(z['g'] and z['ta'] == 'pan-x pan-y' and z['top'] == 'manipulation', f"擋掉整個網頁的雙指縮放與連點放大（{z}），地圖本身仍可縮放")
     zz = await ev("map.touchZoom.enabled() && map.doubleClickZoom.enabled()")
     check(zz, '地圖的兩指縮放與連點放大仍然開著')
+    # 超市類別：和其他設施一樣從 city.json 讀，點了就併入分析
+    await page.click('.chip[data-id=market]')
+    await page.wait_for_function("state.res&&state.res.act.includes('market')", timeout=20000)
+    mk = await ev("(()=>{const d=state.store.city.market||[];return {n:d.length,name:(d[0]||{}).name||'',act:state.res.act.length}})()")
+    check(mk['n'] > 100, f"超市類別讀預建資料（{mk['n']} 家），併入分析（{mk['act']} 類）")
+    await shot(page, '1c_market')
+    await page.click('.chip[data-id=market]')
+    await page.wait_for_function("state.res&&!state.res.act.includes('market')", timeout=20000)
     # 人行道類別：讀預建的 data/sidewalk.json（不查 Overpass），和其他類別一樣併入分析
     c0 = len(calls)
     await page.click('.chip[data-id=sidewalk]'); await page.wait_for_function("state.res&&state.res.act.includes('sidewalk')", timeout=10000)

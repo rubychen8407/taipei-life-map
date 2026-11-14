@@ -32,6 +32,7 @@ data['park'].append({"type":"relation","id":9,"bounds":{"minlat":25.03,"minlon":
   "members":[{"type":"way","ref":1,"role":"outer","geometry":[{"lat":25.03,"lon":121.53},{"lat":25.03,"lon":121.537},{"lat":25.034,"lon":121.537},{"lat":25.034,"lon":121.53},{"lat":25.03,"lon":121.53}]}],"tags":{"name":"大安森林公園","leisure":"park"}})
 data['school']=[way(3000+i,la,lo,.002,f'國小{i}',{"amenity":"school"}) if i%2 else node(3000+i,la,lo,f'幼兒園{i}',amenity='kindergarten') for i,(la,lo) in enumerate(pts(600))]
 data['sport']=[node(4000+i,la,lo,f'球場{i}',leisure='pitch') for i,(la,lo) in enumerate(pts(500))]
+data['market']=[way(4500+i,la,lo,.0006,f'全聯{i}',{"shop":"supermarket"}) if i%3==0 else node(4500+i,la,lo,f'超市{i}',shop='supermarket') for i,(la,lo) in enumerate(pts(300))]
 data['bus']=[node(5000+i,la,lo,f'站牌{i}',highway='bus_stop') for i,(la,lo) in enumerate(pts(4000))]
 mrt=[node(6000+i,la,lo,f'捷運{i}站',railway='station',station='subway') for i,(la,lo) in enumerate(pts(110))]
 mrt+= [node(7000+i,m['lat']+.0003,m['lon'],m['tags']['name'].replace('站',''),public_transport='station',subway='yes') for i,m in enumerate(mrt[:20])]  # duplicates to test dedupe
