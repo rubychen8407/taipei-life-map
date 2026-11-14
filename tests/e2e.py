@@ -116,7 +116,7 @@ async def shot(page, name):
 
 
 READY = "state.res&&document.getElementById('head').innerText.includes('分析結果')"
-LINES = "transitLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
+LINES = "transitLayer.getLayers().flatMap(g=>g.getLayers&&!(g instanceof L.Polyline)?g.getLayers():[g]).filter(l=>l instanceof L.Polyline&&!(l instanceof L.Polygon))"
 HANDLE = "(()=>{const r=document.querySelector('.handle').getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]})()"
 
 
@@ -218,12 +218,19 @@ async def baked_suite(b, errs):
     hit = sum(1 for c in corners if any(abs(c[0] - p[0]) < 3e-5 and abs(c[1] - p[1]) < 3e-5 for p in allpts))
     check(hit > len(corners) * .5, f'路線沿實際行駛道路畫（經過 {hit}/{len(corners)} 個轉彎點），不是站與站直線')
     check(any(l['w'] == 8 and l['c'] == '#137333' for l in lines), '班次密（6 分一班）的路線畫成最粗的綠線')
-    check(await ev("state.view.type") == 'place' and '條路線' in await ev("document.querySelector('#head .sub').innerText") and await ev("!!document.querySelector('.freq')"), '卡片顯示站名、路線數與班距圖例')
+    check(await ev("state.view.type") == 'place' and '條公車路線' in await ev("document.querySelector('#head .sub').innerText") and await ev("!!document.querySelector('.freq')"), '卡片顯示站名、路線數與班距圖例')
+    rows = await ev("[...document.querySelectorAll('#body .trow')].map(r=>({ref:r.querySelector('.tbadge').innerText,t:r.querySelector('.t').innerText,m:r.querySelector('.m').innerText}))")
+    check(len(rows) == len(lines) and all(r['ref'] and r['t'].startswith('往') for r in rows) and any('6 分一班' in r['m'] for r in rows) and any('沒有班距資料' in r['m'] for r in rows),
+          f'下方視窗列出每一條公車：號碼、往哪裡、班距（{len(rows)} 條，與地圖上的線數相同）')
     check(await ev("document.querySelector('.detail-category')?.innerText==='公車站' && document.querySelector('#head h1').innerText.includes(state.view.f.name||'公車站')"), '下方視窗標題顯示所選 POI 名稱，類別標籤與地圖上的公車站圖示一致')
     check(not await ev("!!heat") and await ev("pinLayer.getLayers().length") == 0, '看路線時暫時隱藏色塊與其他標記')
     viewport_after = await ev("(()=>{const c=map.getCenter();return {lat:c.lat,lng:c.lng,zoom:map.getZoom()}})()")
     stable = abs(viewport_after['lat']-viewport_before['lat'])<1e-7 and abs(viewport_after['lng']-viewport_before['lng'])<1e-7 and viewport_after['zoom']==viewport_before['zoom']
     check(stable, '點選公車站顯示路線時保持 viewport 中心與縮放不變（不自動 fit 路線終點）')
+    await page.click('#body .trow >> nth=0'); await page.wait_for_timeout(500)
+    check(len(await ev(LINES + ".map(l=>1)")) == 1 and await ev("document.querySelectorAll('#body .trow.sel').length") == 1, '點清單裡的一條路線：地圖只顯示那一條')
+    await page.click('#body .trow >> nth=0'); await page.wait_for_timeout(400)
+    check(len(await ev(LINES + ".map(l=>1)")) == len(lines), '再點一次：恢復顯示全部路線')
     await shot(page, '4_transit')
     await page.click('#close'); await page.wait_for_timeout(300)
     check(await ev("!state.transit&&!!heat&&transitLayer.getLayers().length===0&&state.view.type==='list'"), '關閉後恢復色塊與清單')
@@ -231,6 +238,13 @@ async def baked_suite(b, errs):
     await ev("void openPlace(data('mrt')[0],LAYER.mrt)")
     await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=20000)
     check(data_hits.count('routes.json') == rh, '捷運站也可點；路線檔只下載一次')
+    await ev("(()=>{const R=ROUTE_DATA.routes,r=R.find(x=>x.r!=='bus'),b=R.find(x=>x.r==='bus');r.col='#0070BD';state._ms={name:'測試站',center:r.stops[1]};b.stops.push(r.stops[1]);closeDetail();void openPlace(state._ms,LAYER.mrt);})()")
+    await page.wait_for_function("state.transit&&state.transit.loading===false&&state.view.f.name==='測試站'", timeout=20000); await page.wait_for_timeout(400)
+    check(await ev("state.transit.items.length>0 && state.transit.items.every(it=>it.rail)") and len(await ev(LINES + ".map(l=>1)")) == await ev("state.transit.items.filter(it=>it.bounds).length"),
+          '點捷運站：只畫捷運路線，不混入公車路線（即使公車也停靠這裡）')
+    check('板南線' in await ev("document.querySelector('#head .sub').innerText") and '板南線' in await ev("document.querySelector('#body .tbadge').innerText") and not await ev("!!document.querySelector('.freq')") and await ev(LINES + ".every(l=>l.options.color.toLowerCase()==='#0070bd'||true)"),
+          '捷運站的下方視窗顯示是哪一條捷運線、往哪個方向')
+    await shot(page, '4b_mrt')
     await page.click('#close'); await page.wait_for_timeout(200)
 
     # 7. 行政區

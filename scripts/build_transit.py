@@ -168,6 +168,70 @@ def bus_interval(sched):
     return round(gaps[len(gaps) // 2], 1) if len(deps) >= 3 and gaps else None
 
 
+KY = 110540.0
+KX = 111320.0 * math.cos(math.radians(25.05))
+
+
+def project(line, p):
+    """點 p 投影到折線：回傳 (距離公尺, 線段索引, 投影點)。"""
+    best = (float('inf'), 0, line[0])
+    for i in range(len(line) - 1):
+        a, b = line[i], line[i + 1]
+        dx, dy = (b[1] - a[1]) * KX, (b[0] - a[0]) * KY
+        den = dx * dx + dy * dy
+        u = 0.0 if den == 0 else max(0.0, min(1.0, ((p[1] - a[1]) * KX * dx + (p[0] - a[0]) * KY * dy) / den))
+        q = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]
+        d = math.hypot((q[1] - p[1]) * KX, (q[0] - p[0]) * KY)
+        if d < best[0]:
+            best = (d, i, q)
+    return best
+
+
+def subpath(line, p, q, tol):
+    """折線上從 p 到 q 的那一段（兩點都要在 tol 公尺內）；否則 None。"""
+    da, ia, pa = project(line, p); db, ib, pb = project(line, q)
+    if da > tol or db > tol:
+        return None
+    if ia <= ib:
+        mid = line[ia + 1:ib + 1]
+    else:
+        mid = line[ib + 1:ia + 1][::-1]
+    return da + db, [pa] + mid + [pb]
+
+
+def path_through(segments, pts, tol=150):
+    """沿著官方軌跡片段把依序的站點串起來；兩站都貼著同一片段才沿它走，否則該區間用直線。"""
+    out = [pts[0]]; straight = 0
+    for a, b in zip(pts, pts[1:]):
+        best = None
+        for seg in segments:
+            r = subpath(seg, a, b, tol)
+            if r and (best is None or r[0] < best[0]):
+                best = r
+        if not best:   # 兩站分別落在相接的兩個片段上：經由共同端點接起來
+            for s1 in segments:
+                if project(s1, a)[0] > tol:
+                    continue
+                for s2 in segments:
+                    if s2 is s1 or project(s2, b)[0] > tol:
+                        continue
+                    for e1 in (s1[0], s1[-1]):
+                        for e2 in (s2[0], s2[-1]):
+                            if math.hypot((e1[1] - e2[1]) * KX, (e1[0] - e2[0]) * KY) <= 30:
+                                r1, r2 = subpath(s1, a, e1, tol), subpath(s2, e2, b, tol)
+                                if r1 and r2 and (best is None or r1[0] + r2[0] < best[0]):
+                                    best = (r1[0] + r2[0], r1[1] + r2[1])
+        if best:
+            out.extend(best[1])
+        else:
+            out.append(b); straight += 1
+    dedup = [out[0]]
+    for p in out[1:]:
+        if p != dedup[-1]:
+            dedup.append(p)
+    return dedup, straight
+
+
 def bus_key(x):
     return (x.get('SubRouteUID') or x.get('RouteUID') or '', int(x.get('Direction') or 0))
 
@@ -202,8 +266,9 @@ def build_bus(t, box, log=print):
             clipped = [seg for raw in lines for seg in clip_polyline(raw, box)]
             if not clipped:
                 continue
-            # 目前前端路線格式是一條折線；只取最長的連續框內片段，絕不跨越框外空隙硬接。
-            line = max(clipped, key=len)
+            # 前端路線格式是一條折線：取「貼著最多站牌」的連續框內片段，絕不跨越框外空隙硬接。
+            sp = [p for p, _ in pts if inbox(p, box)]
+            line = max(clipped, key=lambda seg: (sum(1 for p in sp if project(seg, p)[0] <= 60), len(seg)))
             names = [zh(st.get('StopName')) for _, st in pts]
             ref = zh(s.get('SubRouteName')) or zh(s.get('RouteName'))
             line = [[B.r5(a), B.r5(b)] for a, b in B.simplify(line, 1.5)]
@@ -248,33 +313,10 @@ def build_metro(t, box, log=print):
                     seq.append(([p['PositionLat'], p['PositionLon']], zh(s.get('StationName'))))
             if len(seq) < 2:
                 continue
-            # 只採用能對應本方向起訖站的完整幾何；不串接同線不同支線／斷裂片段。
-            candidates = shape_by.get(lid) or []
-            def endpoint_cost(candidate):
-                a, b = candidate[0], candidate[-1]
-                s0, s1 = seq[0][0], seq[-1][0]
-                forward = math.hypot(a[0]-s0[0], a[1]-s0[1]) + math.hypot(b[0]-s1[0], b[1]-s1[1])
-                reverse = math.hypot(b[0]-s0[0], b[1]-s0[1]) + math.hypot(a[0]-s1[0], a[1]-s1[1])
-                # Endpoints alone can match a wrong branch. Require every ordered
-                # station to be close to the candidate geometry as well.
-                def point_segment_distance(p, x, y):
-                    dx, dy = y[0]-x[0], y[1]-x[1]
-                    den = dx*dx + dy*dy
-                    if den == 0: return math.hypot(p[0]-x[0], p[1]-x[1])
-                    u = max(0.0, min(1.0, ((p[0]-x[0])*dx + (p[1]-x[1])*dy)/den))
-                    return math.hypot(p[0]-(x[0]+u*dx), p[1]-(x[1]+u*dy))
-                def station_fit(points):
-                    return max(min(point_segment_distance(p, x, y) for x, y in zip(candidate, candidate[1:])) for p, _ in points)
-                fit = station_fit(seq)
-                return min(forward, reverse) + fit * 4
-            line = min(candidates, key=endpoint_cost) if candidates else [p for p, _ in seq]
-            s0, s1 = seq[0][0], seq[-1][0]
-            cost = endpoint_cost(line)
-            # Reject route shapes that skip stations or accidentally cross a branch.
-            if cost > 0.01:
-                line = [p for p, _ in seq]
-            elif math.hypot(line[-1][0]-s0[0], line[-1][1]-s0[1]) + math.hypot(line[0][0]-s1[0], line[0][1]-s1[1]) < endpoint_cost(line):
-                line = line[::-1]
+            # 逐站沿官方軌跡走：可處理一條線被切成多個片段、或有支線的情況；對不上的區間才用站間直線。
+            line, straight = path_through(shape_by.get(lid) or [], [p for p, _ in seq])
+            if straight:
+                log(f'  metro {lid} {zh(r.get("RouteName"))}: {straight}/{len(seq) - 1} 個站間沒有軌跡，用直線')
             ivs = [headway_mid(x) for x in iv_by.get(lid, [])]; ivs = [v for v in ivs if v]
             iv = round(sum(ivs) / len(ivs), 1) if ivs else None
             col = next((c for k, c in METRO_COL.items() if re.match(k + r'\d*$', lid or '')), None)
@@ -287,7 +329,7 @@ def build_metro(t, box, log=print):
                     continue
                 seen.add(key)
                 out.append({'id': f'M{zlib.crc32(repr(key).encode())}', 'r': kind, 'ref': name, 'to': ps[-1][1], 'from': ps[0][1], 'name': name,
-                            'iv': iv, 'col': col, 'line': [[B.r5(a), B.r5(b)] for a, b in B.simplify(ln, 8)],
+                            'iv': iv, 'col': col, 'line': [[B.r5(a), B.r5(b)] for a, b in B.simplify(ln, 2)],
                             'stops': [[B.r5(p[0]), B.r5(p[1])] for p, _ in ps]})
     return out
 
