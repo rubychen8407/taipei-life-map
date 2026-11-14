@@ -161,6 +161,18 @@ async def baked_suite(b, errs):
     check(dt < 4, f'開啟到顯示全市結果 {dt:.1f} 秒')
     check(await ev("state.scope===''&&state.res.total===CELLS.length"), '預設直接分析全臺北市')
     check(await ev("!!heat&&map.hasLayer(heat)"), '地圖上有符合範圍的色塊圖層')
+    o = await ev("""(()=>{const n=state.res.act.length,good=scopeCells().filter(k=>state.res.okc[k]===n),bad=scopeCells().filter(k=>state.res.okc[k]!==n);
+      const rings=outlineLayer.getLayers().filter((l,i)=>i%2===1).map(l=>l.getLatLngs()[0].map(p=>[p.lng,p.lat]));
+      const inside=(la,lo)=>rings.reduce((c,r)=>c^ringContains(r,lo,la),0);
+      const sg=good.filter((k,i)=>i%7===0),sb=bad.filter((k,i)=>i%7===0);
+      const gi=sg.filter(k=>inside(CELLS[k].la,CELLS[k].lo)).length/sg.length,bo=sb.filter(k=>!inside(CELLS[k].la,CELLS[k].lo)).length/sb.length;
+      return {rings:rings.length,gi,bo}})()""")
+    check(o['rings'] > 0 and o['gi'] > 0.9 and o['bo'] > 0.9, f"完全符合條件的地方畫出邊界（{o['rings']} 圈；符合的格子 {o['gi']*100:.0f}% 在圈內、不符合的 {o['bo']*100:.0f}% 在圈外）")
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=outline]')
+    check(await ev("outlineLayer.getLayers().length===0"), '圖層面板可以關掉「符合條件的邊界」')
+    await page.click('#layersPop [data-layer=outline]'); await page.click('#layersBtn')
+    check(await ev("outlineLayer.getLayers().length>0"), '再打開邊界又畫回來')
+    await shot(page, '1b_outline')
     check(await ev("new Set([0,.125,.25,.375,.5,.625,.75,.875,1].map(densityColor)).size===9"), '熱圖色帶九個等級都有不同顏色')
     lum = await ev("(()=>{const L=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};const a=L(densityColor(0)),b=L(densityColor(1));return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)})()")
     check(lum >= 8, f'熱圖最好與最差的顏色對比夠大（亮度對比 {lum:.1f}:1）')
