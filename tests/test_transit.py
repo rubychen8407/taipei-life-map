@@ -94,6 +94,19 @@ expected = [[T.B.r5(25.03), T.B.r5(121.51)],
 check(len(wrong) == 2 and wrong[0]['line'] == expected and wrong[1]['line'] == expected[::-1],
       '捷運：起訖點吻合但中間站偏離時，退回正確站序（並保留既有簡化規則）')
 
+# 軌跡被切成兩段＋有支線：逐站沿軌跡走，轉彎點要保留，不能站與站拉直線
+segA = [[25.00, 121.50], [25.00, 121.52], [25.02, 121.52]]            # 主線前半（有一個轉彎）
+segB = [[25.02, 121.52], [25.04, 121.52], [25.04, 121.54]]            # 主線後半
+segC = [[25.02, 121.52], [25.02, 121.56]]                             # 支線
+sts = [[25.00, 121.505], [25.01, 121.52], [25.03, 121.52], [25.04, 121.535]]
+ln, straight = T.path_through([segC, segB, segA], sts)
+check(straight == 0 and [25.00, 121.52] in ln and [25.04, 121.52] in ln and [25.02, 121.56] not in ln, f'捷運軌跡分段／有支線：沿正確片段走並保留轉彎點（{len(ln)} 點），不走到支線')
+ln2, straight2 = T.path_through([segA], sts)
+check(straight2 == 2 and ln2[-1] == sts[-1], '缺軌跡的站間才用直線，並回報數量')
+good = [[25.0, 121.5], [25.0, 121.6]]; frag = [[25.2, 121.5 + i * 0.001] for i in range(50)]
+sp = [[25.0, 121.52], [25.0, 121.55]]
+check(max([frag, good], key=lambda seg: (sum(1 for p in sp if T.project(seg, p)[0] <= 60), len(seg))) is good, '公車軌跡有多個片段時選貼著站牌的那段，而不是點數最多的那段')
+
 with tempfile.TemporaryDirectory() as d:
     try:
         T.build(Fake(broken=['Metro/']), d, quiet); ok = False
