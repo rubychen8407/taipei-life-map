@@ -245,18 +245,21 @@ async def baked_suite(b, errs):
     await page.click('[data-mode-toggle]'); await page.click('#categorySettings [data-mode=walk]')
     await shot(page, '2b_tune')
 
-    # 3. 卡片拖拉
+    # 3. 結果按鈕＋卡片拖拉
+    rb = await ev("(()=>{const b=document.getElementById('resultBtn'),r=b.getBoundingClientRect(),s=document.getElementById('sheet').getBoundingClientRect();return {vis:!b.hidden&&r.height>0,txt:b.innerText.replace(/\\s+/g,' ').trim(),bottom:r.bottom,left:r.left,sheetTop:s.top}})()")
+    check(rb['vis'] and '%' in rb['txt'] and rb['sheetTop'] >= 840 and rb['left'] < 30, f"結果面板預設收起、只剩左下角「結果」按鈕（{rb['txt']}；面板頂 {rb['sheetTop']:.0f}px）")
+    await page.click('#resultBtn'); await page.wait_for_timeout(350)
+    check(await ev("snap") == 'half' and await ev("document.getElementById('resultBtn').hidden"), '點「結果」按鈕：面板升到半高，按鈕隱藏')
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 120, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'full', '往上拖把卡片拉到全高')
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
-    check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 160, '往下拖把卡片收到最小，地圖幾乎全螢幕')
+    check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 5 and not (await ev("document.getElementById('resultBtn').hidden")), '往下拖把卡片收起：面板完全隱藏、結果按鈕回來')
     check(await ev("document.querySelectorAll('#categorySettings input[type=range][data-distance]').length===1 && !document.querySelector('#body [data-distance]')"), '一次只展開一個類別的步行距離拉桿，位置在搜尋區域下方')
     await shot(page, '2_peek')
-    box = await ev(HANDLE)
-    await page.mouse.click(*box); await page.wait_for_timeout(350)
-    check(await ev("snap") == 'half', '點一下把手展開回半高')
+    await page.click('#resultBtn'); await page.wait_for_timeout(350)
+    check(await ev("snap") == 'half', '再點結果按鈕展開回半高')
 
     # 4. 點推薦生活圈
     await page.click('[data-z="0"]'); await page.wait_for_timeout(600)
