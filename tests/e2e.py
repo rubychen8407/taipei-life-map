@@ -356,7 +356,7 @@ async def baked_suite(b, errs):
     check(await ev("document.getElementById('pressMenu').hidden && state.view.type==='list'"), '調整時不會誤觸長按選單或位置卡')
     await page.click('#editDone'); await page.wait_for_function("state.res&&state.res.key.startsWith('custom')", timeout=5000)
     after = await ev("scopeCells().length")
-    check(await ev("state.scope==='custom' && state.custom.name==='大安區（已調整）' && document.getElementById('scopeTag').innerText.includes('大安區（已調整）') && getComputedStyle(document.getElementById('chips')).display!=='none' && JSON.stringify(state.custom).includes(String(window.__dragged[1].toFixed(4)).slice(0,8))") and after > 0, f'完成：改用調整後的範圍分析（{before}→{after} 格），拖過的點在新範圍上，標籤顯示「大安區（已調整）」')
+    check(await ev("state.scope==='custom' && state.custom.name==='大安區（已調整）' && document.getElementById('scopeTag').innerText.includes('大安區（已調整）') && getComputedStyle(document.getElementById('chips')).display!=='none' && polysOf(state.custom).some(p=>p[0].some(([x,y])=>Math.abs(y-window.__dragged[0])<1e-7&&Math.abs(x-window.__dragged[1])<1e-7))") and after > 0, f'完成：改用調整後的範圍分析（{before}→{after} 格），拖過的點在新範圍上，標籤顯示「大安區（已調整）」')
     await page.click('#scopeEdit'); await page.wait_for_timeout(300); await page.click('#editCancel')
     check(await ev("!state.editing && state.scope==='custom'"), '取消：不改動目前範圍')
     await page.click('#scopeClear'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
