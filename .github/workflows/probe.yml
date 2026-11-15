@@ -6,28 +6,25 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: OSM buildings coverage (Da'an district sample + whole city counts)
+      - name: real price download
         run: |
-          python3 - <<'PY'
-          import json,urllib.request,urllib.parse,time
-          def q(s):
-              for u in ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.kumi.systems/api/interpreter']*2:
-                  try:
-                      d=urllib.parse.urlencode({'data':s}).encode()
-                      return json.load(urllib.request.urlopen(urllib.request.Request(u,data=d,headers={'User-Agent':'taipei-life-map'}),timeout=300))
-                  except Exception as e: print('ERR',u,e); time.sleep(10)
-          bb='25.030,121.535,25.040,121.548'
-          r=q(f'[out:json][timeout:200];way["building"]({bb});out tags;')
-          els=(r or {}).get('elements',[]);n=len(els)
-          lv=sum(1 for e in els if 'building:levels' in e.get('tags',{}));h=sum(1 for e in els if 'height' in e.get('tags',{}))
-          print('Daan sample buildings',n,'with levels',lv,'with height',h)
-          from collections import Counter
-          print(Counter(e['tags'].get('building:levels') for e in els).most_common(15))
-          r=q('[out:json][timeout:300];area["name"="臺北市"]["admin_level"="4"]->.a;(way["building"](area.a););out count;')
-          print('city count',r and r['elements'])
-          r=q('[out:json][timeout:300];area["name"="臺北市"]["admin_level"="4"]->.a;(way["building"]["building:levels"](area.a););out count;')
-          print('city with levels',r and r['elements'])
-          PY
-      - name: NLSC 3D building download pages
+          set +e
+          for u in "https://plvr.land.moi.gov.tw/Download?type=zip&fileName=lvr_landcsv.zip" "https://plvr.land.moi.gov.tw/DownloadSeason?season=115S2&type=zip&fileName=lvr_landcsv.zip" "https://plvr.land.moi.gov.tw/DownloadSeason?season=115S3&type=zip&fileName=lvr_landcsv.zip"; do
+            echo "== $u"; curl -sSL -m 180 -A "Mozilla/5.0" -o f.zip -w "%{http_code} %{size_download}\n" "$u"; file f.zip | cut -c1-120
+            unzip -l f.zip 2>/dev/null | grep -iE "a_lvr|manifest|schema|build_time" | head -20
+          done
+          mkdir x && cd x && unzip -qo ../f.zip 'a_lvr_land_a*' 'a_lvr_land_c.csv' 2>/dev/null; ls -la
+          for f in a_lvr_land_a.csv a_lvr_land_a_park.csv a_lvr_land_a_build.csv a_lvr_land_c.csv; do echo "== $f"; wc -l $f; head -4 $f; done
+      - name: address points + transfer stats
         run: |
-          for u in "https://3dmaps.nlsc.gov.tw" "https://3dmaps.nlsc.gov.tw/download" "https://data.gov.tw/api/v2/rest/dataset/169808"; do echo "== $u"; curl -sSL -m 60 "$u" | head -c 1500; echo; done
+          set +e
+          for id in 155472 134492; do echo "== dataset $id"; curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/$id" | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin); r=d.get('result') or d
+          print(r.get('title'), r.get('updateFrequency'), r.get('modifiedDate') or r.get('metadataModified'))
+          for x in r.get('distribution',[]): print(' ',x.get('resourceFormat'),x.get('resourceDescription'),x.get('resourceDownloadUrl'),x.get('resourceModifiedDate'))
+          "; done
+          u=$(curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/155472" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or d;print(r['distribution'][0]['resourceDownloadUrl'])")
+          echo "addr url $u"; curl -sSL -m 300 -A "Mozilla/5.0" -o addr.bin -w "%{http_code} %{size_download} %{content_type}\n" "$u"; file addr.bin | cut -c1-150; head -c 600 addr.bin; echo; wc -l addr.bin
+          u=$(curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/134492" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or d;print(r['distribution'][0]['resourceDownloadUrl'])")
+          echo "transfer url $u"; curl -sSL -m 120 -A "Mozilla/5.0" "$u" | head -c 1500
