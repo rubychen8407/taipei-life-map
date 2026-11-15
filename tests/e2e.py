@@ -550,6 +550,7 @@ async def baked_suite(b, errs):
     page = await new_page(b, errs, **PHONE)
     ev = page.evaluate
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
+    check(await ev("(()=>{const m=document.getElementById('map'),css=[...document.querySelectorAll('style')].map(x=>x.textContent).join(' '),at=document.querySelector('.leaflet-control-attribution').getBoundingClientRect();return getComputedStyle(m).position==='fixed'&&m.clientHeight>=innerHeight&&css.includes('100lvh')&&at.bottom<=innerHeight})()"), '地圖延伸到 Safari 半透明工具列後面（100lvh），版權標示留在可見範圍')
     check(await ev("(()=>{const s=getComputedStyle(document.getElementById('sheet'));return s.opacity==='0'&&s.pointerEvents==='none'})()"), '收起的結果面板完全隱藏（iPhone Safari 半透明工具列後面不會露出白色區塊）')
     await page.click('.chip[data-id=market]'); await page.wait_for_function("state.res&&state.res.act.includes('market')", timeout=20000)
     await ev("setLayerMins('park',7)")
