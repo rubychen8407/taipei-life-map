@@ -504,7 +504,7 @@ async def baked_suite(b, errs):
     # 10c. 圖層：分組、開關、全選、儲存組合
     await page.click('#layersBtn')
     check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===5 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市、環境')
-    check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=land]')].every(b=>b.disabled)&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal"), '房市：實價登錄成交可以開（預設關），房屋出售、土地價值先預留')
+    check(await ev("document.querySelector('#layersPop [data-layer=sale]').disabled&&!document.querySelector('#layersPop [data-layer=land]').disabled&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal&&!state.layers.land"), '房市：實價登錄成交、土地價值可以開（預設關），房屋出售先預留')
     await shot(page, '8_layers')
     await page.click('#layersPop [data-layer=heat]')
     check(await ev("!state.layers.heat && (!heat || heat._flags==='o')"), '關掉熱圖：彩色色塊消失（只留不符合處的反灰）')
@@ -530,6 +530,22 @@ async def baked_suite(b, errs):
     await ev("void map.setView([25.0415,121.542],16,{animate:false})"); await page.wait_for_timeout(300)
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=trees]')
     check(await ev("treeLayer.getLayers().length===0 && !state.layers.trees && JSON.parse(localStorage.getItem('tlm.layers')).trees===false"), '再按一次關掉行道樹，開關狀態記在這台裝置')
+    # 土地價值：勾選才下載、各小段依公告現值上色、點小段看數字、和熱圖一次只開一種
+    check('land.json' not in data_hits, '土地價值預設關閉，還沒下載資料')
+    await ev("void map.setView([25.04,121.555],13,{animate:false})"); await page.wait_for_timeout(200)
+    if not await ev("state.layers.heat"): await page.click('#layersPop [data-layer=heat]')
+    await page.click('#layersPop [data-layer=land]'); await page.wait_for_function("!!landLayer&&landLayer.getLayers().length>0", timeout=5000)
+    ld = await ev("({n:landLayer.getLayers().length,heat:state.layers.heat,lg:document.getElementById('landLegend').hidden?'':document.getElementById('landLegend').innerText,toast:document.getElementById('toast').innerText,cols:new Set(landLayer.getLayers().map(l=>l.options.fillColor)).size})")
+    check('land.json' in data_hits and ld['n'] == 4 and ld['cols'] >= 3 and '萬／坪' in ld['lg'], f'打開土地價值：這時才下載，4 個小段依公告現值上不同顏色，左下顯示圖例 {ld}')
+    check(not ld['heat'] and '生活機能熱圖' in ld['toast'], f'開土地價值時自動關掉生活機能熱圖（色塊圖層一次一種）：{ld["toast"]}')
+    await page.click('#layersBtn'); await shot(page, '8l_land')
+    await ev("(()=>{const l=landLayer.getLayers().find(x=>x.getBounds().contains([25.039,121.544]));l.fire('click',{latlng:L.latLng(25.039,121.544)})})()"); await page.wait_for_timeout(200)
+    pop = await ev("document.querySelector('.leaflet-popup-content')?.innerText||''")
+    check('仁愛段一小段' in pop and '大安區' in pop and '263 萬／坪' in pop and '796,950 元／㎡' in pop and '比去年 -1%' in pop and '低於市價' in pop, f'點小段：名稱、約幾萬／坪、元／㎡、漲跌、說明公告現值低於市價 {pop!r}')
+    await shot(page, '8m_land_pop'); await ev("void map.closePopup()")
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=heat]')
+    check(await ev("state.layers.heat&&!state.layers.land&&!landLayer&&document.getElementById('landLegend').hidden"), '再開生活機能熱圖：土地價值自動關閉、圖例隱藏')
+    await page.click('#layersPop [data-layer=heat]')
     await page.click('#layersPop [data-group="0"]')
     await page.click('#layersBtn')
     check(await ev("document.getElementById('layersPop').hidden && !!heat"), '再點圖層按鈕關閉面板')
@@ -823,6 +839,11 @@ async def real_suite(b, errs):
     await ev("void map.setView([25.0585,121.557],16,{animate:false})"); await page.wait_for_function("dealLayer.getLayers().length>5", timeout=20000); await page.wait_for_timeout(500)
     print('  deals', await ev("dealLayer.getLayers().length")); await shot(page, 'real_10_deals')
     await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(400); await shot(page, 'real_11_deal_pop')
+    if os.path.exists(os.path.join(ROOT, 'data', 'land.json')):
+        await ev("void map.closePopup()"); await page.click('#layersBtn'); await page.click('#layersPop [data-layer=land]'); await page.click('#layersBtn')
+        await ev("void map.setView([25.06,121.55],12,{animate:false})"); await page.wait_for_function("!!landLayer&&landLayer.getLayers().length>400", timeout=30000); await page.wait_for_timeout(500)
+        print('  land', await ev("({n:landLayer.getLayers().length,lo:LAND.lo,hi:LAND.hi,year:LAND.year,lg:document.getElementById('landLegend').innerText})")); await shot(page, 'real_14_land')
+        await page.click('#layersBtn'); await page.click('#layersPop [data-layer=land]'); await page.click('#layersBtn')
     if os.path.exists(os.path.join(ROOT, 'data', 'trees.json')):
         await ev("void map.closePopup()"); await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.click('#layersPop [data-layer=trees]'); await page.click('#layersBtn')
         await ev("void map.setView([25.0415,121.545],16,{animate:false})"); await page.wait_for_function("treeLayer.getLayers().length>100", timeout=30000); await page.wait_for_timeout(500)
@@ -851,6 +872,9 @@ async def main():
                 import build_future as BF, future_mock as FM
                 MODE['future'] = BF.build(FM.mock(), DATA_DIR, built='2026-11-15', log=lambda *a: None)
                 import build_trees as BT, trees_mock as TM
+                import build_land as BL, land_mock as LM
+                _shp, _dbf = LM.shp_dbf()
+                MODE['land'] = BL.build(BL.read_shp(_shp, _dbf), BL.read_values(LM.values_csv()), 113, BL.read_rates(LM.rates_csv()), BL.read_public(LM.public_csv()), DATA_DIR, built='2026-11-16', min_sections=3, log=lambda *a: None)
                 MODE['trees'] = BT.build(TM.mock(), DATA_DIR, built='2026-11-16', min_trees=10, log=lambda *a: None)
                 import build_realprice as RP, realprice_mock as RM   # 估價：模擬的實價登錄 → 實際跑建置程式
                 rs, rr, raddr, _ = RM.mock()
