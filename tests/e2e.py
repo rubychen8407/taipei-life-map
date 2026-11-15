@@ -677,12 +677,20 @@ async def baked_suite(b, errs):
     await page.click('#close')
     await ev("void map.setView([25.030,121.543],16,{animate:false})"); await page.wait_for_timeout(300)
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.wait_for_function("dealLayer.getLayers().length>10", timeout=5000); await page.click('#layersBtn')
-    check(True, f"圖層「實價登錄成交」：放大後畫出畫面內的成交點（{await ev('dealLayer.getLayers().length')} 筆）")
+    dl = await ev("""(()=>{const ms=dealLayer.getLayers(),ic=[...document.querySelectorAll('.deal-ic')];const kinds=new Set(ic.map(e=>e.querySelector('svg').innerHTML));
+      return {n:ms.length,svg:ic.length,kinds:kinds.size,colors:new Set(ic.map(e=>e.querySelector('span').style.background)).size,multi:document.querySelectorAll('.deal-ic b').length,leg:!document.getElementById('dealLegend').hidden&&document.getElementById('dealLegend').innerText}})()""")
+    check(dl['svg'] == dl['n'] and dl['kinds'] == 3 and dl['colors'] > 3 and all(t in (dl['leg'] or '') for t in ('住宅大樓', '華廈', '公寓')),
+          f"實價登錄成交：每個點是房屋型態的 SVG 圖示（大樓／華廈／公寓 {dl['kinds']} 種），顏色區分單價，並有圖例（{dl['n']} 個位置）")
+    check(dl['multi'] > 0, f"同一棟的多筆成交合成一個圖示，右上角顯示筆數（{dl['multi']} 個）")
     await shot(page, '8e_deals')
-    await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(300)
-    check('萬／坪' in await ev("document.querySelector('.leaflet-popup-content').innerText"), '點成交點：顯示單價、年月、坪數、樓層、屋齡')
-    await page.click('#dealUse'); await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valGo')", timeout=5000)
-    check(await ev("(()=>{const d=VALDATA.sales.find(r=>r.pt[0]===state.val.pt[0]&&r.pt[1]===state.val.pt[1]);return !!d&&+document.querySelector('#body [data-vf=ping]').value===d.ping&&state.val.form.t===d.t})()"), '「用這筆的條件估價」：帶入該筆的型態、坪數、屋齡、樓層')
+    gi = await ev("dealLayer.getLayers().findIndex(m=>m.options.icon.options.html.includes('<b>'))")
+    await ev(f"void dealLayer.getLayers()[{gi}].fire('click')"); await page.wait_for_timeout(300)
+    pop = await ev("({t:document.querySelector('.leaflet-popup-content').innerText,rows:document.querySelectorAll('.deal-pop .dp-r').length,btn:document.querySelectorAll('.deal-pop .dp-use').length})")
+    check(pop['rows'] >= 2 and pop['btn'] == pop['rows'] and '萬／坪' in pop['t'] and '總價約' in pop['t'] and '屋齡' in pop['t'] and '樓' in pop['t'] and any(t in pop['t'] for t in ('住宅大樓', '華廈', '公寓')),
+          f"點圖示：顯示房屋型態、總樓層、屋齡，以及這棟每一筆成交的單價、年月、坪數、樓層、總價（{pop['rows']} 筆）")
+    await shot(page, '8e2_deal_pop')
+    await page.click('.deal-pop .dp-use[data-di="1"]'); await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valGo')", timeout=5000)
+    check(await ev("(()=>{const d=VALDATA.sales.filter(r=>r.pt[0]===state.val.pt[0]&&r.pt[1]===state.val.pt[1]).sort((a,b)=>b.ym-a.ym)[1];return !!d&&Math.abs(+document.querySelector('#body [data-vf=ping]').value-d.ping)<.06&&state.val.form.t===d.t&&+document.querySelector('#body [data-vf=fl]').value===d.fl})()"), '「估價 ›」：帶入那一筆的型態、坪數、屋齡、樓層')
     await ev("void map.setView([25.05,121.55],12,{animate:false})"); await page.wait_for_timeout(500)
     check(await ev("dealLayer.getLayers().length") == 0, '縮小時不畫成交點')
     await page.click('#close'); await page.wait_for_timeout(300)
@@ -784,6 +792,10 @@ async def real_suite(b, errs):
     await page.click('#close'); await ev("void map.setView([25.05,121.54],12,{animate:false})")
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.wait_for_function("!!phLayer", timeout=20000); await page.click('#layersBtn')
     print('  priceheat', await ev("({cells:PH.cells.length,lo:PH.lo,hi:PH.hi})")); await shot(page, 'real_9_priceheat')
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.click('#layersPop [data-layer=heat]'); await page.click('#layersPop [data-layer=deal]'); await page.click('#layersBtn')
+    await ev("void map.setView([25.0585,121.557],16,{animate:false})"); await page.wait_for_function("dealLayer.getLayers().length>5", timeout=20000); await page.wait_for_timeout(500)
+    print('  deals', await ev("dealLayer.getLayers().length")); await shot(page, 'real_10_deals')
+    await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(400); await shot(page, 'real_11_deal_pop')
     await page.close()
 
 
