@@ -530,6 +530,21 @@ async def baked_suite(b, errs):
     await ev("void map.setView([25.0415,121.542],16,{animate:false})"); await page.wait_for_timeout(300)
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=trees]')
     check(await ev("treeLayer.getLayers().length===0 && !state.layers.trees && JSON.parse(localStorage.getItem('tlm.layers')).trees===false"), '再按一次關掉行道樹，開關狀態記在這台裝置')
+    # 整體房市：右側按鈕打開，燈號、未來 12 個月機率、四階段傳導鏈、四大構面指標卡
+    await page.click('#layersBtn')
+    check('market.json' not in data_hits and await ev("!!document.getElementById('marketBtn').querySelector('svg')"), '右側有「整體房市」按鈕，還沒打開前不下載資料')
+    await page.click('#marketBtn'); await page.wait_for_function("state.view.type==='market'", timeout=5000); await page.wait_for_timeout(400)
+    mk = await ev("(()=>{const b=document.getElementById('body'),t=b.innerText;return {t,cards:b.querySelectorAll('.mk-ind').length,svgs:b.querySelectorAll('.mk-ind svg').length,groups:[...b.querySelectorAll('.mk-g')].map(e=>e.innerText),chain:b.querySelectorAll('.mk-chain > div:not(.arr)').length,on:b.querySelectorAll('.mk-light i.on').length,prob:[...b.querySelectorAll('.mk-prob span')].map(e=>parseFloat(e.style.width)),head:document.getElementById('head').innerText}})()")
+    check('market.json' in data_hits and mk['cards'] == 15 and mk['svgs'] == 15 and mk['groups'] == ['價格與估值', '交易量', '供給與庫存', '信貸、成本與政策'], f"四大構面 15 張指標卡，每張有走勢圖 {mk['groups']}")
+    lt = MODE['market']['light']; fc = MODE['market']['forecast']
+    check(mk['on'] == 1 and lt['label'] in mk['t'] and '房市溫度' in mk['t'], f"房市溫度燈號：{lt['label']}，五段色條亮一格")
+    check(abs(sum(mk['prob']) - 100) < 0.5 and '最可能' in mk['t'] and '回測' in mk['t'] and '命中' in mk['t'] and '延續過去 12 個月方向' in mk['t'] and '不是保證' in mk['t'], f"未來 12 個月上漲／持平／下跌機率條（{mk['prob']}），附回測命中率與基準、提醒不是保證")
+    check(mk['chain'] == 4 and '金融信貸與管制' in mk['t'] and '成本底線' in mk['t'], '四階段傳導鏈：信貸 → 量 → 供給 → 成本，各顯示支撐／中性／壓力')
+    check('量先價行' in mk['t'] and '負利差' in mk['t'] and '來源：' in mk['t'] and '整體房市' in mk['head'], '每張指標卡有白話解釋（量先價行、負利差…）與資料來源')
+    await shot(page, '8n_market'); await ev("setSheet('full')"); await ev("document.querySelector('#mkFc').scrollIntoView()"); await shot(page, '8o_market_fc')
+    await ev("document.querySelector('.mk-ind[data-mk=vol]').scrollIntoView()"); await shot(page, '8p_market_cards')
+    await page.click('#close'); await page.wait_for_function("state.view.type==='list'", timeout=3000)
+    await page.click('#layersBtn')
     # 土地價值：勾選才下載、各小段依公告現值上色、點小段看數字、和熱圖一次只開一種
     check('land.json' not in data_hits, '土地價值預設關閉，還沒下載資料')
     await ev("void map.setView([25.04,121.555],13,{animate:false})"); await page.wait_for_timeout(200)
@@ -586,7 +601,10 @@ async def baked_suite(b, errs):
     await page.click('.chip[data-id=market]'); await page.wait_for_function("state.res&&state.res.act.includes('market')", timeout=20000)
     await ev("setLayerMins('park',7)")
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="4"]'); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000); await page.click('#regionBtn')
-    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=pins]'); await page.click('#layersPop [data-layer=labels]'); await page.click('#layersBtn')
+    await page.click('#layersBtn'); await page.wait_for_selector('#layersPop [data-layer=pins]', state='visible')
+    await page.click('#layersPop [data-layer=pins]'); await page.click('#layersPop [data-layer=labels]')
+    await page.wait_for_function("(()=>{const l=JSON.parse(localStorage.getItem('tlm.layers')||'{}');return l.pins===false&&l.labels===false})()", timeout=3000)
+    await page.click('#layersBtn')
     await page.reload(); await page.wait_for_function(READY, timeout=20000)
     check(await ev("!state.layers.pins && !state.layers.labels && pinLayer.getLayers().length===0 && state.layers.heat"), '重新整理後圖層開關維持上次最後的設定（推薦區域、設施名稱關閉）')
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=pins]'); await page.click('#layersPop [data-layer=labels]'); await page.click('#layersBtn')
@@ -843,6 +861,13 @@ async def real_suite(b, errs):
     await ev("void map.setView([25.0585,121.557],16,{animate:false})"); await page.wait_for_function("dealLayer.getLayers().length>5", timeout=20000); await page.wait_for_timeout(500)
     print('  deals', await ev("dealLayer.getLayers().length")); await shot(page, 'real_10_deals')
     await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(400); await shot(page, 'real_11_deal_pop')
+    if os.path.exists(os.path.join(ROOT, 'data', 'market.json')):
+        await ev("void map.closePopup()"); await page.click('#marketBtn'); await page.wait_for_function("state.view.type==='market'", timeout=30000); await page.wait_for_timeout(400)
+        await ev("setSheet('full')"); await page.wait_for_timeout(300); await shot(page, 'real_15_market')
+        await ev("document.querySelector('#mkFc').scrollIntoView()"); await shot(page, 'real_16_market_fc')
+        await ev("document.querySelector('.mk-g').scrollIntoView()"); await shot(page, 'real_17_market_cards')
+        print('  market', await ev("({light:MARKET.light&&MARKET.light.label,fc:MARKET.forecast.probs,bt:MARKET.forecast.backtest,n:MARKET.indicators.length})"))
+        await page.click('#close'); await page.wait_for_timeout(300)
     if os.path.exists(os.path.join(ROOT, 'data', 'land.json')):
         await ev("void map.closePopup()"); await page.click('#layersBtn'); await page.click('#layersPop [data-layer=land]'); await page.click('#layersBtn')
         await ev("void map.setView([25.06,121.55],12,{animate:false})"); await page.wait_for_function("!!landLayer&&landLayer.getLayers().length>400", timeout=30000); await page.wait_for_timeout(500)
@@ -879,6 +904,9 @@ async def main():
                 import build_land as BL, land_mock as LM
                 _shp, _dbf = LM.shp_dbf()
                 MODE['land'] = BL.build(BL.read_shp(_shp, _dbf), BL.read_values(LM.values_csv()), 113, BL.read_rates(LM.rates_csv()), BL.read_public(LM.public_csv()), DATA_DIR, built='2026-11-16', min_sections=3, log=lambda *a: None)
+                import build_market as BMK, market_mock as MKM
+                from datetime import date as _date
+                MODE['market'] = BMK.build(MKM.src(), DATA_DIR, built='2026-11-16', today=_date(*MKM.TODAY), log=lambda *a: None)
                 MODE['trees'] = BT.build(TM.mock(), DATA_DIR, built='2026-11-16', min_trees=10, log=lambda *a: None)
                 import build_realprice as RP, realprice_mock as RM   # 估價：模擬的實價登錄 → 實際跑建置程式
                 rs, rr, raddr, _ = RM.mock()
