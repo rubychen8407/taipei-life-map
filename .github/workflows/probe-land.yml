@@ -4,23 +4,14 @@ jobs:
   p:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
       - run: |
-          pip install pyshp >/dev/null
-          show(){ echo "=== $1"; curl -sSL -m 300 "$2" -o f; ls -l f; file f; python3 - <<'PY'
-          raw=open('f','rb').read()
-          for enc in ('utf-8-sig','big5','cp950'):
-              try: t=raw.decode(enc); print('enc',enc); break
-              except Exception: pass
-          t=locals().get('t') or raw.decode('cp950',errors='replace')
-          L=t.splitlines(); print(len(L)); print('\n'.join(L[:6]))
-          PY
-          }
-          true
-          show pub https://tpland.blob.core.windows.net/blobfs/publand.csv
-          curl -sS https://data.gov.tw/api/v2/rest/dataset/132106 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);[print(d['resourceFormat'],d['resourceDownloadUrl']) for d in r['distribution']]" > r.txt; cat r.txt
-          show rate "$(grep -m1 CSV r.txt | cut -d' ' -f2)"
-          curl -sSL -m 300 "https://data.taipei/api/dataset/4f3d2280-1ebc-4bba-8ebf-66953403732b/resource/86430589-4e8b-4e21-9d5f-08b0e5c2ce3f/download" -o s.zip; mkdir z; cd z; unzip -q ../s.zip; cat *.prj; echo; python3 -c "
-          import shapefile
-          r=shapefile.Reader('LANDSECMAP.shp',encoding='utf-8');print(r.shapeType,len(r),r.fields,r.bbox)
-          for i in range(3): print(r.record(i), len(r.shape(i).points), r.shape(i).points[:2])
-          import collections;print(collections.Counter(rec[-1] for rec in r.records()).most_common(15))"
+          python3 scripts/build_land.py
+          gzip -9 -c data/land.json | wc -c
+          python3 -c "
+          import json;d=json.load(open('data/land.json'));S=d['sections'];print(d['year'],d['base_year'],d['lo'],d['hi'],d['stats'])
+          S.sort(key=lambda s:s['v']);P=3.305785
+          for s in S[:3]+S[len(S)//2:len(S)//2+3]+S[-5:]: print(s['d'],s['n'],s['b'],s['k'],round(s['v']*P/1e4,1),'萬/坪',s['g'])
+          import collections;print(collections.Counter(s['d'] for s in S if s['b']=='pub'))"
