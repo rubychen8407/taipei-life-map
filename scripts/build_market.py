@@ -18,7 +18,7 @@
 建照戶數年增、營造成本年增。模型：多元邏輯斯迴歸（標準化、L2）。
 回測：逐月往前滾動（只用當時已知答案的資料訓練），和「延續過去 12 個月方向」的基準比較命中率。
 """
-import csv, io, json, math, os, re, sys, time, urllib.request
+import csv, io, json, math, os, re, sys, time, urllib.parse, urllib.request
 from datetime import date, datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -559,6 +559,7 @@ def build(src, out_dir=os.path.join(B.ROOT, 'data'), built=None, today=None, log
 
 # ---------- 下載 ----------
 def http(url, timeout=300, tries=3):
+    url = urllib.parse.quote(url, safe=':/?&=%')      # 網址裡有中文（央行檔名）
     for i in range(tries):
         try:
             return urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 taipei-life-map'}), timeout=timeout).read()
