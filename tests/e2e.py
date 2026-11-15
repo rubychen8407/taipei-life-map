@@ -574,7 +574,9 @@ async def baked_suite(b, errs):
     await page.click('#filterBtn'); await page.click('#filterPop [data-filter="0"]')
     await page.wait_for_function("state.res&&state.res.key==='d:大安區'&&state.res.act.includes('market')", timeout=20000)
     check(await ev("state.minsByLayer.park===7&&document.getElementById('filterPop').hidden&&document.querySelector('.chip[data-id=market]').getAttribute('aria-pressed')==='true'"), '點儲存的篩選：一鍵套用回類別、分鐘與範圍')
-    await page.click('#filterBtn'); await page.click('#filterPop [data-fdel="0"]'); await page.wait_for_timeout(200)
+    await page.wait_for_timeout(800)   # 等套用篩選後的重算與畫面更新結束，再打開面板
+    await page.click('#filterBtn'); await page.wait_for_selector('#filterPop [data-fdel="0"]', state='visible'); await page.wait_for_timeout(200); await page.click('#filterPop [data-fdel="0"]')
+    await page.wait_for_function("JSON.parse(localStorage.getItem('tlm.filters')||'[]').length===0", timeout=3000)
     check(await ev("JSON.parse(localStorage.getItem('tlm.filters')).length===0&&!document.querySelector('#filterPop .frow')"), '可以刪除儲存的篩選')
     await page.close()
 
