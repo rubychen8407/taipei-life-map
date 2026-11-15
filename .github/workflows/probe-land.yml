@@ -6,18 +6,20 @@ jobs:
     steps:
       - run: |
           pip install pyshp >/dev/null
-          for id in 157685 128228; do echo "### $id"; curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/$id > m.json; python3 -c "
-          import json;m=json.load(open('m.json'));r=m.get('result',m);print(r.get('title'))
-          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"; done
-          echo "### search"; curl -sS -m 60 "https://data.gov.tw/api/v2/rest/dataset?q=%E8%87%BA%E5%8C%97%E5%B8%82%E5%9C%9F%E5%9C%B0%E5%85%AC%E5%91%8A%E7%8F%BE%E5%80%BC" | head -c 3000; echo
-          curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/122058 > m.json; python3 -c "
-          import json;m=json.load(open('m.json'));r=m.get('result',m);print(r.get('title'));print(r.get('fieldDescription') or r.get('columns'))
-          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"
-          U=$(python3 -c "import json;m=json.load(open('m.json'));r=m.get('result',m);print(r['distribution'][-1]['resourceDownloadUrl'])" 2>/dev/null); echo "U=$U"; [ -n "$U" ] && curl -sSL -m 300 "$U" -o v.csv && ls -l v.csv && head -c 1500 v.csv | iconv -f big5 -t utf-8 2>/dev/null || head -c 1500 v.csv
-          U2=$(python3 -c "import json" ; curl -sS https://data.gov.tw/api/v2/rest/dataset/157685 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);print(r['distribution'][0]['resourceDownloadUrl'])"); echo "U2=$U2"; curl -sSL -m 300 "$U2" -o s.bin; ls -l s.bin; file s.bin; (unzip -l s.bin | head -30) || true
-          mkdir z && cd z && unzip -q ../s.bin && find . | head -20 && python3 -c "
-          import shapefile,glob
-          for f in glob.glob('**/*.shp',recursive=True)[:2]:
-            r=shapefile.Reader(f,encoding='big5');print(f,r.shapeType,len(r),r.fields,r.bbox);print(r.record(0));print(r.shape(0).points[:3])
-          " || true
-          cat z/**/*.prj z/*.prj 2>/dev/null | head -3
+          show(){ echo "=== $1"; curl -sSL -m 300 "$2" -o f; ls -l f; file f; python3 - <<'PY'
+          raw=open('f','rb').read()
+          for enc in ('utf-8-sig','big5','cp950'):
+              try: t=raw.decode(enc); print('enc',enc); break
+              except Exception: pass
+          L=t.splitlines(); print(len(L)); print('\n'.join(L[:6]))
+          PY
+          }
+          show v110 "https://data.taipei/api/dataset/7ac6eac3-a998-43ff-a289-6a4e3203c2c3/resource/01d51b31-7e75-4af2-ade4-080c5f569ede/download"
+          show pub https://tpland.blob.core.windows.net/blobfs/publand.csv
+          curl -sS https://data.gov.tw/api/v2/rest/dataset/132106 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);[print(d['resourceFormat'],d['resourceDownloadUrl']) for d in r['distribution']]" > r.txt; cat r.txt
+          show rate "$(grep -m1 CSV r.txt | cut -d' ' -f2)"
+          curl -sSL -m 300 "https://data.taipei/api/dataset/4f3d2280-1ebc-4bba-8ebf-66953403732b/resource/86430589-4e8b-4e21-9d5f-08b0e5c2ce3f/download" -o s.zip; mkdir z; cd z; unzip -q ../s.zip; cat *.prj; echo; python3 -c "
+          import shapefile
+          r=shapefile.Reader('LANDSECMAP.shp',encoding='utf-8');print(r.shapeType,len(r),r.fields,r.bbox)
+          for i in range(3): print(r.record(i), len(r.shape(i).points), r.shape(i).points[:2])
+          import collections;print(collections.Counter(rec[-1] for rec in r.records()).most_common(15))"
