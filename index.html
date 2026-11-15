@@ -902,20 +902,27 @@ function distM(a,b){return Math.hypot((a[0]-b[0])*110574,(a[1]-b[1])*111320*Math
 function poiNear(id,pt){let best=1e9,bf=null;for(const f of (data(id)||[])){let d=distM(pt,f.center);if(f.polys)for(const r of f.polys)for(const q of r){const x=distM(pt,q);if(x<d)d=x;}if(d<best){best=d;bf=f;}}return{d:best,f:bf};}
 function poiScore(pt){const ids=VALDATA.v.poi_layers;return ids.reduce((s,id)=>s+Math.max(0,Math.min(1,(20-poiNear(id,pt).d*1.25/80)/10)),0)/ids.length;}
 function modelX(r){return[1,r.age,r.age*r.age/100,r.fl/r.tot,Math.log(r.ping),r.fl===1?1:0,r.fl===r.tot?1:0,r.s,r.t===1?1:0,r.t===2?1:0,r.t===2&&r.fl>=4?1:0];}
-function estimate(sub){const {v,sales}=VALDATA,C=v.comps,now=v.now_ym,maxR=C.radii[C.radii.length-1];
-  const near=sales.filter(r=>r.t===sub.t&&Math.abs(r.age-sub.age)<=C.age_band&&now-r.ym<C.months).map(r=>[distM(sub.pt,r.pt),r]).filter(x=>x[0]<=maxR);
-  let comps=near,rad=maxR;for(const R of C.radii){const c=near.filter(x=>x[0]<=R);if(c.length>=C.min[0]){comps=c;rad=R;break;}}
+// 可比案例：同型態、近 24 個月、1.2 公里內、屋齡 ±12 年、坪數 0.5～2 倍，依相似度（距離、屋齡、坪數、樓層）取最像的 25 筆
+function floorPen(s,r){const one=(s.fl===1)!==(r.fl===1)?1:0;return s.t===2?one*1.5+.4*Math.min(3,Math.abs(s.fl-r.fl)):one+Math.abs(s.fl/s.tot-r.fl/r.tot)/.3;}
+function similarity(s,r,d){return d/300+Math.abs(r.age-s.age)/5+Math.abs(Math.log(r.ping/s.ping))/.3+floorPen(s,r);}
+function estimate(sub){const {v,sales}=VALDATA,C=v.comps,now=v.now_ym,maxR=C.radii[C.radii.length-1],sb=C.size_band||[.5,2];
+  const cand=[];for(const r of sales){if(r.t!==sub.t||Math.abs(r.age-sub.age)>C.age_band||now-r.ym>=C.months)continue;const k=r.ping/sub.ping;if(k<sb[0]||k>sb[1])continue;const d=distM(sub.pt,r.pt);if(d<=maxR)cand.push([d,r,similarity(sub,r,d)]);}
+  cand.sort((a,b)=>a[2]-b[2]);const comps=cand.slice(0,C.min[0]),rad=comps.length?Math.round(Math.max(...comps.map(x=>x[0]))):maxR;
   const base=Math.exp(modelX(sub).reduce((a,x,i)=>a+x*v.model.b[i],0)+(v.model.dist[sub.dist]||0)+v.model.now);
   const res=comps.map(x=>x[1].e),sbar=comps.length?comps.reduce((a,x)=>a+x[1].s,0)/comps.length:0;
   const poi=comps.length?Math.max(-.08,Math.min(.08,Math.exp(v.model.b[v.feats.indexOf('poi')]*(sub.s-sbar))-1)):0;
-  return{ok:comps.length>=C.min[1],n:comps.length,radius:rad,base,poi,comps:comps.sort((a,b)=>a[0]-b[0]),q:q=>base*Math.exp(quantile(res,q))};}
+  return{ok:comps.length>=C.min[1],n:comps.length,radius:rad,base,poi,comps,q:q=>base*Math.exp(quantile(res,q))};}
+function compsDesc(V){const c=V.est.comps.map(x=>x[1]),T=VALDATA.types,rng=(a,u)=>{const lo=Math.min(...a),hi=Math.max(...a);return lo===hi?lo+u:lo+'–'+hi+u;};if(!c.length)return '';
+  return `同為${T[V.form.t]}・屋齡 ${rng(c.map(r=>r.age),' 年')}・${rng(c.map(r=>Math.round(r.ping)),' 坪')}・${rng(c.map(r=>r.fl),' 樓')}`;}
 // 三段出價以附近成交的行情帶為主；開價只當上限（平均議價率是「開價普遍偏高」下的平均，開價已貼近行情時不適用，所以只當參考顯示）
 // 市場燈號 H：−1 極度買方～+1 極度賣方；各指標限制在 ±1 後取平均
-function marketH(dist){const {v,fin}=VALDATA,m=v.market[dist]||v.market['全市'],cl=x=>Math.max(-1,Math.min(1,x)),parts=[],pc=x=>Math.abs(x*100).toFixed(x*100>=10||x*100<=-10?0:1);
+function marketH(dist,t){const {v,fin}=VALDATA,T=VALDATA.types,seg=t!=null?v.market[dist+'|'+t]:null,md=v.market[dist]||v.market['全市'],cl=x=>Math.max(-1,Math.min(1,x)),parts=[],pc=x=>Math.abs(x*100).toFixed(x*100>=10||x*100<=-10?0:1);
   // 交易量：和這個區自己過去三年的 3 個月成交量比（z 分數），各區「平常」的量不一樣；沒有歷史時才退回年增率
-  if(m.vol_z!=null){const r=m.vol/m.vol_avg-1;parts.push({name:'交易量',h:cl(m.vol_z/2),val:(r>=0?'+':'−')+pc(r)+'%',txt:`${dist} ${m.vol_months[0].slice(5)}–${m.vol_months[1].slice(5)} 月成交 ${m.vol} 筆，比近三年同長度平均（${Math.round(m.vol_avg)} 筆）${r>=0?'多':'少'} ${pc(r)}%`,spark:m.series.map(x=>x[1]).slice(0,-4)});}
-  else if(m.vol_yoy!=null)parts.push({name:'交易量',h:cl(m.vol_yoy/.3),val:(m.vol_yoy>=0?'+':'−')+pc(m.vol_yoy)+'%',txt:`${dist} ${m.vol_months[0].slice(5)}–${m.vol_months[1].slice(5)} 月成交 ${m.vol} 筆，年${m.vol_yoy>=0?'增':'減'} ${pc(m.vol_yoy)}%`,spark:m.series.map(x=>x[1]).slice(0,-4)});
-  if(m.price_mom!=null)parts.push({name:'價格動能',h:cl(m.price_mom/.05),val:(m.price_mom>=0?'+':'−')+pc(m.price_mom)+'%',txt:`${m.price_mom_local?dist:'全市'}近兩季單價比前兩季${m.price_mom>=0?'漲':'跌'} ${pc(m.price_mom)}%（已調整屋齡、坪數等差異）`,spark:m.series.map(x=>x[2]).filter(x=>x!=null)});
+  const segName=seg?dist+T[t]:dist;let m=seg&&seg.vol_z!=null?seg:md,mn=m===seg?segName:dist;
+  if(m.vol_z!=null){const r=m.vol/m.vol_avg-1;parts.push({name:'交易量',h:cl(m.vol_z/2),val:(r>=0?'+':'−')+pc(r)+'%',txt:`${mn} ${m.vol_months[0].slice(5)}–${m.vol_months[1].slice(5)} 月成交 ${m.vol} 筆，比近三年同長度平均（${Math.round(m.vol_avg)} 筆）${r>=0?'多':'少'} ${pc(r)}%`,spark:m.series.map(x=>x[1]).slice(0,-4)});}
+  else if(m.vol_yoy!=null)parts.push({name:'交易量',h:cl(m.vol_yoy/.3),val:(m.vol_yoy>=0?'+':'−')+pc(m.vol_yoy)+'%',txt:`${mn} ${m.vol_months[0].slice(5)}–${m.vol_months[1].slice(5)} 月成交 ${m.vol} 筆，年${m.vol_yoy>=0?'增':'減'} ${pc(m.vol_yoy)}%`,spark:m.series.map(x=>x[1]).slice(0,-4)});
+  m=seg&&seg.price_mom_local?seg:md;mn=m===seg?segName:dist;
+  if(m.price_mom!=null)parts.push({name:'價格動能',h:cl(m.price_mom/.05),val:(m.price_mom>=0?'+':'−')+pc(m.price_mom)+'%',txt:`${m.price_mom_local?mn:'全市'}近兩季單價比前兩季${m.price_mom>=0?'漲':'跌'} ${pc(m.price_mom)}%（已調整屋齡、坪數等差異）`,spark:m.series.map(x=>x[2]).filter(x=>x!=null)});
   const b=fin.bargain_rate;if(b&&b.prev!=null)parts.push({name:'議價空間',h:-cl((b.value-b.prev)/.03),val:(b.value*100).toFixed(1)+'%',txt:`全市平均議價率 ${(b.value*100).toFixed(1)}%（前一年 ${(b.prev*100).toFixed(1)}%，${b.as_of} 年房仲成交統計）`});
   const H=parts.length?parts.reduce((a,x)=>a+x.h,0)/parts.length:0;
   return{H,parts,label:H<=-.3?'買方市場':H>=.3?'賣方市場':'平衡市場',cls:H<=-.3?'buy':H>=.3?'sell':'even'};}
@@ -935,7 +942,7 @@ async function openVal(pt,prefill){const k=cellAtLatLng(pt[0],pt[1]);if(k<0){toa
   state.val={pt,dist:DISTRICTS[CELLS[k].d].name,form:Object.assign(valDefaults(),prefill||{}),fin:{down:'',years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:''},est:null,tab:'price'};
   state.view={type:'val'};drawPins();drawVal();render();fitSheet('full');fit(L.latLngBounds(pt,pt),{maxZoom:16});}
 function runVal(){const V=state.val,f=V.form;try{localStorage.setItem('tlm.valForm',JSON.stringify({t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,cond:f.cond}));}catch(e){}
-  V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist);V.off=V.est.ok?valOffers(V):null;
+  V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;
   drawVal();render();if(isMob())setSheet('half');const b=L.latLngBounds(V.pt,V.pt);V.est.comps.forEach(x=>b.extend(x[1].pt));fit(b,{maxZoom:17});}
 function upColor(up,lo,hi){const t=Math.max(0,Math.min(1,(up-lo)/((hi-lo)||1)));return `hsl(${Math.round(222-190*t)} 78% ${Math.round(42+10*t)}%)`;}
 function drawVal(){selLayer.clearLayers();const V=state.val;if(!V||state.view.type!=='val')return;
@@ -950,8 +957,8 @@ function offerBar(V){const o=V.off,f=V.form,pts=[...o.out,...o.band,o.mid].conca
 function stripChart(V){const e=V.est,ups=e.comps.map(x=>x[1].up),mine=e.q(.5)*(1+e.poi),lo=Math.min(...ups,mine),hi=Math.max(...ups,mine),X=v=>14+(v-lo)/((hi-lo)||1)*292,now=VALDATA.v.now_ym;
   return `<svg class="vchart" viewBox="0 0 320 62" role="img" aria-label="可比案例單價分佈"><line x1="14" x2="306" y1="34" y2="34" stroke="#dadce0"/>${e.comps.map((x,i)=>`<circle cx="${X(x[1].up).toFixed(1)}" cy="${28-(i%3)*5}" r="3.6" fill="#123B8A" fill-opacity="${(.85-.55*(now-x[1].ym)/24).toFixed(2)}"/>`).join('')}<line x1="${X(mine)}" x2="${X(mine)}" y1="8" y2="40" stroke="#F7931E" stroke-width="2"/><text x="${Math.max(40,Math.min(280,X(mine)))}" y="54" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1D1D1F">這間估 ${mine.toFixed(1)} 萬／坪</text><text x="14" y="54" font-size="10" fill="#5F6368">${lo.toFixed(0)}</text><text x="306" y="54" text-anchor="end" font-size="10" fill="#5F6368">${hi.toFixed(0)}</text></svg>`;}
 function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
-  if(V.tab==='price'){const med=(D.v.market[V.dist]||D.v.market['全市']).series.map(x=>x[2]).filter(x=>x!=null);
-    return `<h2>附近 ${e.radius} 公尺內 ${e.n} 筆可比成交的單價</h2>${stripChart(V)}<div class="vrow"><div>${esc(V.dist)}近 24 個月單價中位數<small>顏色越深越近期；橘線是這間的估價</small></div><span class="r">${spark(med,110,28)}</span></div>
+  if(V.tab==='price'){const sg=D.v.market[V.dist+'|'+f.t],useSeg=sg&&sg.series.filter(x=>x[1]>=5).length>=12,ms=useSeg?sg:(D.v.market[V.dist]||D.v.market['全市']),trendName=useSeg?V.dist+T[f.t]:V.dist,med=ms.series.map(x=>x[1]>=3?x[2]:null).filter(x=>x!=null);
+    return `<h2>最相似的 ${e.n} 筆成交的單價</h2><div class="note" id="compsDesc" style="margin-top:-4px">${esc(compsDesc(V))}・最遠 ${e.radius} 公尺・近 24 個月</div>${stripChart(V)}<div class="vrow"><div>${esc(trendName)}近 24 個月單價中位數<small>顏色越深越近期；橘線是這間的估價</small></div><span class="r">${spark(med,110,28)}</span></div>
       <h2>可比案例（由近到遠）</h2>${e.comps.slice(0,12).map((x,i)=>`<div class="vrow tap" data-comp="${i}"><div>${ymTxt(x[1].ym)}・${x[1].ping.toFixed(0)} 坪・${x[1].fl}/${x[1].tot} 樓<small>屋齡 ${x[1].age} 年・距離 ${Math.round(x[0])} 公尺</small></div><span class="r">${x[1].up.toFixed(1)} 萬／坪</span></div>`).join('')}`;}
   if(V.tab==='market'){const M=V.mk,x=160+M.H*140;
     return `<svg class="vchart" viewBox="0 0 320 50" role="img" aria-label="市場燈號"><defs><linearGradient id="vg" x1="0" x2="1"><stop offset="0" stop-color="#137333"/><stop offset=".5" stop-color="#f9a825"/><stop offset="1" stop-color="#d93025"/></linearGradient></defs><rect x="20" y="18" width="280" height="8" rx="4" fill="url(#vg)"/><circle cx="${x}" cy="22" r="8" fill="#fff" stroke="#1D1D1F" stroke-width="2"/><text x="20" y="44" font-size="10.5" fill="#5F6368">買方市場</text><text x="160" y="44" text-anchor="middle" font-size="10.5" fill="#5F6368">平衡</text><text x="300" y="44" text-anchor="end" font-size="10.5" fill="#5F6368">賣方市場</text></svg>
@@ -991,7 +998,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   const saved=V.homeId&&loadHomes().some(x=>x.id===V.homeId);
   let h=`<div class="vtop"><button type="button" class="vedit" id="valEdit">‹ 修改房屋條件</button>${e.ok?`<button type="button" class="vsave" id="valSave" aria-pressed="${saved}">${categoryIcon('star')}${saved?'已儲存':'儲存物件'}</button>`:''}</div>`;
   if(!e.ok){$('resultBtn').innerHTML=`<span>附近成交太少，無法估價</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-    h+=`<div class="note" id="valNo">附近 1 公里內只有 ${e.n} 筆同類型、屋齡相近的成交，資料不足，不提供出價建議。可以改選其他型態或屋齡再試。</div>${light}`;V.tab='place';}
+    h+=`<div class="note" id="valNo">附近 1.2 公里內只有 ${e.n} 筆同型態、屋齡與坪數相近的成交，資料不足，不提供出價建議。可以改選其他型態或屋齡再試。</div>${light}`;V.tab='place';}
   else{const o=V.off,L=valLoan(V,o.out[1]),inc=+V.fin.income||0,bur=inc?(L.pay+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
     $('resultBtn').innerHTML=`<span class="dot"></span><b>合理 ${wan(o.out[1])}</b><span>${M.label.slice(0,2)}${bur!=null?'・負擔 '+Math.round(bur*100)+'%':''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
     h+=`<div class="vsum" id="valSum"><div><small>保守</small><b>${wan(o.out[0])}</b></div><div class="mid"><small>合理出價</small><b>${wan(o.out[1])}</b></div><div><small>積極</small><b>${wan(o.out[2])}</b></div></div>${offerBar(V)}
@@ -1029,7 +1036,7 @@ function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.
 function sameHome(h,V){return JSON.stringify(h.form)===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
 function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null};}
 function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:{down:'',years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:''}};
-  V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:V.form.t,ping:V.form.ping,age:V.form.age,fl:V.form.fl,tot:V.form.tot,s:V.s});V.mk=marketH(V.dist);V.off=V.est.ok?valOffers(V):null;return V;}
+  V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:V.form.t,ping:V.form.ping,age:V.form.age,fl:V.form.fl,tot:V.form.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;return V;}
 async function openHome(h){busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
   closePops();closeDetail(true);state.val=Object.assign(homeVal(h),{homeId:h.id,tab:'price'});state.view={type:'val'};drawPins();runVal();}
 function drawHomes(){homeLayer.clearLayers();if(!state.layers.homes||state.transit||state.drawing||state.editing)return;

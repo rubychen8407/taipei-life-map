@@ -607,7 +607,7 @@ async def baked_suite(b, errs):
     await page.wait_for_function("!!document.getElementById('valSum')", timeout=5000); await page.wait_for_timeout(500)
     r = await ev("({out:state.val.off.out,cap:state.val.off.cap,mid:state.val.off.mid,q50:state.val.est.q(.5),n:state.val.est.n,rad:state.val.est.radius,poi:state.val.est.poi,s:state.val.s,H:state.val.mk.H,label:state.val.mk.label,sum:document.getElementById('valSum').innerText.replace(/\\s+/g,' '),layers:selLayer.getLayers().length,snap,pill:document.getElementById('resultBtn').innerText.replace(/\\s+/g,' ')})")
     pe = MODE['val']['est']
-    check(abs(r['q50'] - pe['q'][0.5]) / pe['q'][0.5] < 0.015 and abs(r['n'] - pe['n']) <= 3 and r['rad'] == pe['radius'] and abs(r['s'] - MODE['val']['s']) < 0.02 and abs(r['poi'] - pe['poi']) < 0.01,
+    check(abs(r['q50'] - pe['q'][0.5]) / pe['q'][0.5] < 0.015 and abs(r['n'] - pe['n']) <= 3 and abs(r['rad'] - pe['radius']) <= 5 and abs(r['s'] - MODE['val']['s']) < 0.02 and abs(r['poi'] - pe['poi']) < 0.01,
           f"前端估價與建置程式（Python）算出來一致：{r['q50']:.1f} vs {pe['q'][0.5]:.1f} 萬／坪、可比 {r['n']} vs {pe['n']} 筆、半徑 {r['rad']} 公尺")
     check(r['out'][0] < r['out'][1] < r['out'][2] and r['out'][2] <= r['cap'] + 1e-6 and '保守' in r['sum'] and '合理出價' in r['sum'] and '積極' in r['sum'], f"結論卡：保守／合理／積極三段出價，都不超過開價（{r['sum']}）")
     check(r['layers'] >= r['n'] + 2 and r['snap'] != 'peek' and r['label'] in ('買方市場', '平衡市場', '賣方市場') and await ev("!!document.querySelector('#body .vdot.'+state.val.mk.cls)&&!!document.querySelector('#body .vbar')"), f"地圖畫出可比案例與搜尋半徑；面板有出價區間條與市場燈號（{r['label']}，H={r['H']:+.2f}）")
@@ -618,6 +618,8 @@ async def baked_suite(b, errs):
     check('合理' in await ev("document.getElementById('resultBtn').innerText") and await ev("!document.getElementById('resultBtn').hidden"), '收起面板：左下角按鈕顯示「合理 ○○ 萬｜燈號」')
     await page.click('#resultBtn'); await page.wait_for_timeout(350)
     check(await ev("document.querySelectorAll('#body [data-comp]').length>=5&&!!document.querySelector('#valTab svg.vchart')"), '價格分頁：可比案例單價分佈圖與清單')
+    cd = await ev("({d:document.getElementById('compsDesc').innerText,ok:state.val.est.comps.every(x=>x[1].t===state.val.form.t&&Math.abs(x[1].age-state.val.form.age)<=12&&x[1].ping/state.val.form.ping>=.5&&x[1].ping/state.val.form.ping<=2),sorted:state.val.est.comps.every((x,i,a)=>!i||a[i-1][2]<=x[2])})")
+    check(cd['ok'] and cd['sorted'] and '同為住宅大樓' in cd['d'] and '屋齡' in cd['d'] and '樓' in cd['d'], f"可比案例：同型態、屋齡與坪數相近，依相似度排序，並寫出範圍（{cd['d']}）")
     await page.click('#body [data-vtab=price]'); await page.wait_for_timeout(400); await shot(page, '8b_val_price')
     await ev("document.querySelector('#body [data-comp=\"2\"]').click()"); await page.wait_for_timeout(500)
     check(await ev("(()=>{const c=state.val.est.comps[2][1].pt,m=map.getCenter();return Math.abs(m.lat-c[0])<.003&&Math.abs(m.lng-c[1])<.003&&!!state.val.hl})()"), '點一筆可比案例：地圖移過去並標示')
