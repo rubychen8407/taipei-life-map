@@ -1,0 +1,23 @@
+name: probe land
+on: { push: { branches: ['probe/land'] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          pip install pyshp >/dev/null
+          for id in 157685 128228; do echo "### $id"; curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/$id > m.json; python3 -c "
+          import json;m=json.load(open('m.json'));r=m.get('result',m);print(r.get('title'))
+          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"; done
+          echo "### search"; curl -sS -m 60 "https://data.gov.tw/api/v2/rest/dataset?q=%E8%87%BA%E5%8C%97%E5%B8%82%E5%9C%9F%E5%9C%B0%E5%85%AC%E5%91%8A%E7%8F%BE%E5%80%BC" | head -c 3000; echo
+          curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/122058 > m.json; python3 -c "
+          import json;m=json.load(open('m.json'));r=m.get('result',m);print(r.get('title'));print(r.get('fieldDescription') or r.get('columns'))
+          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"
+          U=$(python3 -c "import json;m=json.load(open('m.json'));r=m.get('result',m);print(r['distribution'][-1]['resourceDownloadUrl'])" 2>/dev/null); echo "U=$U"; [ -n "$U" ] && curl -sSL -m 300 "$U" -o v.csv && ls -l v.csv && head -c 1500 v.csv | iconv -f big5 -t utf-8 2>/dev/null || head -c 1500 v.csv
+          U2=$(python3 -c "import json" ; curl -sS https://data.gov.tw/api/v2/rest/dataset/157685 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);print(r['distribution'][0]['resourceDownloadUrl'])"); echo "U2=$U2"; curl -sSL -m 300 "$U2" -o s.bin; ls -l s.bin; file s.bin; (unzip -l s.bin | head -30) || true
+          mkdir z && cd z && unzip -q ../s.bin && find . | head -20 && python3 -c "
+          import shapefile,glob
+          for f in glob.glob('**/*.shp',recursive=True)[:2]:
+            r=shapefile.Reader(f,encoding='big5');print(f,r.shapeType,len(r),r.fields,r.bbox);print(r.record(0));print(r.shape(0).points[:3])
+          " || true
+          cat z/**/*.prj z/*.prj 2>/dev/null | head -3
