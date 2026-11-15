@@ -11,10 +11,11 @@ jobs:
           for enc in ('utf-8-sig','big5','cp950'):
               try: t=raw.decode(enc); print('enc',enc); break
               except Exception: pass
+          t=locals().get('t') or raw.decode('cp950',errors='replace')
           L=t.splitlines(); print(len(L)); print('\n'.join(L[:6]))
           PY
           }
-          show v110 "https://data.taipei/api/dataset/7ac6eac3-a998-43ff-a289-6a4e3203c2c3/resource/01d51b31-7e75-4af2-ade4-080c5f569ede/download"
+          true
           show pub https://tpland.blob.core.windows.net/blobfs/publand.csv
           curl -sS https://data.gov.tw/api/v2/rest/dataset/132106 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);[print(d['resourceFormat'],d['resourceDownloadUrl']) for d in r['distribution']]" > r.txt; cat r.txt
           show rate "$(grep -m1 CSV r.txt | cut -d' ' -f2)"
