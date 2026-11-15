@@ -6,13 +6,13 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: OSM planned rail
         run: |
-          for ep in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/api/interpreter; do
-          curl -s -m 120 "$ep" --data-urlencode 'data=[out:json][timeout:90];(way["railway"~"construction|proposed"](24.95,121.40,25.22,121.70);way["construction:railway"](24.95,121.40,25.22,121.70);node["railway"~"construction|proposed"](24.95,121.40,25.22,121.70);node["construction:railway"](24.95,121.40,25.22,121.70);node["railway"="station"]["construction"](24.95,121.40,25.22,121.70);relation["route"~"subway|light_rail|construction|proposed"]["state"~"construction|proposed"](24.95,121.40,25.22,121.70);relation["route"="construction"](24.95,121.40,25.22,121.70););out tags;' > o.json && python3 -c "import json;json.load(open('o.json'))" && break; done
           python3 - <<'PY'
-          import json,collections
-          d=json.load(open('o.json'));c=collections.Counter()
+          import sys,json,collections; sys.path.insert(0,'scripts'); import build_data as B
+          q='[out:json][timeout:120];(way["railway"~"construction|proposed"](24.95,121.40,25.22,121.70);way["construction:railway"](24.95,121.40,25.22,121.70);node["railway"~"construction|proposed"](24.95,121.40,25.22,121.70);node["construction:railway"](24.95,121.40,25.22,121.70);node["railway"="station"]["construction"](24.95,121.40,25.22,121.70);relation["state"~"construction|proposed"](24.95,121.40,25.22,121.70);relation["route"="construction"](24.95,121.40,25.22,121.70););out tags;'
+          d=B.overpass(q); c=collections.Counter()
           for e in d['elements']:
             t=e['tags'];c[(e['type'],t.get('railway'),t.get('construction') or t.get('proposed') or t.get('construction:railway'),t.get('name','')[:24],t.get('line') or t.get('ref') or '',t.get('route',''),t.get('state',''))]+=1
           for k,v in c.most_common(150):print(v,k)
