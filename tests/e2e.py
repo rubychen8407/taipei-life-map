@@ -287,6 +287,7 @@ async def baked_suite(b, errs):
     await page.mouse.click(pt[0], pt[1]); await page.wait_for_timeout(500)
     check(await ev("state.view.type") == 'cell' and '這個位置' in await ev("document.querySelector('#head h1').innerText"), '點地圖任一位置，下方卡片顯示該點的生活機能')
     await page.click('#close'); await page.wait_for_timeout(300)
+    check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('resultBtn').hidden"), '關閉地點卡片後結果面板保持收起，只留結果按鈕')
 
     # 6. 放大才顯示設施點；點公車站 → 路線
     hub = None
@@ -364,6 +365,7 @@ async def baked_suite(b, errs):
     # 複選區域
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]')
     await page.wait_for_function("state.res.key==='m:松山區,大安區'", timeout=5000)
+    check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('resultBtn').hidden"), '換行政區後結果面板不會自己彈出')
     check(await ev("state.scope==='m:3,4' && scopeCells().length>0 && scopeCells().every(k=>CELLS[k].d===3||CELLS[k].d===4) && scopeCells().some(k=>CELLS[k].d===3) && scopeCells().some(k=>CELLS[k].d===4)"), '複選松山＋大安：只分析這兩區')
     check(await ev("document.getElementById('scopeTag').innerText.includes('松山區、大安區') && document.querySelectorAll('#regionPop [aria-pressed=true]').length===2"), '小標籤顯示「松山區、大安區」，彈窗兩區都標示已選')
     check(await ev("(()=>{const b=document.querySelector('#head .sumline b');return /%$/.test(b.innerText)&&b.scrollWidth<=b.clientWidth+1&&b.getBoundingClientRect().right<=innerWidth})()"), '名稱很長時，摘要的百分比仍完整顯示')
