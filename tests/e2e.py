@@ -159,7 +159,7 @@ async def baked_suite(b, errs):
     check(await ev("toFeature({type:'way',id:1,center:{lat:25.05,lon:121.55},tags:{leisure:'pitch',sport:'basketball'}}).name==='籃球場'"), '沒有正式名稱的運動設施依 OSM sport 標籤顯示設施類型名稱')
     dt = time.time() - t0
     # 1. 開啟即顯示
-    check(len(calls) == n0 and data_hits == ['city.json'], f'開啟時只讀一個預建檔（city.json），完全不查 Overpass {data_hits}')
+    check(len(calls) == n0 and sorted(data_hits) == ['city.json', 'future.json'], f'開啟時只讀預建檔（city.json＋很小的 future.json），完全不查 Overpass {data_hits}')
     check(dt < 4, f'開啟到顯示全市結果 {dt:.1f} 秒')
     check(await ev("state.scope===''&&state.res.total===CELLS.length"), '預設直接分析全臺北市')
     check(await ev("!!heat&&map.hasLayer(heat)"), '地圖上有符合範圍的色塊圖層')
@@ -582,6 +582,16 @@ async def baked_suite(b, errs):
     page = await new_page(b, errs, **PHONE)
     ev = page.evaluate
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
+    await page.wait_for_function("futureLayer.getLayers().length>0", timeout=5000)
+    fl = await ev("({n:futureLayer.getLayers().length,lines:futureLayer.getLayers().filter(l=>l instanceof L.Polyline&&!(l instanceof L.CircleMarker)).length,dash:futureLayer.getLayers().filter(l=>l.options.dashArray==='10 7').length,st:futureLayer.getLayers().filter(l=>l instanceof L.CircleMarker).length})")
+    check(fl['lines'] == 3 and fl['dash'] == 2 and fl['st'] == 2, f"圖層「未來捷運」預設開啟：興建中虛線（{fl['dash']} 段）、規劃中點線、{fl['st']} 個未來車站")
+    await ev("(()=>{const s=futureLayer.getLayers().find(l=>l instanceof L.CircleMarker);s.openPopup()})()"); await page.wait_for_timeout(200)
+    check('興建中' in await ev("document.querySelector('.leaflet-popup-content').innerText") or '規劃中' in await ev("document.querySelector('.leaflet-popup-content').innerText"), '點未來車站：顯示站名、路線與興建中／規劃中')
+    await ev("void map.closePopup()")
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=future]'); await page.wait_for_timeout(200)
+    check(await ev("futureLayer.getLayers().length===0"), '可以在圖層的「交通」組關掉未來捷運')
+    await page.click('#layersPop [data-layer=future]'); await page.click('#layersBtn')
+    await ev("void map.setView([25.05,121.552],14,{animate:false})"); await page.wait_for_timeout(500); await shot(page, '8i_future')
     await ev("void map.setView([25.0325,121.543],16,{animate:false})"); await page.wait_for_timeout(400)
     pt = await ev("(()=>{const p=map.latLngToContainerPoint([25.030,121.543]);return [p.x,p.y]})()")
     h0 = len(data_hits)
@@ -624,6 +634,8 @@ async def baked_suite(b, errs):
     await shot(page, '8d_val_fin')
     await ev("document.querySelector('#body [data-vtab=place]').click()"); await page.wait_for_timeout(300)
     check(await ev("document.querySelectorAll('#valTab .row').length") == 6 and '位置加減分' in await ev("document.getElementById('valTab').innerText"), '位置分頁：六類設施步行時間與位置加減分')
+    ft = await ev("document.getElementById('valTab').innerText")
+    check('最近的未來捷運站' in ft and ('Y20' in ft or '民生社區' in ft) and '不計入估價' in ft, '位置分頁：顯示最近的未來捷運站（興建中／規劃中）與步行時間，註明不計入估價')
     await page.click('#valEdit'); await page.wait_for_timeout(300)
     check(await ev("document.querySelector('#body [data-vf=ping]').value==='30'&&document.querySelector('#body [data-vf=ask]').value==='3600'"), '「修改房屋條件」回到表單，原本填的還在')
     await page.fill('#body [data-vf=ask]', ''); await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSum')", timeout=5000)
@@ -647,7 +659,8 @@ async def baked_suite(b, errs):
     await shot(page, '8f_homes')
     await page.click('#homeCmp'); await page.wait_for_function("state.view.type==='cmp'", timeout=5000); await page.wait_for_timeout(500)
     cm = await ev("({cols:document.querySelectorAll('.cmp thead th').length,rows:document.querySelectorAll('.cmp tbody tr').length,best:document.querySelectorAll('.cmp td.best').length,txt:document.querySelector('.cmp').innerText,pins:selLayer.getLayers().length})")
-    check(ids == 2 and cm['cols'] == 3 and cm['rows'] >= 16 and cm['best'] >= 3 and '合理出價' in cm['txt'] and '步行到公園' in cm['txt'] and cm['pins'] == 2, f"勾 2 間按「並排比較」：同一張表比價格、燈號、房貸、租金、六類設施步行時間，最好的標綠（{cm['rows']} 列）")
+    check('步行到未來捷運站' in cm['txt'], '比較表有「步行到未來捷運站」')
+    check(ids == 2 and cm['cols'] == 3 and cm['rows'] >= 17 and cm['best'] >= 3 and '合理出價' in cm['txt'] and '步行到公園' in cm['txt'] and cm['pins'] == 2, f"勾 2 間按「並排比較」：同一張表比價格、燈號、房貸、租金、六類設施步行時間，最好的標綠（{cm['rows']} 列）")
     await shot(page, '8g_compare')
     await page.click('#close'); await page.wait_for_timeout(300)
     await ev("void homeLayer.getLayers()[0].fire('click')"); await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valSum')", timeout=5000)
@@ -788,6 +801,8 @@ async def main():
                 idx = build_data.build(fetch=lambda q: {'elements': answer(q)}, out_dir=DATA_DIR, pause=0)
                 import build_sidewalk, sidewalk_mock
                 MODE['sw'] = build_sidewalk.build(sidewalk_mock.mock(), DATA_DIR, built='2026-11-14', period='202606', log=lambda *a: None)
+                import build_future as BF, future_mock as FM
+                MODE['future'] = BF.build(FM.mock(), DATA_DIR, built='2026-11-15', log=lambda *a: None)
                 import build_realprice as RP, realprice_mock as RM   # 估價：模擬的實價登錄 → 實際跑建置程式
                 rs, rr, raddr, _ = RM.mock()
                 clean = RP.parse_sales(rs); layers = json.load(open(os.path.join(DATA_DIR, 'city.json'), encoding='utf-8'))['layers']
