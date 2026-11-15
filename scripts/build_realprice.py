@@ -410,12 +410,17 @@ def market(recs, model, now_ym):
         mom = math.exp((model['q'][qs[-1]] + model['q'][qs[-2]]) / 2 - (model['q'][qs[-3]] + model['q'][qs[-4]]) / 2) - 1
     for d in sorted({r['dist'] for r in recs}) + ['全市']:
         rs = [r for r in recs if d == '全市' or r['dist'] == d]
-        cur = sum(1 for r in rs if a0 <= r['ym'] <= a1); prev = sum(1 for r in rs if a0 - 12 <= r['ym'] <= a1 - 12)
+        cnt = lambda lo, hi: sum(1 for r in rs if lo <= r['ym'] <= hi)
+        cur = cnt(a0, a1); prev = cnt(a0 - 12, a1 - 12)
+        # 和自己過去三年比：同樣長度（3 個月）的 10 個區間，平均與標準差 → z 分數（各區的「平常」不一樣）
+        hist = [cnt(a0 - 3 * k, a1 - 3 * k) for k in range(1, 11)]
+        mu = sum(hist) / len(hist); sd = (sum((h - mu) ** 2 for h in hist) / (len(hist) - 1)) ** 0.5
         months = {}
         for r in rs:
             months.setdefault(r['ym'], []).append(r['up'])
         series = [[ym_str(m), len(months.get(m, [])), round(quantile(months[m], 0.5), 1) if months.get(m) else None] for m in range(now_ym - 23, now_ym + 1)]
         out[d] = {'vol': cur, 'vol_prev': prev, 'vol_yoy': (cur / prev - 1) if prev >= 10 else None, 'vol_months': [ym_str(a0), ym_str(a1)],
+                  'vol_avg': round(mu, 1), 'vol_z': round((cur - mu) / sd, 3) if mu >= 10 and sd > 0 else None,
                   'price_mom': mom, 'series': series}
     return out
 
