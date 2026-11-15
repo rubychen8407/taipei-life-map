@@ -5,14 +5,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          curl -sSL -m 300 "https://data.gov.tw/datasets/export/csv" -o cat.csv
-          python3 - <<'PY'
-          import csv,io
-          t=open('cat.csv','rb').read().decode('utf-8-sig',errors='replace')
-          rows=list(csv.reader(io.StringIO(t)));h=rows[0]
-          kw=['登記概況','移轉','價格指數','負擔能力','房價','住宅','購置住宅','建築貸款','房地產']
-          for r in rows[1:]:
-              d=dict(zip(h,r)); title=d.get('資料集名稱',''); org=d.get('提供機關','')
-              if any(k in title for k in kw) and (('臺北' in title) or org in ('內政部','中央銀行','內政部地政司','內政部國土管理署','行政院主計總處','國家發展委員會','財政部','金融監督管理委員會')):
-                  print(d.get('資料集識別碼'),'|',title,'|',org,'|',d.get('更新頻率'),'|',(d.get('資料下載網址') or '')[:200])
+          cat > show.py <<'PY'
+          raw=open('f','rb').read()
+          t=None
+          for enc in ('utf-8-sig','cp950'):
+              try: t=raw.decode(enc); break
+              except Exception: pass
+          t=t or raw.decode('cp950','replace')
+          L=t.splitlines(); print('lines',len(L),'bytes',len(raw))
+          print('\n'.join(x[:400] for x in L[:4])); print('...'); print('\n'.join(x[:400] for x in L[-3:]))
           PY
+          show(){ echo; echo "=== $1"; curl -sSL -m 120 "$2" -o f || echo FAIL; python3 show.py || true; }
+          show bldg_reg_m "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=10001&kind=21&type=0&funid=a05001701&cycle=1&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
+          show bldg_reg_y "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=5700&kind=21&type=0&funid=a05001701&cycle=4&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
+          show permit_hist "https://data.taipei/api/dataset/e20ea68e-c79d-4882-a2f9-2f3eeb45384b/resource/2d9396af-863b-496a-9893-0d2f2a8d8b71/download"
+          show permit_cur "https://data.taipei/api/dataset/d8834353-ff8e-4a6c-9730-a4d3541f2669/resource/43624c8e-c768-4b3c-93c4-595f5af7a9cb/download"
+          show use_hist "https://data.taipei/api/dataset/c876ff02-af2e-4eb8-bd33-d444f5052733/resource/0f3f9675-8356-4f1a-9908-1ce8892012fa/download"
+          show use_cur "https://data.taipei/api/dataset/0816f991-e6c8-4da0-a789-d022fee1462b/resource/74a8b311-906e-44c4-91fb-7f413842d4e1/download"
+          show cbc_loans "https://www.cbc.gov.tw/public/data/OpenData/經研處/EF99M01.csv"
+          show rent "https://data.taipei/api/dataset/029c6d0d-c880-4de7-b2fb-9e56669a6f20/resource/d7ace928-288e-4a47-9411-1ebf86d3dafb/download"
+          show fsi "https://www.cbc.gov.tw/public/data/opendata/financialstability/FSI-不動產市場.csv"
+          show permit_use_m2 "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=10001&kind=21&type=0&funid=a05018702&cycle=1&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
