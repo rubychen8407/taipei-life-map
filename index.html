@@ -68,6 +68,19 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row.tap{cursor:pointer}.row.tap:active{background:#f1f3f4}.row .go{flex:none;color:#bdc1c6;font-size:20px;margin-left:-4px}.row .time{flex:none;margin-left:auto}
 #head .back[hidden]{display:none}
+/* 中古屋估價 */
+.vform{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:6px}.vform label{display:grid;gap:4px;font-size:12px;color:#5F6368}.vform .wide{grid-column:span 2}
+.vform input{height:42px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font-size:16px;background:#fff;min-width:0;width:100%;box-sizing:border-box}
+.vform .seg{margin-top:0}.vgo{grid-column:span 2;height:46px;border-radius:14px;border:0;background:var(--D);color:#fff;font-size:16px;font-weight:600}
+.vsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;text-align:center}.vsum div{padding:8px 4px;border-radius:12px;background:#f5f6f8}.vsum .mid{background:var(--bluebg)}
+.vsum small{display:block;font-size:11.5px;color:#5F6368}.vsum b{display:block;font-size:17px;color:var(--D);margin-top:2px;white-space:nowrap}.vsum .mid b{font-size:19px}
+.vbar{display:block;width:100%;height:58px;margin-top:10px}.vline{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:13.5px;line-height:1.45}
+.vdot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px}.vdot.buy{background:#137333}.vdot.even{background:#f9a825}.vdot.sell{background:#d93025}
+.vtabs{margin-top:14px}.vrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}.vrow .r{margin-left:auto;font-weight:600;white-space:nowrap}.vrow.tap{cursor:pointer}
+.vrow>div:first-child{flex:1;min-width:0}.vrow small{display:block;color:#5F6368;font-size:12px}.vchart{display:block;width:100%}.vedit{border:0;background:none;color:var(--D);font-size:13px;font-weight:600;padding:6px 0}
+.vfin{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:8px}.vfin label{display:grid;gap:3px;font-size:12px;color:#5F6368}.vfin input{height:40px;border-radius:10px;border:1px solid var(--line);padding:0 8px;font-size:16px;min-width:0;width:100%;box-sizing:border-box}
+.vburden{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:700}.vburden.g{background:#e6f4ea;color:#137333}.vburden.y{background:#fef7e0;color:#b06000}.vburden.r{background:#fce8e6;color:#c5221f}
+.val-pin span{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--A);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)}.val-pin svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .poi-focus span{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)}.poi-focus svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ic{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px}.ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .row .t{font-weight:600;font-size:14px}
@@ -188,7 +201,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .switch:disabled{opacity:.4}
 #pressMenu{position:absolute;z-index:1160;height:48px;padding:0 4px;border-radius:24px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;align-items:center;gap:4px;transform:translate(-50%,-100%);animation:pop .16s ease-out}
 #pressMenu[hidden]{display:none}
-#pressMenu button{width:40px;height:40px;border-radius:20px;border:0;background:none;color:var(--D);display:flex;align-items:center;justify-content:center;padding:0}
+#pressMenu button{width:40px;height:40px;flex:none;border-radius:20px;border:0;background:none;color:var(--D);display:flex;align-items:center;justify-content:center;padding:0}
 #pressMenu button svg{width:19px;height:19px}
 #pressMenu button.hi{background:var(--A);color:#fff}
 .press-dot{width:16px!important;height:16px!important;margin:-8px 0 0 -8px!important;border-radius:50%;background:var(--D);border:2px solid #fff;box-shadow:0 0 0 8px rgba(247,147,30,.3),0 2px 6px rgba(0,0,0,.25)}
@@ -300,6 +313,7 @@ function categoryIcon(id){const paths={
  dots:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>',
  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/>',
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
+ value:'<path d="M4 12.6V5h7.6l8.4 8.4-7.6 7.6z"/><circle cx="8.4" cy="9.4" r="1.3"/>',
  doc:'<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/>',
  edit:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
  land:'<path d="M3.5 18.5 9 9l4 5.5 2.5-3.5 5 7H3.5Z"/>'
@@ -339,7 +353,7 @@ let heat=null;
 
 const state={active:new Set(['park','school','mrt']),minsByLayer:{sidewalk:3,park:10,school:10,sport:10,market:10,bus:10,mrt:10,life:20},modeByLayer:{sidewalk:'walk',park:'walk',school:'walk',sport:'walk',market:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
-  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true}};
+  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true,deal:false},val:null};
 
 // ---------- geometry ----------
 function ringContains(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
@@ -597,9 +611,9 @@ function drawFacilities(){if(state.transit||!state.res||!state.layers.fac){facLa
       next.set(key,lyr);cnt++;if(facCache.has(key)){if(!facLayer.hasLayer(lyr))facLayer.addLayer(lyr);continue;}
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);}}
   facCache.forEach((ly,k)=>{if(!next.has(k))facLayer.removeLayer(ly);});facCache=next;}
-map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();});
+map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();drawDeals();});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();}); // zoomend 之後一定還有 moveend，設施只在 moveend 重畫一次
-map.on('click',e=>{if(state.editing)return;if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
+map.on('click',e=>{if(state.editing)return;if(state.view.type==='val'){closePops();return;}if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
 
 // ---------- sheet rendering ----------
@@ -620,7 +634,7 @@ function renderCategorySettings(){const el=$('categorySettings');if(!el)return;e
 function closeTune(){if(!state.openDistanceLayer&&!state.modeMenu)return false;state.openDistanceLayer=null;state.modeMenu=false;state.lifeMoving=-1;renderCategorySettings();return true;}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();
+function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML=`<span>${state.loading||(!R&&state.active.size)?'載入中…':'結果'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -812,7 +826,7 @@ function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKe
   $('filterSave').onclick=()=>{const a=loadFilters(),snap=filterSnap(),k=filterKey(snap),dup=a.find(f=>filterKey(f)===k);if(dup){toast('這組條件已存為「'+dup.name+'」');return;}
     const name=$('filterName').value.trim()||'篩選 '+(a.length+1);a.push(Object.assign({name},snap));saveFilters(a);renderFilterPop();toast('已儲存「'+name+'」');};}
 addEventListener('pagehide',saveLast);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLast();});
-const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['deal','實價登錄','doc'],['land','土地價值','land']]}];
+const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route']]},{name:'房市',items:[['deal','實價登錄成交','doc']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['land','土地價值','land']]}];
 function loadPresets(){try{return JSON.parse(localStorage.getItem('tlm.layerPresets')||'[]');}catch(e){return [];}}
 function savePresets(a){try{localStorage.setItem('tlm.layerPresets',JSON.stringify(a));}catch(e){}}
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
@@ -826,7 +840,7 @@ function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k
   el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);applyLayers();});
   el.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=loadPresets()[+b.dataset.preset];layerKeys().forEach(k=>state.layers[k]=!!p.layers[k]);applyLayers();});
   const sv=el.querySelector('[data-save-preset]');if(sv)sv.onclick=()=>{const a=loadPresets();if(a.some(samePreset)){toast('這個組合已經存過了');return;}a.push({name:'組合 '+(a.length+1),layers:Object.fromEntries(layerKeys().map(k=>[k,!!state.layers[k]]))});savePresets(a);renderLayersPop();toast('已儲存為「組合 '+a.length+'」');};}
-function applyLayers(){drawHeat();drawPins();drawFacilities();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
+function applyLayers(){drawHeat();drawPins();drawFacilities();drawDeals();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
@@ -834,12 +848,13 @@ let pressActive=false,swallowUntil=0;
 function openPress(ll,fromTouch){if(state.drawing||state.editing)return;pressActive=!!fromTouch;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
   L.marker(ll,{icon:L.divIcon({className:'press-dot',iconSize:[16,16]}),interactive:false,zIndexOffset:1500}).addTo(pressLayer);
   const p=map.latLngToContainerPoint(ll),m=$('pressMenu');
-  m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button>`;
+  m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button><button type="button" data-press="value" aria-label="評估這裡的房子" title="評估這裡的房子">${categoryIcon('value')}</button>`;
   m.hidden=false;const w=m.offsetWidth;m.style.left=Math.max(w/2+8,Math.min(innerWidth-w/2-8,p.x))+'px';m.style.top=Math.max(130,p.y-18)+'px';
   m.querySelectorAll('[data-press]').forEach(b=>b.onclick=()=>pressAction(b.dataset.press));}
 function pressAction(a){const ll=pressLL;closePress();if(!ll)return;const pt=[ll.lat,ll.lng];
   if(a==='life'){if(state.lifeCenters.length>=3){toast('生活圈最多 3 個地點，請先刪除一個');return;}
     state.lifeCenters.push({label:['住家','公司','常去地點'][state.lifeCenters.length]||'地點',center:pt});state.active.add('life');toast('已加入生活圈「'+state.lifeCenters[state.lifeCenters.length-1].label+'」');lifeChanged();return;}
+  if(a==='value'){openVal(pt);return;}
   if(a==='info'){const k=cellAtLatLng(pt[0],pt[1]);if(k<0||!state.res||isNaN(state.res.worst[k])){toast('這個位置不在分析範圍內');return;}openCell(k,{title:'這個位置'});return;}
   if(a==='transit'){let best=null,bd=600,bl=null;for(const id of ['mrt','bus']){for(const f of (data(id)||[])){const d=md(f.center,pt)*(id==='mrt'?.6:1);if(d<bd){bd=d;best=f;bl=LAYER[id];}}}
     if(!best){toast('附近 600 公尺內沒有車站');return;}openPlace(best,bl);}}
@@ -863,6 +878,124 @@ $('locate').onclick=()=>{if(!navigator.geolocation){toast('這個瀏覽器不支
     L.marker([la,lo],{icon:L.divIcon({className:'me',iconSize:[18,18]}),interactive:false}).addTo(meLayer);
     if(state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:'我的位置',sub:DISTRICTS[CELLS[k].d].name+'・從這裡走到最近的每一類設施'});else map.setView([la,lo],16);},
    ()=>toast('無法取得位置，請確認已允許定位'),{enableHighAccuracy:true,timeout:8000});};
+
+// ---------- 中古屋估價（PRD：長按地圖 →「評估這裡的房子」）。estimate()、modelX()、quantile()、poiScore() 與 scripts/build_realprice.py 相同，改一邊要同步改另一邊 ----------
+let VALDATA=null,VALLOAD=null;const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
+function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json')]).then(([rp,v,fin])=>{
+    VALDATA={sales:rp.sales.map(a=>({pt:[a[0],a[1]],ym:a[2],dist:rp.districts[a[3]],t:a[4],ping:a[5],age:a[6],fl:a[7],tot:a[8],up:a[9],s:a[10],e:a[11]})),rents:rp.rents,types:rp.types,through:rp.through,v,fin};return VALDATA;}).catch(e=>{VALLOAD=null;throw e;});
+  return VALLOAD;}
+function quantile(xs,q){xs=xs.slice().sort((a,b)=>a-b);if(!xs.length)return null;const p=(xs.length-1)*q,lo=Math.floor(p),hi=Math.min(lo+1,xs.length-1);return xs[lo]+(xs[hi]-xs[lo])*(p-lo);}
+function distM(a,b){return Math.hypot((a[0]-b[0])*110574,(a[1]-b[1])*111320*Math.cos(25.05*Math.PI/180));}
+function poiNear(id,pt){let best=1e9,bf=null;for(const f of (data(id)||[])){let d=distM(pt,f.center);if(f.polys)for(const r of f.polys)for(const q of r){const x=distM(pt,q);if(x<d)d=x;}if(d<best){best=d;bf=f;}}return{d:best,f:bf};}
+function poiScore(pt){const ids=VALDATA.v.poi_layers;return ids.reduce((s,id)=>s+Math.max(0,Math.min(1,(20-poiNear(id,pt).d*1.25/80)/10)),0)/ids.length;}
+function modelX(r){return[1,r.age,r.age*r.age/100,r.fl/r.tot,Math.log(r.ping),r.fl===1?1:0,r.fl===r.tot?1:0,r.s,r.t===1?1:0,r.t===2?1:0,r.t===2&&r.fl>=4?1:0];}
+function estimate(sub){const {v,sales}=VALDATA,C=v.comps,now=v.now_ym,maxR=C.radii[C.radii.length-1];
+  const near=sales.filter(r=>r.t===sub.t&&Math.abs(r.age-sub.age)<=C.age_band&&now-r.ym<C.months).map(r=>[distM(sub.pt,r.pt),r]).filter(x=>x[0]<=maxR);
+  let comps=near,rad=maxR;for(const R of C.radii){const c=near.filter(x=>x[0]<=R);if(c.length>=C.min[0]){comps=c;rad=R;break;}}
+  const base=Math.exp(modelX(sub).reduce((a,x,i)=>a+x*v.model.b[i],0)+(v.model.dist[sub.dist]||0)+v.model.now);
+  const res=comps.map(x=>x[1].e),sbar=comps.length?comps.reduce((a,x)=>a+x[1].s,0)/comps.length:0;
+  const poi=comps.length?Math.max(-.08,Math.min(.08,Math.exp(v.model.b[v.feats.indexOf('poi')]*(sub.s-sbar))-1)):0;
+  return{ok:comps.length>=C.min[1],n:comps.length,radius:rad,base,poi,comps:comps.sort((a,b)=>a[0]-b[0]),q:q=>base*Math.exp(quantile(res,q))};}
+// 三段出價以附近成交的行情帶為主；開價只當上限（平均議價率是「開價普遍偏高」下的平均，開價已貼近行情時不適用，所以只當參考顯示）
+// 市場燈號 H：−1 極度買方～+1 極度賣方；各指標限制在 ±1 後取平均
+function marketH(dist){const {v,fin}=VALDATA,m=v.market[dist]||v.market['全市'],cl=x=>Math.max(-1,Math.min(1,x)),parts=[],pc=x=>Math.abs(x*100).toFixed(x*100>=10||x*100<=-10?0:1);
+  if(m.vol_yoy!=null)parts.push({name:'交易量',h:cl(m.vol_yoy/.3),val:(m.vol_yoy>=0?'+':'−')+pc(m.vol_yoy)+'%',txt:`${dist} ${m.vol_months[0].slice(5)}–${m.vol_months[1].slice(5)} 月成交 ${m.vol} 筆，年${m.vol_yoy>=0?'增':'減'} ${pc(m.vol_yoy)}%`,spark:m.series.map(x=>x[1]).slice(0,-2)});
+  if(m.price_mom!=null)parts.push({name:'價格動能',h:cl(m.price_mom/.05),val:(m.price_mom>=0?'+':'−')+pc(m.price_mom)+'%',txt:`全市近兩季單價比前兩季${m.price_mom>=0?'漲':'跌'} ${pc(m.price_mom)}%（已調整屋齡、坪數等差異）`,spark:m.series.map(x=>x[2]).filter(x=>x!=null)});
+  const b=fin.bargain_rate;if(b&&b.prev!=null)parts.push({name:'議價空間',h:-cl((b.value-b.prev)/.03),val:(b.value*100).toFixed(1)+'%',txt:`全市平均議價率 ${(b.value*100).toFixed(1)}%（前一年 ${(b.prev*100).toFixed(1)}%，${b.as_of} 年房仲成交統計）`});
+  const H=parts.length?parts.reduce((a,x)=>a+x.h,0)/parts.length:0;
+  return{H,parts,label:H<=-.3?'買方市場':H>=.3?'賣方市場':'平衡市場',cls:H<=-.3?'buy':H>=.3?'sell':'even'};}
+function valOffers(V){const {v,fin}=VALDATA,f=V.form,e=V.est,o=v.offer,cl=q=>Math.max(.05,Math.min(.95,q)),qf=.5+o.shift*V.mk.H,alpha=[0,.3,.6][f.cond]||0;
+  const val=q=>e.q(cl(q))*(1+e.poi)*f.ping-alpha*(f.reno||0),r=fin.bargain_rate.value*(1-.5*V.mk.H),cap=f.ask?+f.ask:Infinity,expect=f.ask?f.ask*(1-r):null,raw=[val(qf-o.band),val(qf),val(qf+o.band)];
+  return{raw,cap,r,expect,out:raw.map(x=>Math.min(x,cap)),band:[e.q(.25)*(1+e.poi)*f.ping,e.q(.75)*(1+e.poi)*f.ping],mid:e.q(.5)*(1+e.poi)*f.ping};}
+function valLoan(V,price){const {fin}=VALDATA,F=V.fin,ltv=fin.ltv.value,down=F.down!=null&&F.down!==''?+F.down:price*(1-ltv),L=Math.max(0,Math.min(ltv*price,price-down));
+  const pay=rate=>{const i=rate/100/12,n=F.years*12;return i?L*1e4*i/(1-Math.pow(1+i,-n)):L*1e4/n;};
+  return{L,down:price-L,pay:pay(+F.rate),stress:pay(+F.rate+1),cash:price-L+price*fin.closing_cost.value+(V.form.reno||0)};}
+function valRent(V){const f=V.form,R=Math.max(600,V.est.radius),xs=VALDATA.rents.filter(r=>Math.abs(r[3]-f.ping)<=f.ping*.3&&distM(V.pt,[r[0],r[1]])<=R).map(r=>r[4]/r[3]);return xs.length>=5?{n:xs.length,rent:quantile(xs,.5)*f.ping,R}:null;}
+const wan=x=>Math.round(x).toLocaleString('en-US')+' 萬',ymTxt=n=>Math.floor(n/12)+'/'+String(n%12+1).padStart(2,'0');
+function valDefaults(){let f={};try{f=JSON.parse(localStorage.getItem('tlm.valForm')||'{}');}catch(e){}return Object.assign({t:0,ping:30,age:20,fl:5,tot:12,ask:'',cond:0,reno:''},f);}
+async function openVal(pt,prefill){const k=cellAtLatLng(pt[0],pt[1]);if(k<0){toast('這個位置不在臺北市範圍內');return;}
+  if(!state.baked){toast('估價需要預先下載的資料，目前無法使用',true);return;}
+  busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
+  closeDetail(true);state.openDistanceLayer=null;renderCategorySettings();
+  state.val={pt,dist:DISTRICTS[CELLS[k].d].name,form:Object.assign(valDefaults(),prefill||{}),fin:{down:'',years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:''},est:null,tab:'price'};
+  state.view={type:'val'};drawPins();drawVal();render();fitSheet('full');fit(L.latLngBounds(pt,pt),{maxZoom:16});}
+function runVal(){const V=state.val,f=V.form;try{localStorage.setItem('tlm.valForm',JSON.stringify({t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,cond:f.cond}));}catch(e){}
+  V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist);V.off=V.est.ok?valOffers(V):null;
+  drawVal();render();if(isMob())setSheet('half');const b=L.latLngBounds(V.pt,V.pt);V.est.comps.forEach(x=>b.extend(x[1].pt));fit(b,{maxZoom:17});}
+function upColor(up,lo,hi){const t=Math.max(0,Math.min(1,(up-lo)/((hi-lo)||1)));return `hsl(${Math.round(222-190*t)} 78% ${Math.round(42+10*t)}%)`;}
+function drawVal(){selLayer.clearLayers();const V=state.val;if(!V||state.view.type!=='val')return;
+  if(V.est){L.circle(V.pt,{radius:V.est.radius,color:'#123B8A',weight:1.2,dashArray:'4 6',fillColor:'#123B8A',fillOpacity:.05,interactive:false}).addTo(selLayer);
+    const ups=V.est.comps.map(x=>x[1].up),lo=quantile(ups,.1),hi=quantile(ups,.9);
+    V.est.comps.forEach(x=>L.circleMarker(x[1].pt,{radius:6,color:'#fff',weight:1.5,fillColor:upColor(x[1].up,lo,hi),fillOpacity:.95,interactive:false,className:'val-comp'}).addTo(selLayer));}
+  L.marker(V.pt,{icon:L.divIcon({className:'val-pin',html:'<span>'+categoryIcon('value')+'</span>',iconSize:[38,38],iconAnchor:[19,19]}),interactive:false,zIndexOffset:1000}).addTo(selLayer);}
+function spark(xs,w=96,h=26,c='#123B8A'){if(!xs||xs.length<2)return '';const lo=Math.min(...xs),hi=Math.max(...xs),X=i=>2+i/(xs.length-1)*(w-4),Y=v=>h-3-(v-lo)/((hi-lo)||1)*(h-6);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><path d="${xs.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join('')}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;}
+function offerBar(V){const o=V.off,f=V.form,pts=[...o.out,...o.band,o.mid].concat(f.ask?[+f.ask]:[]),lo=Math.min(...pts),hi=Math.max(...pts),pad=(hi-lo)*.08||1,X=v=>12+(v-lo+pad)/(hi-lo+2*pad)*296;
+  return `<svg class="vbar" viewBox="0 0 320 58" role="img" aria-label="出價區間"><rect x="${X(o.band[0])}" y="26" width="${Math.max(2,X(o.band[1])-X(o.band[0]))}" height="10" rx="5" fill="#123B8A" fill-opacity=".14" stroke="#123B8A" stroke-opacity=".35"/><line x1="${X(o.out[0])}" x2="${X(o.out[2])}" y1="31" y2="31" stroke="#123B8A" stroke-width="2"/>${o.out.map((v,i)=>`<circle cx="${X(v)}" cy="31" r="${i===1?7:5}" fill="#123B8A" stroke="#fff" stroke-width="1.5"/>`).join('')}${f.ask?`<path d="M${X(+f.ask)} 22l6 -9h-12z" fill="#F7931E"/><text x="${Math.max(24,Math.min(296,X(+f.ask)))}" y="9" text-anchor="middle" font-size="10.5" fill="#5F6368">開價 ${wan(+f.ask)}</text>`:''}<text x="${Math.max(70,Math.min(250,(X(o.band[0])+X(o.band[1]))/2))}" y="52" text-anchor="middle" font-size="10.5" fill="#5F6368">附近行情帶 ${Math.round(o.band[0]).toLocaleString('en-US')}–${wan(o.band[1])}</text></svg>`;}
+function stripChart(V){const e=V.est,ups=e.comps.map(x=>x[1].up),mine=e.q(.5)*(1+e.poi),lo=Math.min(...ups,mine),hi=Math.max(...ups,mine),X=v=>14+(v-lo)/((hi-lo)||1)*292,now=VALDATA.v.now_ym;
+  return `<svg class="vchart" viewBox="0 0 320 62" role="img" aria-label="可比案例單價分佈"><line x1="14" x2="306" y1="34" y2="34" stroke="#dadce0"/>${e.comps.map((x,i)=>`<circle cx="${X(x[1].up).toFixed(1)}" cy="${28-(i%3)*5}" r="3.6" fill="#123B8A" fill-opacity="${(.85-.55*(now-x[1].ym)/24).toFixed(2)}"/>`).join('')}<line x1="${X(mine)}" x2="${X(mine)}" y1="8" y2="40" stroke="#F7931E" stroke-width="2"/><text x="${Math.max(40,Math.min(280,X(mine)))}" y="54" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1D1D1F">這間估 ${mine.toFixed(1)} 萬／坪</text><text x="14" y="54" font-size="10" fill="#5F6368">${lo.toFixed(0)}</text><text x="306" y="54" text-anchor="end" font-size="10" fill="#5F6368">${hi.toFixed(0)}</text></svg>`;}
+function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
+  if(V.tab==='price'){const med=(D.v.market[V.dist]||D.v.market['全市']).series.map(x=>x[2]).filter(x=>x!=null);
+    return `<h2>附近 ${e.radius} 公尺內 ${e.n} 筆可比成交的單價</h2>${stripChart(V)}<div class="vrow"><div>${esc(V.dist)}近 24 個月單價中位數<small>顏色越深越近期；橘線是這間的估價</small></div><span class="r">${spark(med,110,28)}</span></div>
+      <h2>可比案例（由近到遠）</h2>${e.comps.slice(0,12).map((x,i)=>`<div class="vrow tap" data-comp="${i}"><div>${ymTxt(x[1].ym)}・${x[1].ping.toFixed(0)} 坪・${x[1].fl}/${x[1].tot} 樓<small>屋齡 ${x[1].age} 年・距離 ${Math.round(x[0])} 公尺</small></div><span class="r">${x[1].up.toFixed(1)} 萬／坪</span></div>`).join('')}`;}
+  if(V.tab==='market'){const M=V.mk,x=160+M.H*140;
+    return `<svg class="vchart" viewBox="0 0 320 50" role="img" aria-label="市場燈號"><defs><linearGradient id="vg" x1="0" x2="1"><stop offset="0" stop-color="#137333"/><stop offset=".5" stop-color="#f9a825"/><stop offset="1" stop-color="#d93025"/></linearGradient></defs><rect x="20" y="18" width="280" height="8" rx="4" fill="url(#vg)"/><circle cx="${x}" cy="22" r="8" fill="#fff" stroke="#1D1D1F" stroke-width="2"/><text x="20" y="44" font-size="10.5" fill="#5F6368">買方市場</text><text x="160" y="44" text-anchor="middle" font-size="10.5" fill="#5F6368">平衡</text><text x="300" y="44" text-anchor="end" font-size="10.5" fill="#5F6368">賣方市場</text></svg>
+      ${M.parts.map(p=>`<div class="vrow"><div>${p.name}・${p.h<=-.15?'偏買方':p.h>=.15?'偏賣方':'中性'}<small>${esc(p.txt)}</small></div><span class="r">${p.spark?spark(p.spark,72,24,'#5F6368'):''} ${p.val}</span></div>`).join('')}
+      <div class="note">燈號用公開資料估算大方向：成交量、品質調整後的單價變化、全市議價率。分區議價率、銷售天數與在售庫存目前沒有公開資料。</div>`;}
+  if(V.tab==='fin'){const price=V.off.out[1],L=valLoan(V,price),R=valRent(V),F=V.fin,mg=+F.mgmt||0,inc=+F.income||0,bur=inc?(L.pay+mg)/inc:null,bc=bur==null?'':bur<=.3?'g':bur<=.4?'y':'r',mx=Math.max(L.pay+mg,R?R.rent:0,L.stress+mg),W=v=>Math.max(2,v/mx*100);
+    return `<div class="vfin"><label>自備款（萬）<input data-fin="down" inputmode="decimal" placeholder="${Math.round(L.down)}" value="${esc(F.down)}"></label><label>貸款年限<input data-fin="years" inputmode="numeric" value="${esc(F.years)}"></label><label>利率（%）<input data-fin="rate" inputmode="decimal" value="${esc(F.rate)}"></label><label>家庭月收入（元）<input data-fin="income" inputmode="numeric" placeholder="不會儲存" value="${esc(F.income)}"></label><label>管理費（元／月）<input data-fin="mgmt" inputmode="numeric" placeholder="0" value="${esc(F.mgmt)}"></label></div>
+      <div class="vrow"><div>以合理出價 ${wan(price)} 試算<small>貸款 ${wan(L.L)}（${Math.round(L.L/price*100)}%）・${F.years} 年本息平均攤還</small></div></div>
+      <div class="vrow"><div>每月房貸${mg?'＋管理費':''}<small><i style="display:block;height:8px;width:${W(L.pay+mg)}%;background:#123B8A;border-radius:4px;margin-top:4px"></i></small></div><span class="r">${Math.round(L.pay+mg).toLocaleString('en-US')} 元</span></div>
+      ${R?`<div class="vrow"><div>附近同坪數月租金中位數<small><i style="display:block;height:8px;width:${W(R.rent)}%;background:#F7931E;border-radius:4px;margin-top:4px"></i>${R.R} 公尺內 ${R.n} 筆實價登錄租約</small></div><span class="r">${Math.round(R.rent).toLocaleString('en-US')} 元</span></div>`:''}
+      <div class="vrow"><div>利率再升 1 個百分點<small>壓力測試</small></div><span class="r">${Math.round(L.stress+mg).toLocaleString('en-US')} 元</span></div>
+      <div class="vrow"><div>負擔率<small>（房貸＋管理費）÷ 家庭月收入；30% 以內較安全</small></div><span class="r">${bur==null?'輸入月收入':`<span class="vburden ${bc}">${Math.round(bur*100)}%</span>`}</span></div>
+      <div class="vrow"><div>一開始要準備的現金<small>自備款＋稅費等約 ${(D.fin.closing_cost.value*100).toFixed(0)}%${f.reno?'＋裝潢 '+wan(+f.reno):''}</small></div><span class="r">${wan(L.cash)}</span></div>
+      <div class="note">利率預設為${esc(D.fin.mortgage_rate.label)}（${esc(D.fin.mortgage_rate.as_of)}，${D.fin.mortgage_rate.value}%）；${esc(D.fin.ltv.label)}。實際條件以銀行核定為準。</div>`;}
+  const rows=D.v.poi_layers.map(id=>{const n=poiNear(id,V.pt),l=LAYER[id],t=Math.max(1,Math.ceil(n.d*1.25/80));return `<div class="row"><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${esc(n.f&&n.f.name||'最近的'+l.name)}</div><div class="m">${l.name}</div></div><span class="time ${t<=10?'ok':'no'}">步行 ${t} 分</span></div>`;}).join('');
+  return `<div class="vrow"><div>位置加減分<small>這個位置的生活機能分數 ${(V.s*100).toFixed(0)}，和附近成交的平均相比；上下限 ±8%</small></div><span class="r">${e.poi>=0?'+':'−'}${Math.abs(e.poi*100).toFixed(1)}%</span></div>${rows}`;}
+function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
+  if(!V.est){headDetail('評估這裡的房子',V.dist+'・填寫房屋條件（之後都可以改）',{name:'中古屋估價',color:'#B06000',icon:categoryIcon('value')});
+    $('resultBtn').innerHTML=`<span>填寫房屋條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+    Bd.innerHTML=`<div class="vform"><div class="wide seg" role="group" aria-label="建物型態">${T.map((n,i)=>`<button type="button" data-vt="${i}" aria-pressed="${f.t===i}">${n}</button>`).join('')}</div>
+      <label>坪數（不含車位）<input data-vf="ping" inputmode="decimal" value="${esc(f.ping)}"></label><label>屋齡（年）<input data-vf="age" inputmode="numeric" value="${esc(f.age)}"></label>
+      <label>所在樓層<input data-vf="fl" inputmode="numeric" value="${esc(f.fl)}"></label><label>總樓層<input data-vf="tot" inputmode="numeric" value="${esc(f.tot)}"></label>
+      <label class="wide">開價（萬，不含車位；可不填）<input data-vf="ask" inputmode="decimal" placeholder="例如 2800" value="${esc(f.ask)}"></label>
+      <div class="wide seg" role="group" aria-label="屋況">${['可直接入住','局部翻修','全室翻修'].map((n,i)=>`<button type="button" data-vc="${i}" aria-pressed="${f.cond===i}">${n}</button>`).join('')}</div>
+      ${f.cond?`<label class="wide">裝潢預算（萬）<input data-vf="reno" inputmode="decimal" placeholder="例如 150" value="${esc(f.reno)}"></label>`:''}
+      <button type="button" class="vgo" id="valGo">估價</button></div><div class="note">用內政部實價登錄（至 ${esc(VALDATA.through)}）附近同類型成交估算。車位請另外計價。</div>`+foot();
+    const read=()=>Bd.querySelectorAll('[data-vf]').forEach(i=>{f[i.dataset.vf]=i.value.trim();});
+    Bd.querySelectorAll('[data-vt]').forEach(b=>b.onclick=()=>{read();f.t=+b.dataset.vt;render();});
+    Bd.querySelectorAll('[data-vc]').forEach(b=>b.onclick=()=>{read();f.cond=+b.dataset.vc;render();});
+    $('valGo').onclick=()=>{read();const n=k=>+f[k];
+      if(!(n('ping')>=5&&n('ping')<=150)){toast('坪數請填 5～150');return;}if(!(n('age')>=1&&n('age')<=80)){toast('屋齡請填 1～80 年（新成屋不適用）');return;}
+      if(!(n('tot')>=1&&n('tot')<=60&&n('fl')>=1&&n('fl')<=n('tot'))){toast('樓層不能超過總樓層');return;}if(f.ask!==''&&!(n('ask')>=100)){toast('開價單位是「萬」，例如 2800');return;}
+      Object.assign(f,{ping:n('ping'),age:Math.round(n('age')),fl:Math.round(n('fl')),tot:Math.round(n('tot')),ask:f.ask===''?'':n('ask'),reno:f.cond&&f.reno!==''?Math.max(0,n('reno')||0):''});runVal();};
+    return;}
+  const e=V.est,M=V.mk;headDetail('這裡的房子',`${V.dist}・${T[f.t]}・${f.ping} 坪・屋齡 ${f.age} 年・${f.fl}/${f.tot} 樓${f.ask?'・開價 '+wan(+f.ask):''}`,{name:'中古屋估價',color:'#B06000',icon:categoryIcon('value')});
+  const light=`<div class="vline"><span class="vdot ${M.cls}"></span><div><b>${M.label}</b>・${esc(M.parts.slice().sort((a,b)=>Math.abs(b.h)-Math.abs(a.h)).slice(0,2).map(p=>p.txt.split('（')[0]).join('；'))}</div></div>`;
+  let h='<button type="button" class="vedit" id="valEdit">‹ 修改房屋條件</button>';
+  if(!e.ok){$('resultBtn').innerHTML=`<span>附近成交太少，無法估價</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+    h+=`<div class="note" id="valNo">附近 1 公里內只有 ${e.n} 筆同類型、屋齡相近的成交，資料不足，不提供出價建議。可以改選其他型態或屋齡再試。</div>${light}`;V.tab='place';}
+  else{const o=V.off,L=valLoan(V,o.out[1]),inc=+V.fin.income||0,bur=inc?(L.pay+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
+    $('resultBtn').innerHTML=`<span class="dot"></span><b>合理 ${wan(o.out[1])}</b><span>${M.label.slice(0,2)}${bur!=null?'・負擔 '+Math.round(bur*100)+'%':''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+    h+=`<div class="vsum" id="valSum"><div><small>保守</small><b>${wan(o.out[0])}</b></div><div class="mid"><small>合理出價</small><b>${wan(o.out[1])}</b></div><div><small>積極</small><b>${wan(o.out[2])}</b></div></div>${offerBar(V)}
+      ${over!=null?`<div class="vline"><span class="vdot" style="background:#F7931E"></span><div>開價比行情中間值${over>=0?'高':'低'} <b>${Math.abs(over*100).toFixed(0)}%</b>；依全市平均議價率推算，這個開價的預期成交價約 <b>${wan(o.expect)}</b>${o.out[2]>=o.cap-1e-6?'（出價不會超過開價）':''}</div></div>`:''}
+      ${light}<div class="vline"><span class="vdot" style="background:#123B8A"></span><div>以合理出價貸款 ${Math.round(L.L/o.out[1]*100)}%：每月約 <b>${Math.round(L.pay).toLocaleString('en-US')} 元</b>${bur!=null?`，負擔率 <span class="vburden ${bur<=.3?'g':bur<=.4?'y':'r'}">${Math.round(bur*100)}%</span>`:''}</div></div>`;}
+  h+=`<div class="seg vtabs" role="tablist">${[['price','價格'],['market','市場'],['fin','財務'],['place','位置']].filter(t=>e.ok||t[0]==='market'||t[0]==='place').map(([k,n])=>`<button type="button" role="tab" data-vtab="${k}" aria-pressed="${V.tab===k}">${n}</button>`).join('')}</div><div id="valTab">${valTab(V)}</div>
+    <div class="note">依公開資料的統計估算（實價登錄至 ${esc(VALDATA.through)}；回測中位數誤差 ${(VALDATA.v.backtest.mdape*100).toFixed(0)}%、約 ${(VALDATA.v.backtest.hit_10_90*100).toFixed(0)}% 的實際成交落在保守～積極之間）。不含車位，不是不動產估價師鑑價，也不是投資或貸款建議。</div>`;
+  Bd.innerHTML=h+foot();
+  $('valEdit').onclick=()=>{V.est=null;drawVal();render();fitSheet('full');};
+  Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
+  Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
+  Bd.querySelectorAll('[data-fin]').forEach(i=>i.onchange=()=>{V.fin[i.dataset.fin]=i.value.trim();if(!(+V.fin.years>=1))V.fin.years=VALDATA.fin.years;if(!(+V.fin.rate>=0)||V.fin.rate==='')V.fin.rate=VALDATA.fin.mortgage_rate.value;const y=Bd.scrollTop;render();Bd.scrollTop=y;});}
+// 「實價登錄成交」圖層：放大到街區才畫（畫面內的成交點，顏色＝單價高低），點一筆可用它的條件估價
+let dealSeq=0;async function drawDeals(){const seq=++dealSeq;if(!state.layers.deal||state.transit||state.drawing||state.editing){dealLayer.clearLayers();return;}
+  try{await loadVal();}catch(e){dealLayer.clearLayers();if(state.layers.deal){state.layers.deal=false;toast('實價登錄資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();}return;}
+  if(seq!==dealSeq)return;dealLayer.clearLayers();if(map.getZoom()<15){if(!state.dealHint){state.dealHint=true;toast('放大地圖就會顯示成交點');}return;}
+  const b=map.getBounds().pad(.1),vis=VALDATA.sales.filter(r=>b.contains(r.pt)).slice(0,1500),ups=vis.map(r=>r.up),lo=quantile(ups,.1),hi=quantile(ups,.9);
+  vis.forEach(r=>L.circleMarker(r.pt,{renderer:dealCanvas,radius:6,color:'#fff',weight:1.2,fillColor:upColor(r.up,lo,hi),fillOpacity:.9,bubblingMouseEvents:false})
+    .on('click',()=>{if(state.drawing||state.editing)return;L.popup({className:'deal-pop',closeButton:false,offset:[0,-4]}).setLatLng(r.pt).setContent(`<b>${r.up.toFixed(1)} 萬／坪</b><br>${ymTxt(r.ym)}・${VALDATA.types[r.t]}・${r.ping.toFixed(0)} 坪・${r.fl}/${r.tot} 樓・屋齡 ${r.age} 年<br><button type="button" class="vedit" id="dealUse">用這筆的條件估價 ›</button>`).openOn(map);
+      setTimeout(()=>{const u=document.getElementById('dealUse');if(u)u.onclick=()=>{map.closePopup();openVal(r.pt,{t:r.t,ping:r.ping,age:Math.max(1,r.age),fl:r.fl,tot:r.tot,ask:''});};},0);}).addTo(dealLayer));}
 
 // ---------- main flow ----------
 async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCenters();

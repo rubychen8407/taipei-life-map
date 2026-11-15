@@ -402,8 +402,9 @@ def backtest(recs, test_months=3):
 
 
 def market(recs, model, now_ym):
-    """各區市場指標：交易量年增率（避開申報還沒進來的最近 2 個月）、品質調整後的價格動能（最近兩季 vs 前兩季）"""
-    out = {}; a0, a1 = now_ym - 4, now_ym - 2          # 例：現在 11 月 → 看 7、8、9 月
+    """各區市場指標：交易量年增率（避開申報還沒到齊的最近 4 個月）、品質調整後的價格動能（最近兩季 vs 前兩季）"""
+    # 實價登錄有申報落差：成交後 2～4 個月資料才大致到齊（實測最近 4 個月的筆數明顯偏少），所以看「5～7 個月前」那三個月
+    out = {}; a0, a1 = now_ym - 7, now_ym - 5
     qs = sorted(model['q'], key=int); mom = None
     if len(qs) >= 4:
         mom = math.exp((model['q'][qs[-1]] + model['q'][qs[-2]]) / 2 - (model['q'][qs[-3]] + model['q'][qs[-4]]) / 2) - 1

@@ -75,6 +75,8 @@ async def route(r):
         if not MODE['baked'] or name in MODE['missing'] or not os.path.exists(p_):
             return await r.fulfill(status=404, body='not found')
         return await r.fulfill(path=p_, content_type='application/json')
+    if u.startswith(URL + 'config/'):
+        return await r.fulfill(path=os.path.join(ROOT, 'config', u[len(URL + 'config/'):]), content_type='application/json')
     if u.startswith(URL):
         return await r.fulfill(path=os.path.join(ROOT, 'index.html'), content_type='text/html; charset=utf-8')
     if 'leaflet.css' in u:
@@ -499,8 +501,8 @@ async def baked_suite(b, errs):
     check(await ev("state.lifeCenters.length===1 && lifeLayer.getLayers().length===1"), '可刪除地點，地圖標記同步')
     # 10c. 圖層：分組、開關、全選、儲存組合
     await page.click('#layersBtn')
-    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===3 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市三組')
-    check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=deal],#layersPop [data-layer=land]')].every(b=>b.disabled)"), '房屋出售、實價登錄、土地價值歸在「房市」，先預留（不能開）')
+    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===4 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市三組')
+    check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=land]')].every(b=>b.disabled)&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal"), '房市：實價登錄成交可以開（預設關），房屋出售、土地價值先預留')
     await shot(page, '8_layers')
     await page.click('#layersPop [data-layer=heat]')
     check(await ev("!state.layers.heat && (!heat || heat._flags==='o')"), '關掉熱圖：彩色色塊消失（只留不符合處的反灰）')
@@ -524,7 +526,7 @@ async def baked_suite(b, errs):
     await ev("void map.setView([25.04,121.54],15,{animate:false});setSheet('peek',false)"); await page.wait_for_timeout(300)
     await long_press(page, 200, 470)
     pm = await ev("(()=>{const m=document.getElementById('pressMenu');const r=m.getBoundingClientRect();return {open:!m.hidden,n:m.querySelectorAll('[data-press]').length,txt:m.innerText.trim(),w:r.width,h:r.height,dot:pressLayer.getLayers().length}})()")
-    check(pm['open'] and pm['n'] == 3 and pm['txt'] == '' and pm['h'] <= 56 and pm['w'] <= 170 and pm['dot'] == 1, f"長按地圖：放下一個點，跳出只有圖示的小選單（{pm['n']} 個、{pm['w']:.0f}×{pm['h']:.0f}）")
+    check(pm['open'] and pm['n'] == 4 and pm['txt'] == '' and pm['h'] <= 56 and pm['w'] <= 215 and pm['dot'] == 1, f"長按地圖：放下一個點，跳出只有圖示的小選單（{pm['n']} 個、{pm['w']:.0f}×{pm['h']:.0f}）")
     check(await ev("state.view.type==='list'"), '長按不會同時觸發點地圖（不會打開位置卡）')
     check(await ev("(()=>{const b=[...document.querySelectorAll('#pressMenu button')].map(e=>e.getBoundingClientRect());return b.every(r=>r.width>=44&&r.height>=44)})()"), '長按選單的按鈕至少 44×44，好按')
     await shot(page, '9_press')
@@ -574,6 +576,74 @@ async def baked_suite(b, errs):
     check(await ev("state.minsByLayer.park===7&&document.getElementById('filterPop').hidden&&document.querySelector('.chip[data-id=market]').getAttribute('aria-pressed')==='true'"), '點儲存的篩選：一鍵套用回類別、分鐘與範圍')
     await page.click('#filterBtn'); await page.click('#filterPop [data-fdel="0"]'); await page.wait_for_timeout(200)
     check(await ev("JSON.parse(localStorage.getItem('tlm.filters')).length===0&&!document.querySelector('#filterPop .frow')"), '可以刪除儲存的篩選')
+    await page.close()
+
+    # 10c. 中古屋估價：長按 → 評估這裡的房子 → 結論卡、出價、燈號、房貸、四個分頁
+    page = await new_page(b, errs, **PHONE)
+    ev = page.evaluate
+    await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
+    await ev("void map.setView([25.0325,121.543],16,{animate:false})"); await page.wait_for_timeout(400)
+    pt = await ev("(()=>{const p=map.latLngToContainerPoint([25.030,121.543]);return [p.x,p.y]})()")
+    h0 = len(data_hits)
+    await long_press(page, pt[0], pt[1]); await page.click('#pressMenu [data-press=value]')
+    await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valGo')", timeout=10000)
+    check({'realprice.json', 'valuation.json'} <= set(data_hits[h0:]) and 'realprice.json' not in data_hits[:h0], '長按選「評估這裡的房子」：這時才下載估價資料，出現房屋條件表單')
+    check(await ev("document.querySelectorAll('#body [data-vt]').length===3&&document.querySelector('#head .sub').innerText.includes('大安區')&&snap!=='peek'"), '表單：三種型態、坪數、屋齡、樓層、開價、屋況；面板自動打開')
+    for k, v_ in (('ping', '30'), ('age', '12'), ('fl', '18'), ('tot', '15'), ('ask', '3600')):
+        await page.fill(f'#body [data-vf={k}]', v_)
+    await page.click('#valGo'); await page.wait_for_timeout(200)
+    check(await ev("!state.val.est&&document.getElementById('toast').innerText.includes('樓層')"), '樓層超過總樓層：提示錯誤、不估價')
+    await page.fill('#body [data-vf=fl]', '8'); await page.click('#valGo')
+    await page.wait_for_function("!!document.getElementById('valSum')", timeout=5000); await page.wait_for_timeout(500)
+    r = await ev("({out:state.val.off.out,cap:state.val.off.cap,mid:state.val.off.mid,q50:state.val.est.q(.5),n:state.val.est.n,rad:state.val.est.radius,poi:state.val.est.poi,s:state.val.s,H:state.val.mk.H,label:state.val.mk.label,sum:document.getElementById('valSum').innerText.replace(/\\s+/g,' '),layers:selLayer.getLayers().length,snap,pill:document.getElementById('resultBtn').innerText.replace(/\\s+/g,' ')})")
+    pe = MODE['val']['est']
+    check(abs(r['q50'] - pe['q'][0.5]) / pe['q'][0.5] < 0.015 and abs(r['n'] - pe['n']) <= 3 and r['rad'] == pe['radius'] and abs(r['s'] - MODE['val']['s']) < 0.02 and abs(r['poi'] - pe['poi']) < 0.01,
+          f"前端估價與建置程式（Python）算出來一致：{r['q50']:.1f} vs {pe['q'][0.5]:.1f} 萬／坪、可比 {r['n']} vs {pe['n']} 筆、半徑 {r['rad']} 公尺")
+    check(r['out'][0] < r['out'][1] < r['out'][2] and r['out'][2] <= r['cap'] + 1e-6 and '保守' in r['sum'] and '合理出價' in r['sum'] and '積極' in r['sum'], f"結論卡：保守／合理／積極三段出價，都不超過開價（{r['sum']}）")
+    check(r['layers'] >= r['n'] + 2 and r['snap'] != 'peek' and r['label'] in ('買方市場', '平衡市場', '賣方市場') and await ev("!!document.querySelector('#body .vdot.'+state.val.mk.cls)&&!!document.querySelector('#body .vbar')"), f"地圖畫出可比案例與搜尋半徑；面板有出價區間條與市場燈號（{r['label']}，H={r['H']:+.2f}）")
+    vis = await ev("(()=>{const p=map.latLngToContainerPoint(state.val.pt),s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return p.y>t.bottom&&p.y<s.top})()")
+    check(vis, '物件標記在可見的地圖範圍內')
+    await shot(page, '8_val_half')
+    await ev("setSheet('peek')"); await page.wait_for_timeout(350)
+    check('合理' in await ev("document.getElementById('resultBtn').innerText") and await ev("!document.getElementById('resultBtn').hidden"), '收起面板：左下角按鈕顯示「合理 ○○ 萬｜燈號」')
+    await page.click('#resultBtn'); await page.wait_for_timeout(350)
+    check(await ev("document.querySelectorAll('#body [data-comp]').length>=5&&!!document.querySelector('#valTab svg.vchart')"), '價格分頁：可比案例單價分佈圖與清單')
+    await page.click('#body [data-vtab=price]'); await page.wait_for_timeout(400); await shot(page, '8b_val_price')
+    await ev("document.querySelector('#body [data-comp=\"2\"]').click()"); await page.wait_for_timeout(500)
+    check(await ev("(()=>{const c=state.val.est.comps[2][1].pt,m=map.getCenter();return Math.abs(m.lat-c[0])<.003&&Math.abs(m.lng-c[1])<.003&&!!state.val.hl})()"), '點一筆可比案例：地圖移過去並標示')
+    await ev("document.querySelector('#body [data-vtab=market]').click()"); await page.wait_for_timeout(300)
+    check(await ev("document.querySelectorAll('#valTab .vrow').length>=3&&document.getElementById('valTab').innerText.includes('議價')"), '市場分頁：燈號儀表與交易量、價格動能、議價空間三個指標')
+    await shot(page, '8c_val_market')
+    await ev("document.querySelector('#body [data-vtab=fin]').click()"); await page.wait_for_timeout(300)
+    pay0 = await ev("valLoan(state.val,state.val.off.out[1]).pay")
+    L = await ev("valLoan(state.val,state.val.off.out[1]).L"); i = 2.29 / 100 / 12; exp = L * 1e4 * i / (1 - (1 + i) ** -360)
+    check(abs(pay0 - exp) < 1 and abs(L - 0.8 * r['out'][1]) < 0.01, f'財務分頁：預設貸 8 成、30 年、利率 2.29%，本息平均攤還每月 {pay0:,.0f} 元（公式驗算一致）')
+    await page.fill('#body [data-fin=income]', '150000'); await page.press('#body [data-fin=income]', 'Tab'); await page.wait_for_timeout(300)
+    bur = await ev("document.querySelector('#valTab .vburden')?document.querySelector('#valTab .vburden').innerText:''")
+    check(bur == f'{round(pay0 / 150000 * 100)}%' and await ev("localStorage.getItem('tlm.valForm').indexOf('150000')<0") and '租金' in await ev("document.getElementById('valTab').innerText"), f'輸入月收入顯示負擔率（{bur}），收入不會存到裝置；並列附近租金')
+    await shot(page, '8d_val_fin')
+    await ev("document.querySelector('#body [data-vtab=place]').click()"); await page.wait_for_timeout(300)
+    check(await ev("document.querySelectorAll('#valTab .row').length") == 6 and '位置加減分' in await ev("document.getElementById('valTab').innerText"), '位置分頁：六類設施步行時間與位置加減分')
+    await page.click('#valEdit'); await page.wait_for_timeout(300)
+    check(await ev("document.querySelector('#body [data-vf=ping]').value==='30'&&document.querySelector('#body [data-vf=ask]').value==='3600'"), '「修改房屋條件」回到表單，原本填的還在')
+    await page.fill('#body [data-vf=ask]', ''); await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSum')", timeout=5000)
+    check(await ev("state.val.off.cap===Infinity&&state.val.off.out[0]<state.val.off.out[1]&&state.val.off.out[1]<state.val.off.out[2]"), '不填開價也能估：三段出價直接取行情帶')
+    await page.wait_for_timeout(600); await page.click('#close'); await page.wait_for_timeout(400)
+    check(await ev("state.view.type==='list'&&selLayer.getLayers().length===0"), '按 ✕ 離開估價，回到地圖')
+    await ev("void map.setView([25.12,121.50],16,{animate:false})"); await page.wait_for_timeout(300)
+    await ev("void openVal([25.12,121.50])"); await page.wait_for_function("!!document.getElementById('valGo')", timeout=5000); await page.click('#valGo'); await page.wait_for_timeout(400)
+    check(await ev("!!document.getElementById('valNo')&&!document.getElementById('valSum')&&!state.val.est.ok"), '附近成交太少：說明原因，不給出價建議')
+    await page.click('#close')
+    await ev("void map.setView([25.030,121.543],16,{animate:false})"); await page.wait_for_timeout(300)
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.wait_for_function("dealLayer.getLayers().length>10", timeout=5000); await page.click('#layersBtn')
+    check(True, f"圖層「實價登錄成交」：放大後畫出畫面內的成交點（{await ev('dealLayer.getLayers().length')} 筆）")
+    await shot(page, '8e_deals')
+    await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(300)
+    check('萬／坪' in await ev("document.querySelector('.leaflet-popup-content').innerText"), '點成交點：顯示單價、年月、坪數、樓層、屋齡')
+    await page.click('#dealUse'); await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valGo')", timeout=5000)
+    check(await ev("(()=>{const d=VALDATA.sales.find(r=>r.pt[0]===state.val.pt[0]&&r.pt[1]===state.val.pt[1]);return !!d&&+document.querySelector('#body [data-vf=ping]').value===d.ping&&state.val.form.t===d.t})()"), '「用這筆的條件估價」：帶入該筆的型態、坪數、屋齡、樓層')
+    await ev("void map.setView([25.05,121.55],12,{animate:false})"); await page.wait_for_timeout(500)
+    check(await ev("dealLayer.getLayers().length") == 0, '縮小時不畫成交點')
     await page.close()
 
     # 11. 桌機版面
@@ -652,6 +722,14 @@ async def real_suite(b, errs):
     await page.wait_for_function("state.transit&&state.transit.loading===false", timeout=90000)
     print('  transit at', name, await ev("state.transit.n"), 'routes', await ev(LINES + ".map(l=>l.options.weight)"))
     await shot(page, 'real_6_bus')
+    await page.click('#close')
+    await ev("void map.setView([25.0585,121.557],16,{animate:false})"); await page.wait_for_timeout(500)
+    await ev("void openVal([25.0585,121.557])"); await page.wait_for_function("!!document.getElementById('valGo')", timeout=30000)
+    for k, v_ in (('ping', '28'), ('age', '35'), ('fl', '4'), ('tot', '7'), ('ask', '2800')):
+        await page.fill(f'#body [data-vf={k}]', v_)
+    await page.click('#body [data-vt="1"]'); await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSum')||!!document.getElementById('valNo')", timeout=5000)
+    print('  valuation', await ev("({n:state.val.est.n,rad:state.val.est.radius,unit:state.val.est.q(.5),poi:state.val.est.poi,out:state.val.off&&state.val.off.out,H:state.val.mk.H,label:state.val.mk.label,parts:state.val.mk.parts.map(p=>p.txt)})"))
+    await shot(page, 'real_7_val'); await ev("setSheet('full')"); await shot(page, 'real_8_val_full')
     await page.close()
 
 
@@ -671,6 +749,12 @@ async def main():
                 idx = build_data.build(fetch=lambda q: {'elements': answer(q)}, out_dir=DATA_DIR, pause=0)
                 import build_sidewalk, sidewalk_mock
                 MODE['sw'] = build_sidewalk.build(sidewalk_mock.mock(), DATA_DIR, built='2026-11-14', period='202606', log=lambda *a: None)
+                import build_realprice as RP, realprice_mock as RM   # 估價：模擬的實價登錄 → 實際跑建置程式
+                rs, rr, raddr, _ = RM.mock()
+                clean = RP.parse_sales(rs); layers = json.load(open(os.path.join(DATA_DIR, 'city.json'), encoding='utf-8'))['layers']
+                val = RP.build(clean, RP.parse_rents(rr), raddr, layers, out_dir=DATA_DIR, built='2026-11-15', log=lambda *a: None, min_sales=1000)
+                subj = {'dist': '大安區', 't': 0, 'age': 12, 'fl': 8, 'tot': 15, 'ping': 30.0, 'pt': (25.030, 121.543)}; subj['s'] = RP.PoiIndex(layers).score(subj['pt'])
+                MODE['val'] = {'v': val, 'est': RP.estimate(subj, {'b': val['model']['b'], 'dist': val['model']['dist'], 'q': {'0': 0}}, [r for r in clean if 'e' in r], val['now_ym'], val['model']['now']), 's': subj['s']}
             check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
             await baked_suite(b, errs)
