@@ -66,7 +66,10 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .drow .b i{display:block;height:100%;background:#26a69a;border-radius:4px}
 .drow .p{flex:none;width:44px;text-align:right;font-size:12.5px;color:var(--sub)}
 .row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
-.ic{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px}
+.row.tap{cursor:pointer}.row.tap:active{background:#f1f3f4}.row .go{flex:none;color:#bdc1c6;font-size:20px;margin-left:-4px}.row .time{flex:none;margin-left:auto}
+#head .back[hidden]{display:none}
+.poi-focus span{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)}.poi-focus svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px}.ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .row .t{font-weight:600;font-size:14px}
 .row .m{color:var(--sub);font-size:12.5px;margin-top:1px}
 .row .time{margin-left:auto;font-weight:700;white-space:nowrap}
@@ -605,7 +608,7 @@ function renderCategorySettings(){const el=$('categorySettings');if(!el)return;e
 function closeTune(){if(!state.openDistanceLayer&&!state.modeMenu)return false;state.openDistanceLayer=null;state.modeMenu=false;state.lifeMoving=-1;renderCategorySettings();return true;}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();
+function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML=`<span>${state.loading||(!R&&state.active.size)?'載入中…':'結果'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -629,25 +632,44 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
   if($('toCity'))$('toCity').onclick=()=>setScope('');}
 function headDetail(title,sub,category){const cat=category?`<div class="detail-category" style="color:${category.color||'#5f6368'}">${category.icon||''}<span>${esc(category.name)}</span></div>`:'';$('head').innerHTML=`${cat}<h1><button class="back" id="back" aria-label="返回">‹</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</span><button class="x" id="close" aria-label="關閉">✕</button></h1><div class="sub">${esc(sub)}</div>`;
-  $('back').onclick=$('close').onclick=()=>closeDetail();}
+  const bs=state.backStack||[];$('back').hidden=!(bs.length||state.view.fromList);$('back').onclick=goBack;$('close').onclick=()=>closeDetail();}
+// 返回：回到上一個畫面（例如從設施回到標記的位置）；從推薦清單點進來的回到清單。✕ 直接離開這個地點
+function pushBack(){(state.backStack||(state.backStack=[])).push(Object.assign({},state.view));}
+function goBack(){const b=(state.backStack||[]).pop();if(!b){const fl=state.view.fromList;closeDetail();if(fl&&isMob())setSheet('half');return;}
+  closeTransit();selLayer.clearLayers();if(b.type==='cell')openCell(b.k,b,true);else if(b.type==='poi')openPoi(b.f,b.l,b.from);else if(b.type==='place')openPlace(b.f,b.l);else closeDetail();}
+function walkMin(m){return Math.max(1,Math.ceil(m*1.25/MODE_INFO.walk.speed));}
+function nearestOf(id,c,n,max){return (data(id)||[]).map((f,i)=>({f,i,d:md(f.center,c)})).filter(x=>x.d<=max).sort((a,b)=>a.d-b.d).slice(0,n);}
+// 從標記位置的清單點某個設施：地圖移到該設施，卡片顯示它的資訊與附近交通；公車站、捷運站直接顯示路線
+function openPoi(f,l,from){if(l.id==='bus'||l.id==='mrt'){openPlace(f,l);return;}
+  closeTransit();selLayer.clearLayers();state.view={type:'poi',f,l,from};const c=f.center;
+  if(from&&from.pt){L.polyline([from.pt,c],{color:l.color,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(selLayer);L.marker(from.pt,{icon:L.divIcon({className:'pin',html:'📍',iconSize:[30,30]}),interactive:false,zIndexOffset:900}).addTo(selLayer);}
+  L.marker(c,{icon:L.divIcon({className:'poi-focus',html:'<span style="background:'+l.color+'">'+l.icon+'</span>',iconSize:[40,40],iconAnchor:[20,20]}),interactive:false,zIndexOffset:1000}).addTo(selLayer);
+  render();fitSheet();fit(L.latLngBounds(c,c),{maxZoom:17});if(!ROUTE_DATA)bakedRoutes().then(()=>{if(state.view.f===f)render();});}
+function renderPoi(){const v=state.view,f=v.f,l=v.l;headDetail(facilityTitle(f,l),'',{name:l.name,color:l.color,icon:l.icon});
+  let h=v.from?`<div class="verdict ${v.from.ok?'ok':'no'}">從標記的位置過來：${esc(v.from.txt)}</div>`:'';
+  const near=[...nearestOf('mrt',f.center,2,1500).map(x=>[x,LAYER.mrt]),...nearestOf('bus',f.center,3,600).map(x=>[x,LAYER.bus])];
+  h+='<h2>附近交通</h2>'+(near.length?near.map(([x,tl])=>{const r=facilityLabel(x.f,tl);return `<div class="row tap" data-near="${tl.id}:${x.i}"><span class="ic" style="background:${tl.bg};color:${tl.color}">${tl.icon}</span><div style="min-width:0"><div class="t">${esc(x.f.name||tl.name)}</div><div class="m">${r?esc(r):tl.name}</div></div><span class="time ok">步行 ${walkMin(x.d)} 分</span><span class="go">›</span></div>`;}).join(''):'<div class="note">附近 600 公尺內沒有公車站、1.5 公里內沒有捷運站。</div>');
+  $('body').innerHTML=h+foot();$('body').querySelectorAll('[data-near]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.near.split(':');pushBack();openPlace(data(id)[+i],LAYER[id]);});}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
   const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
   let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
-    h+=`<div class="row"><span class="ic" style="background:${l.bg}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});
-  $('body').innerHTML=h+foot();}
+    const tap=f&&id!=='life'&&t!==Infinity;
+    h+=`<div class="row${tap?' tap':''}"${tap?` data-poi="${id}:${D.nf[k]}" data-ok="${good?1:0}"`:''}><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span>${tap?'<span class="go">›</span>':''}</div>`;});
+  $('body').innerHTML=h+foot();
+  $('body').querySelectorAll('[data-poi]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.poi.split(':'),f=data(id)[+i];pushBack();openPoi(f,LAYER[id],{pt:[c.la,c.lo],txt:el.querySelector('.time').textContent,ok:el.dataset.ok==='1'});});}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
 function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
   R.act.forEach((id,i)=>{const D=R.D[i];if(D.nf[k]<0||D.d[k]===0)return;const p=nearPt(D,k),l=LAYER[id];
     L.polyline([[c.la,c.lo],p],{color:l.color,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(selLayer);
     L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:l.color,fillOpacity:1,interactive:false}).addTo(selLayer);});
   L.marker([c.la,c.lo],{icon:L.divIcon({className:'pin',html:'📍',iconSize:[30,30]}),interactive:false,zIndexOffset:900}).addTo(selLayer);}
-function openCell(k,opt={}){closeTransit();if(state.openDistanceLayer){state.openDistanceLayer=null;renderCategorySettings();}state.view=Object.assign({type:'cell',k},opt);drawPins();drawSel(k);render();fitSheet();
+function openCell(k,opt={},keep){if(!keep)state.backStack=[];closeTransit();if(state.openDistanceLayer){state.openDistanceLayer=null;renderCategorySettings();}state.view=Object.assign({type:'cell',k},opt);drawPins();drawSel(k);render();fitSheet();
   const R=state.res,c=CELLS[k],pts=[[c.la,c.lo]];R.act.forEach((id,i)=>{const D=R.D[i];if(D.nf[k]>=0)pts.push(nearPt(D,k));});
   fit(L.latLngBounds(pts).pad(.2),{maxZoom:16});}
-function openZone(i){const z=state.zones[i];openCell(z.best,{title:`${i+1}. ${z.mrt?z.mrt+'周邊':z.district}`,sub:`${z.district}・這個區域裡條件最好的位置`});}
-function closeDetail(silent){closeTransit();selLayer.clearLayers();if(state.view.type==='list')return;state.view={type:'list'};drawPins();if(!silent){render();if(isMob())setSheet('peek');}}
+function openZone(i){const z=state.zones[i];openCell(z.best,{fromList:true,title:`${i+1}. ${z.mrt?z.mrt+'周邊':z.district}`,sub:`${z.district}・這個區域裡條件最好的位置`});}
+function closeDetail(silent){state.backStack=[];closeTransit();selLayer.clearLayers();if(state.view.type==='list')return;state.view={type:'list'};drawPins();if(!silent){render();if(isMob())setSheet('peek');}}
 
 
 /* ---------- 生活圈類別：使用者在地圖上點選的住家、公司等地點，和其他類別一樣設定交通方式與時間 ---------- */
@@ -699,7 +721,8 @@ function renderPlace(){const v=state.view,l=v.l,T=state.transit,rail=l.id==='mrt
 async function openPlace(f,l){closeTransit();selLayer.clearLayers();
   if(l.id!=='bus'&&l.id!=='mrt'){const k=cellAtLatLng(f.center[0],f.center[1]);if(k>=0&&state.res&&!isNaN(state.res.worst[k]))openCell(k,{title:facilityTitle(f,l),sub:'從這個設施位置出發的步行生活圈',category:{name:l.name,color:l.color,icon:l.icon}});return;}
   const [la,lo]=f.center,origin=[la,lo],R=l.id==='mrt'?300:40;state.transit={f,loading:true,n:0};state.view={type:'place',f,l};
-  clearHeat();pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();busy(true);
+  clearHeat();pinLayer.clearLayers();facLayer.clearLayers();syncLabels();render();fitSheet();if((state.backStack||[]).length)fit(L.latLngBounds(origin,origin),{maxZoom:16}); // 從清單點進來才移動地圖；直接點地圖上的站牌不動畫面
+  busy(true);
   let rels;const Bk=await bakedRoutes();
   const isBus=l.id==='bus';
   if(Bk){let cand=Bk.routes.filter(r=>(r.r==='bus')===isBus);
