@@ -209,10 +209,6 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .frow .fapply{flex:1;min-width:0;min-height:52px;border:0;background:none;text-align:left;padding:8px 4px 8px 12px;color:var(--ink)}.frow .fapply b{display:block;font-size:14px;font-weight:600}.frow .fapply span{display:block;font-size:11.5px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .frow .fdel{flex:none;width:44px;height:44px;border:0;background:none;color:#80868b;font-size:14px}
 .fsave{display:flex;gap:6px}.fsave input{flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font-size:16px;background:#fff}.fsave button{flex:none;height:40px;padding:0 14px;border-radius:12px;border:0;background:var(--A);color:#fff;font-weight:600;font-size:14px}
-.presets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.presets::-webkit-scrollbar{display:none}
-.presets button{flex:none;height:30px;padding:0 12px;border-radius:15px;border:0;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1);font-size:12px;color:var(--ink)}
-.presets button[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px var(--D);color:var(--D);font-weight:600}
-.presets .save{background:var(--A);color:#fff;box-shadow:none;font-weight:600;display:flex;align-items:center;gap:4px}.presets .save svg{width:13px;height:13px;stroke-width:2}
 .lgroup-h{display:flex;align-items:center;justify-content:space-between;margin:2px 2px -4px;font-size:12px;font-weight:600}
 .lgroup-h button{height:26px;padding:0 10px;border-radius:13px;border:0;background:rgba(255,255,255,.6);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08);color:var(--D);font-size:11px}
 .lgroup{background:rgba(255,255,255,.7);border-radius:12px;padding:0 12px}
@@ -830,6 +826,8 @@ function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hid
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
 $('filterBtn').innerHTML=categoryIcon('filter');$('filterBtn').onclick=()=>togglePop('filterPop','filterBtn');
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');
+// 圖層開關：自動記住上次的設定（不另外提供儲存組合）
+try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
 // ---------- 我的篩選（smart filter）：目前的類別、交通方式、分鐘、範圍、生活圈地點；重新整理自動保留上次條件，也可以命名儲存多組 ----------
 function filterSnap(){return{active:CATS.map(l=>l.id).filter(id=>state.active.has(id)),mins:Object.assign({},state.minsByLayer),modes:Object.assign({},state.modeByLayer),scope:state.scope,custom:state.scope==='custom'?state.custom:null,life:state.lifeCenters.map(c=>({label:c.label,center:c.center}))};}
 function filterKey(f){return JSON.stringify([f.active,f.active.map(id=>[f.mins[id],f.modes[id]]),f.scope,f.custom,f.life]);}
@@ -855,21 +853,16 @@ function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKe
     const name=$('filterName').value.trim()||'篩選 '+(a.length+1);a.push(Object.assign({name},snap));saveFilters(a);renderFilterPop();toast('已儲存「'+name+'」');};}
 addEventListener('pagehide',saveLast);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLast();});
 const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['homes','我的物件','star']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['land','土地價值','land']]}];
-function loadPresets(){try{return JSON.parse(localStorage.getItem('tlm.layerPresets')||'[]');}catch(e){return [];}}
-function savePresets(a){try{localStorage.setItem('tlm.layerPresets',JSON.stringify(a));}catch(e){}}
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
-function samePreset(p){return layerKeys().every(k=>!!p.layers[k]===!!state.layers[k]);}
-function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k=>state.layers[k]).length,ps=loadPresets();
-  let h=`<h3>圖層<small>已開 ${on} 項</small></h3><div class="presets" role="group" aria-label="儲存的組合">${ps.map((p,i)=>`<button type="button" data-preset="${i}" aria-pressed="${samePreset(p)}">${esc(p.name)}</button>`).join('')}<button type="button" class="save" data-save-preset aria-label="儲存目前的圖層組合">${categoryIcon('plus')}儲存</button></div>`;
+function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k=>state.layers[k]).length;
+  let h=`<h3>圖層<small>已開 ${on} 項</small></h3>`;
   LAYER_GROUPS.forEach((g,gi)=>{const all=!g.soon&&g.items.every(x=>state.layers[x[0]]);
     h+=`<div class="lgroup-h"><span>${g.name}${g.soon?'・之後加入':''}</span>${g.soon?'':`<button type="button" data-group="${gi}">${all?'全部關閉':'全選'}</button>`}</div><div class="lgroup">${g.items.map(([k,n,icon])=>`<div class="lrow">${categoryIcon(icon)}<span>${n}</span><button type="button" class="switch" data-layer="${k}" aria-label="${n}" aria-pressed="${!!state.layers[k]}" ${g.soon?'disabled':''}></button></div>`).join('')}</div>`;});
   el.innerHTML=h;
   el.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{const k=b.dataset.layer;state.layers[k]=!state.layers[k];
     if(state.layers[k]&&(k==='heat'||k==='priceheat')){const o=k==='heat'?'priceheat':'heat';if(state.layers[o]){state.layers[o]=false;toast(k==='heat'?'已關閉單價熱圖（兩種熱圖一次只顯示一種）':'已關閉生活機能熱圖（兩種熱圖一次只顯示一種）');}}applyLayers();});
-  el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);if(state.layers.heat&&state.layers.priceheat)state.layers[g.items.some(x=>x[0]==='priceheat')?'heat':'priceheat']=false;applyLayers();});
-  el.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=loadPresets()[+b.dataset.preset];layerKeys().forEach(k=>state.layers[k]=!!p.layers[k]);applyLayers();});
-  const sv=el.querySelector('[data-save-preset]');if(sv)sv.onclick=()=>{const a=loadPresets();if(a.some(samePreset)){toast('這個組合已經存過了');return;}a.push({name:'組合 '+(a.length+1),layers:Object.fromEntries(layerKeys().map(k=>[k,!!state.layers[k]]))});savePresets(a);renderLayersPop();toast('已儲存為「組合 '+a.length+'」');};}
-function applyLayers(){drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
+  el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);if(state.layers.heat&&state.layers.priceheat)state.layers[g.items.some(x=>x[0]==='priceheat')?'heat':'priceheat']=false;applyLayers();});}
+function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
