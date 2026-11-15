@@ -906,7 +906,7 @@ $('locate').onclick=()=>{if(!navigator.geolocation){toast('這個瀏覽器不支
 // ---------- 中古屋估價（PRD：長按地圖 →「評估這裡的房子」）。estimate()、modelX()、quantile()、poiScore() 與 scripts/build_realprice.py 相同，改一邊要同步改另一邊 ----------
 let VALDATA=null,VALLOAD=null;map.on('popupopen',()=>{$('dealLegend').classList.add('under-pop');});map.on('popupclose',()=>{$('dealLegend').classList.remove('under-pop');});
 const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
-function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture()]).then(([rp,v,fin])=>{
+function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture(),loadLand().catch(()=>null)]).then(([rp,v,fin])=>{
     VALDATA={sales:rp.sales.map(a=>({pt:[a[0],a[1]],ym:a[2],dist:rp.districts[a[3]],t:a[4],ping:a[5],age:a[6],fl:a[7],tot:a[8],up:a[9],s:a[10],e:a[11]})),rents:rp.rents,types:rp.types,through:rp.through,v,fin};return VALDATA;}).catch(e=>{VALLOAD=null;throw e;});
   return VALLOAD;}
 function quantile(xs,q){xs=xs.slice().sort((a,b)=>a-b);if(!xs.length)return null;const p=(xs.length-1)*q,lo=Math.floor(p),hi=Math.min(lo+1,xs.length-1);return xs[lo]+(xs[hi]-xs[lo])*(p-lo);}
@@ -986,7 +986,7 @@ function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
       <div class="vrow"><div>一開始要準備的現金<small>自備款＋稅費等約 ${(D.fin.closing_cost.value*100).toFixed(0)}%${f.reno?'＋裝潢 '+wan(+f.reno):''}</small></div><span class="r">${wan(L.cash)}</span></div>
       <div class="note">利率預設為${esc(D.fin.mortgage_rate.label)}（${esc(D.fin.mortgage_rate.as_of)}，${D.fin.mortgage_rate.value}%）；${esc(D.fin.ltv.label)}。實際條件以銀行核定為準。</div>`;}
   const rows=D.v.poi_layers.map(id=>{const n=poiNear(id,V.pt),l=LAYER[id],t=Math.max(1,Math.ceil(n.d*1.25/80));return `<div class="row"><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${esc(n.f&&n.f.name||'最近的'+l.name)}</div><div class="m">${l.name}</div></div><span class="time ${t<=10?'ok':'no'}">步行 ${t} 分</span></div>`;}).join('');
-  return futureRow(V.pt)+`<div class="vrow"><div>位置加減分<small>這個位置的生活機能分數 ${(V.s*100).toFixed(0)}，和附近成交的平均相比；上下限 ±8%</small></div><span class="r">${e.poi>=0?'+':'−'}${Math.abs(e.poi*100).toFixed(1)}%</span></div>${rows}`;}
+  return futureRow(V.pt)+landRow(V.pt)+`<div class="vrow"><div>位置加減分<small>這個位置的生活機能分數 ${(V.s*100).toFixed(0)}，和附近成交的平均相比；上下限 ±8%</small></div><span class="r">${e.poi>=0?'+':'−'}${Math.abs(e.poi*100).toFixed(1)}%</span></div>${rows}`;}
 function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   if(!V.est){headDetail('評估這裡的房子',V.dist+'・填寫房屋條件（之後都可以改）',{name:'中古屋估價',color:'#B06000',icon:categoryIcon('value')});
     $('resultBtn').innerHTML=`<span>填寫房屋條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
@@ -1034,6 +1034,9 @@ function loadLand(){if(!LANDLOAD)LANDLOAD=getJSON('data/land.json').then(d=>{LAN
 const wanPing=v=>v*PING_M2/1e4,fmtWan=w=>w>=100?Math.round(w).toString():w>=10?w.toFixed(0):w.toFixed(1);
 function landColor(v){const l=x=>Math.log(Math.max(1,x));return upColor(l(v),l(LAND.lo),l(LAND.hi));}
 function landInfo(s){return `<b>${esc(s.n)}</b>（${esc(s.d)}）<br>公告土地現值 約 <b>${fmtWan(wanPing(s.v))} 萬／坪</b><br><small>${s.v.toLocaleString()} 元／㎡・${LAND.year} 年${s.g!=null?`・比去年 ${s.g>0?'+':''}${s.g}%`:''}<br>${s.b==='est'?`小段內 ${s.k} 筆地號的中位數`:`小段內 ${s.k} 筆公有土地的中位數`}；公告現值是課稅用的參考價，通常低於市價</small>`;}
+function inRing(pt,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[i],b=r[j];if((a[0]>pt[0])!==(b[0]>pt[0])&&pt[1]<(b[1]-a[1])*(pt[0]-a[0])/(b[0]-a[0])+a[1])c=!c;}return c;}
+function landAt(pt){if(!LAND)return null;for(const s of LAND.sections)if(s.r.some(r=>inRing(pt,r)))return s;return null;}
+function landRow(pt){const s=landAt(pt);if(!s)return '';return `<div class="vrow"><div>這裡的公告土地現值：${esc(s.n)}<small>${LAND.year} 年・${esc(s.d)}・小段中位數 ${s.v.toLocaleString()} 元／㎡${s.g!=null?`・比去年 ${s.g>0?'+':''}${s.g}%`:''}；課稅參考價，通常低於市價，不計入估價</small></div><span class="r">約 ${fmtWan(wanPing(s.v))} 萬／坪</span></div>`;}
 async function drawLand(){const seq=++landSeq,lg=$('landLegend');if(!state.layers.land||state.transit||state.drawing||state.editing){if(landLayer){map.removeLayer(landLayer);landLayer=null;}lg.hidden=true;return;}
   if(landLayer)return;
   if(!LAND){busy(true);try{await loadLand();}catch(e){busy(false);state.layers.land=false;lg.hidden=true;toast('土地價值資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();return;}busy(false);}
@@ -1116,6 +1119,7 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length;hea
     txt('市場燈號',its.map(x=>`<span class="vdot ${x.V.mk.cls}" style="display:inline-block;margin:0 4px -1px 0"></span>${x.V.mk.label.slice(0,2)}`))+
     row('每月房貸',val(pay),v=>Math.round(v).toLocaleString('en-US')+' 元','low')+
     row('附近月租金',val(rent),v=>Math.round(v).toLocaleString('en-US')+' 元')+
+    row('公告土地現值（萬／坪）',val(V=>{const s=landAt(V.pt);return s?wanPing(s.v):null;}),v=>fmtWan(v),null)+
     row('步行到未來捷運站',val(V=>{const f=nearestFuture(V.pt);return f&&f.d<=2500?f.min:null;}),v=>v+' 分','low')+
     row('生活機能分數',val(V=>V.s*100),v=>v.toFixed(0),'high')+
     VALDATA.v.poi_layers.map(id=>row('步行到'+LAYER[id].name,val(V=>Math.max(1,Math.ceil(poiNear(id,V.pt).d*1.25/80))),v=>v+' 分','low')).join('')+
