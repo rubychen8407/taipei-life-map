@@ -286,6 +286,18 @@ html,body{background:#e8eaed}
 #resultBtn svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #resultBtn:empty{display:none}
 @media (min-width:700px){#resultBtn{display:none}}
+
+/* 整體房市 */
+.mk-card{background:#F7F8FA;border-radius:16px;padding:14px 14px 12px;margin-top:12px}.mk-card h3{margin:0 0 8px;font-size:14px;color:var(--sub);font-weight:600}
+.mk-light{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:6px 0 4px}.mk-light i{height:10px;border-radius:5px;opacity:.28}.mk-light i.on{opacity:1;box-shadow:0 0 0 2px #fff,0 0 0 3.5px currentColor}
+.mk-light-lab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--sub)}.mk-big{font-size:22px;font-weight:700;margin:2px 0}.mk-big small{font-size:13px;font-weight:500;color:var(--sub);margin-left:6px}
+.mk-prob{display:flex;height:30px;border-radius:9px;overflow:hidden;margin:8px 0 6px;font-size:12px;font-weight:700;color:#fff}.mk-prob span{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;overflow:hidden}
+.mk-why{margin:8px 0 0;padding:0;list-style:none;font-size:12.5px;color:#3c4043}.mk-why li{display:flex;justify-content:space-between;gap:8px;padding:3px 0}.mk-why b{font-weight:600}
+.mk-note{font-size:11.5px;color:var(--sub);line-height:1.5;margin-top:6px}
+.mk-chain{display:flex;align-items:stretch;gap:4px;margin-top:4px}.mk-chain div{flex:1;border-radius:10px;padding:7px 4px;text-align:center;font-size:11.5px;line-height:1.3;background:#fff}.mk-chain b{display:block;font-size:12px;margin-top:2px}.mk-chain .arr{flex:0 0 10px;background:none;padding:0;align-self:center;color:#9aa0a6}
+.mk-g{margin:18px 0 2px;font-size:15px;font-weight:700}.mk-ind{border-bottom:1px solid var(--line);padding:12px 0}.mk-ind .top{display:flex;align-items:baseline;gap:8px}.mk-ind .nm{font-size:13.5px;font-weight:600}.mk-ind .val{margin-left:auto;font-size:17px;font-weight:700;white-space:nowrap}.mk-ind .val small{font-size:11px;color:var(--sub);font-weight:500;margin-left:2px}
+.mk-ind .meta{display:flex;gap:6px;align-items:center;margin-top:3px;font-size:11.5px;color:var(--sub)}.mk-chip{border-radius:8px;padding:1px 7px;font-weight:600;font-size:11px}.s1{background:#E6F4EA;color:#137333}.s0{background:#F1F3F4;color:#5F6368}.s-1{background:#FEEFE3;color:#B06000}
+.mk-ind svg{display:block;width:100%;height:70px;margin-top:6px}.mk-ind .how{font-size:12px;color:#5f6368;line-height:1.5;margin-top:4px}
 </style>
 </head>
 <body>
@@ -301,7 +313,7 @@ html,body{background:#e8eaed}
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="fabs"><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
+<div id="fabs"><button class="fab" id="marketBtn" aria-label="整體房市"></button><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
@@ -335,6 +347,7 @@ function categoryIcon(id){const paths={
  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/>',
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
  star:'<path d="m12 4 2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
+ trend:'<path d="M4 18.5h16M5.5 15l4-4.5 3.2 2.8L18.5 7"/><path d="M14.8 7h3.7v3.7"/>',
  compare:'<path d="M5 5h5v14H5zM14 9h5v10h-5z"/>',
  value:'<path d="M4 12.6V5h7.6l8.4 8.4-7.6 7.6z"/><circle cx="8.4" cy="9.4" r="1.3"/>',
  doc:'<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/>',
@@ -658,7 +671,7 @@ function renderCategorySettings(){const el=$('categorySettings');if(!el)return;e
 function closeTune(){if(!state.openDistanceLayer&&!state.modeMenu)return false;state.openDistanceLayer=null;state.modeMenu=false;state.lifeMoving=-1;renderCategorySettings();return true;}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();
+function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML=`<span>${state.loading||(!R&&state.active.size)?'載入中…':'結果'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -821,7 +834,7 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 // 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
 ['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
-$('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
+$('marketBtn').innerHTML=categoryIcon('trend');$('marketBtn').onclick=()=>openMarket();$('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','filterBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
@@ -1040,6 +1053,40 @@ async function drawLand(){const seq=++landSeq,lg=$('landLegend');if(!state.layer
   if(seq!==landSeq||landLayer||!state.layers.land)return;const rend=L.canvas({padding:.3});landLayer=L.layerGroup();
   LAND.sections.forEach(s=>L.polygon(s.r,{renderer:rend,color:'#fff',weight:.7,opacity:.8,fillColor:landColor(s.v),fillOpacity:.45,bubblingMouseEvents:false,className:'land-sect'}).on('click',e=>{if(state.drawing||state.editing)return;L.popup({closeButton:false}).setLatLng(e.latlng).setContent(landInfo(s)).openOn(map);}).addTo(landLayer));
   landLayer.addTo(map);lg.innerHTML=`<span>${fmtWan(wanPing(LAND.lo))}</span><i></i><span>${fmtWan(wanPing(LAND.hi))} 萬／坪・公告現值</span>`;lg.hidden=false;}
+// ---------- 整體房市：指標、燈號、未來 12 個月房價方向機率（data/market.json，build-market 每月更新）----------
+let MARKET=null,MKLOAD=null;
+function loadMarket(){if(!MKLOAD)MKLOAD=getJSON('data/market.json').then(d=>{MARKET=d;return d;}).catch(e=>{MKLOAD=null;throw e;});return MKLOAD;}
+async function openMarket(){busy(true);try{await loadMarket();}catch(e){busy(false);toast('整體房市資料還沒建好，暫時無法顯示',true);return;}busy(false);
+  closePops();closeDetail(true);state.view={type:'market'};render();fitSheet('full');}
+const MK_LIGHT_C=['#1A73E8','#7BAAF7','#34A853','#F6AE2D','#E8453C'],MK_SIG=['壓力','中性','支撐房價'],MK_GROUPS=[['price','價格與估值'],['volume','交易量'],['supply','供給與庫存'],['credit','信貸、成本與政策']];
+const MK_CALL={up:'上漲',flat:'持平',down:'下跌'},MK_PC={up:'#E8453C',flat:'#9AA0A6',down:'#1A73E8'};
+function fmtNum(v,u){if(v==null)return '—';if(Number.isInteger(v))return v.toLocaleString();const a=Math.abs(v);return (a>=1000?Math.round(v).toLocaleString():a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2).replace(/\.?0+$/,''));}
+function mkSpark(pts){if(!pts||pts.length<2)return '';const W=320,H=70,P=4,vs=pts.map(p=>p[1]),lo=Math.min(...vs),hi=Math.max(...vs),r=(hi-lo)||1;
+  const X=i=>P+i*(W-2*P)/(pts.length-1),Y=v=>H-14-(v-lo)/r*(H-24);const d=pts.map((p,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('');
+  const z=lo<0&&hi>0?`<line x1="${P}" x2="${W-P}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="#c6c9ce" stroke-dasharray="3 3"/>`:'';
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${z}<path d="${d}L${X(pts.length-1).toFixed(1)} ${H-14}L${P} ${H-14}Z" fill="rgba(18,59,138,.08)"/><path d="${d}" fill="none" stroke="#123B8A" stroke-width="1.6" vector-effect="non-scaling-stroke"/><circle cx="${X(pts.length-1).toFixed(1)}" cy="${Y(vs[vs.length-1]).toFixed(1)}" r="3" fill="#F7931E"/><text x="${P}" y="${H-2}" font-size="9" fill="#80868b">${pts[0][0].slice(0,4)}</text><text x="${W-P}" y="${H-2}" font-size="9" fill="#80868b" text-anchor="end">${pts[pts.length-1][0]}</text><text x="${W-P}" y="9" font-size="9" fill="#80868b" text-anchor="end">最高 ${fmtNum(hi)}</text></svg>`;}
+function mkInd(i){const c=i.chg;return `<div class="mk-ind" data-mk="${i.key}"><div class="top"><span class="nm">${esc(i.name)}</span><span class="val">${fmtNum(i.v)}<small>${esc(i.unit)}</small></span></div>
+  <div class="meta"><span class="mk-chip s${i.signal}">${MK_SIG[i.signal+1]}</span><span>${esc(i.chg_label)} ${c==null?'—':(c>0?'+':'')+fmtNum(c)+(/百分點|利率差/.test(i.chg_label)?'':'%')}</span><span style="margin-left:auto">${i.freq==='q'?'季':i.freq==='y'?'年':'月'}資料・${esc(i.t)}</span></div>
+  ${mkSpark(i.pts)}<div class="how">${esc(i.how)}<br><small>來源：${esc(i.src)}</small></div></div>`;}
+function renderMarket(){const D=MARKET,lt=D.light,fc=D.forecast,bt=fc.backtest,pr=fc.probs;
+  headDetail('整體房市','臺北市為主、全國信貸對照；資料到 '+D.through,{name:'房市指標',color:'#123B8A',icon:categoryIcon('trend')});
+  $('resultBtn').innerHTML=`<span>整體房市</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+  let h='';
+  if(lt)h+=`<div class="mk-card" id="mkLight"><h3>房市溫度（領先指標綜合燈號）</h3><div class="mk-big" style="color:${MK_LIGHT_C[lt.level]}">${esc(lt.label)}<small>${esc(lt.mood)}・綜合分數 ${lt.score>0?'+':''}${lt.score}</small></div>
+    <div class="mk-light">${MK_LIGHT_C.map((c,i)=>`<i style="background:${c};color:${c}" class="${i===lt.level?'on':''}"></i>`).join('')}</div><div class="mk-light-lab"><span>偏冷</span><span>穩定</span><span>過熱</span></div>
+    <div class="mk-note">${lt.parts.map(p=>`${esc(p.name)} ${p.z>0?'+':''}${p.z}`).join('・')}（和過去 10 年相比的標準分數）</div></div>`;
+  const ord=['up','flat','down'],why=fc.contrib.slice().sort((a,b)=>Math.abs(b.push)-Math.abs(a.push)).slice(0,3);
+  h+=`<div class="mk-card" id="mkFc"><h3>未來 12 個月臺北房價（${esc(fc.as_of)} 起）</h3><div class="mk-big">最可能：${MK_CALL[fc.call]}<small>${MK_CALL[fc.call]==='持平'?'±'+fc.thr+'% 以內':fc.call==='up'?'漲超過 '+fc.thr+'%':'跌超過 '+fc.thr+'%'}</small></div>
+    <div class="mk-prob">${ord.map(k=>`<span style="width:${(pr[k]*100).toFixed(1)}%;background:${MK_PC[k]}">${pr[k]>=.12?MK_CALL[k]+' '+Math.round(pr[k]*100)+'%':''}</span>`).join('')}</div>
+    <div class="mk-note">${ord.map(k=>MK_CALL[k]+' '+Math.round(pr[k]*100)+'%').join('・')}</div>
+    <ul class="mk-why">${why.map(c=>`<li><span>${esc(c.name)}：<b>${fmtNum(c.v)}</b></span><span style="color:${c.push>0?MK_PC.up:MK_PC.down}">${c.push>0?'推向上漲':'推向下跌'}</span></li>`).join('')}</ul>
+    <div class="mk-note" id="mkBt">回測 ${esc(bt.from||'')}～${esc(bt.to||'')} 共 ${bt.n} 個月：模型命中 <b>${Math.round((bt.acc||0)*100)}%</b>；只用「延續過去 12 個月方向」${Math.round((bt.base_acc||0)*100)}%、永遠猜最常見的結果 ${Math.round((bt.maj_acc||0)*100)}%。
+    ${bt.skill!=null&&bt.skill>=.05?`模型比簡單猜法準約 ${Math.round(bt.skill*100)} 個百分點。`:'<b>模型沒有比簡單猜法準多少</b>，機率只能當參考，請以燈號和下方指標為主。'}房價受政策與突發事件影響很大，這是統計機率，不是保證。</div></div>`;
+  h+=`<div class="mk-card"><h3>四階段傳導鏈（目前對房價的影響）</h3><div class="mk-chain">${D.chain.map((c,i)=>(i?'<div class="arr">›</div>':'')+`<div class="s${c.status}">${esc(c.name)}<b>${MK_SIG[c.status+1]}</b></div>`).join('')}</div>
+    <div class="mk-note">依序檢查：信貸鬆緊 → 成交量 → 建照與推案供給 → 營造成本底線。每一環由下方對應指標的訊號合計。</div></div>`;
+  MK_GROUPS.forEach(([g,name])=>{const its=D.indicators.filter(i=>i.group===g);if(its.length)h+=`<div class="mk-g">${name}</div>`+its.map(mkInd).join('');});
+  h+=`<div class="note">資料：臺北市地政局（住宅價格指數、租金指數、預售推案）、內政部實價登錄、臺北市建管處（建照／使照）、中央銀行、臺北市主計處。每月自動更新。燈號與機率為統計模型結果，僅供參考，不是投資建議。</div>`;
+  $('body').innerHTML=h;}
 // ---------- 未來捷運：OpenStreetMap 興建中／規劃中的捷運與輕軌（data/future.json，build-data 每週更新）----------
 const futureLayer=L.layerGroup().addTo(map);let FUTURE=null,FUTLOAD=null;
 function loadFuture(){if(!FUTLOAD)FUTLOAD=getJSON('data/future.json').then(d=>{FUTURE=d&&d.lines?d:{lines:[],stations:[]};return FUTURE;}).catch(()=>{FUTURE={lines:[],stations:[]};return FUTURE;});return FUTLOAD;}
