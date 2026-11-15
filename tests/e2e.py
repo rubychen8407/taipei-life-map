@@ -804,7 +804,7 @@ async def real_suite(b, errs):
     await page.click('#close'); await ev("void map.setView([25.05,121.54],12,{animate:false})")
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.wait_for_function("!!phLayer", timeout=20000); await page.click('#layersBtn')
     print('  priceheat', await ev("({cells:PH.cells.length,lo:PH.lo,hi:PH.hi})")); await shot(page, 'real_9_priceheat')
-    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.click('#layersPop [data-layer=heat]'); await page.click('#layersPop [data-layer=labels]'); await page.click('#layersBtn')
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.click('#layersPop [data-layer=heat]'); await page.click('#layersPop [data-layer=deal]'); await page.click('#layersBtn')
     await ev("void map.setView([25.0585,121.557],16,{animate:false})"); await page.wait_for_function("dealLayer.getLayers().length>5", timeout=20000); await page.wait_for_timeout(500)
     print('  deals', await ev("dealLayer.getLayers().length")); await shot(page, 'real_10_deals')
     await ev("void dealLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(400); await shot(page, 'real_11_deal_pop')
