@@ -51,6 +51,8 @@ with tempfile.TemporaryDirectory() as d:
     mk = val['market']
     check('全市' in mk and len(mk['全市']['series']) == 24 and mk['大安區']['vol'] > 0 and mk['全市']['price_mom'] is not None and abs(mk['全市']['price_mom'] - 0.02) < 0.02, f"市場指標：交易量年增率、品質調整後價格動能（模擬每季 +1% → 兩季 {mk['全市']['price_mom']:+.1%}）")
     check(mk['大安區']['price_mom_local'] and abs(mk['大安區']['price_mom'] - 0.02) < 0.03 and not mk['全市']['price_mom_local'], f"各區價格動能：大安區 {mk['大安區']['price_mom']:+.1%}（模擬每季 +1%，各區相同）")
+    seg = mk.get('大安區|2')
+    check(seg and seg['vol'] > 0 and seg['vol'] < mk['大安區']['vol'] and len(seg['series']) == 24, f"市場指標也有「同區同型態」（大安區公寓 {seg and seg['vol']} 筆）")
     da = mk['大安區']; hist_ok = da['vol_avg'] > 0 and da['vol_z'] is not None and abs(da['vol_z']) < 3
     check(hist_ok, f"交易量和自己過去三年比：大安區近 3 個月 {da['vol']} 筆、過去平均 {da['vol_avg']} 筆、z = {da['vol_z']}（模擬資料各月均勻，不該偏離太多）")
     try:
@@ -72,7 +74,15 @@ m = {'b': val['model']['b'], 'dist': val['model']['dist'], 'q': {'0': val['model
 est = R.estimate(subj, m, recs, val['now_ym'], val['model']['now'])
 tu = M.true_unit('大安區', 0, 12.0, 8, 15, 30.0, val['now_ym'])
 check(est['ok'] and est['n'] >= 20 and abs(est['q'][0.5] - tu) / tu < 0.05 and est['q'][0.1] < est['q'][0.5] < est['q'][0.9], f"估價：大安區 12 年大樓中間值 {est['q'][0.5]:.1f} 萬／坪（模擬真實值 {tu:.1f}）")
-check(est['radius'] in R.RADII and abs(est['poi']) <= 0.08, f"可比案例 {est['n']} 筆、半徑 {est['radius']} 公尺；位置加減分在 ±8% 內")
+check(est['n'] == 25 and est['radius'] <= 1200 and abs(est['poi']) <= 0.08, f"可比案例取最相似的 {est['n']} 筆（最遠 {est['radius']} 公尺）；位置加減分在 ±8% 內")
+cs, _ = R.comps_for(subj, recs, val['now_ym'])
+check(all(c['t'] == 0 and abs(c['age'] - 12) <= 12 and 15 <= c['ping'] <= 60 for c in cs), '可比案例都是同型態、屋齡 ±12 年、坪數 0.5～2 倍')
+sims = [R.similarity(subj, c, R.dist_m(subj['pt'], c['pt'])) for c in cs]
+check(sims == sorted(sims), '依相似度排序（距離、屋齡、坪數、樓層）')
+apt = {'dist': '大安區', 't': 2, 'age': 40.0, 'fl': 4, 'tot': 5, 'ping': 25.0, 'pt': (25.030, 121.543), 's': subj['s']}
+ca, _ = R.comps_for(apt, recs, val['now_ym'])
+check(ca and all(c['t'] == 2 for c in ca) and sum(c['fl'] >= 3 for c in ca) >= len(ca) * 0.6, f"無電梯公寓 4 樓：可比案例都是公寓，且大多是 3 樓以上（{sum(c['fl'] >= 3 for c in ca)}/{len(ca)}）")
+check(R.floor_pen(apt, dict(apt, fl=1)) > R.floor_pen(apt, dict(apt, fl=3)) and R.floor_pen(subj, dict(subj, fl=1)) > R.floor_pen(subj, dict(subj, fl=9)), '樓層差異：一樓和非一樓差最多')
 far = dict(subj, pt=(25.2, 121.9)); far['s'] = 0
 check(not R.estimate(far, m, recs, val['now_ym'], val['model']['now'])['ok'], '附近 1 公里內案例不足：不給估價')
 

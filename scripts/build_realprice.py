@@ -26,9 +26,12 @@ TYPES = ['住宅大樓', '華廈', '公寓']   # 型態代碼 0、1、2
 POI = ['park', 'school', 'sport', 'market', 'bus', 'mrt']   # 生活機能分數用的類別（等權重）
 KEEP_MONTHS = 24           # 前端可比案例用近 24 個月
 FIT_MONTHS = 36            # 模型用近 36 個月
-RADII = [300, 600, 1000]   # 可比案例半徑（公尺），不足 MIN_COMPS[0] 筆就放寬
-MIN_COMPS = (20, 10)       # 目標筆數、最少筆數（再少就不給出價）
-AGE_BAND = 10
+RADII = [1200]             # 可比案例最遠距離（公尺）
+MIN_COMPS = (25, 10)       # 取最相似的 25 筆；少於 10 筆就不給出價
+AGE_BAND = 12              # 屋齡差距上限（年）
+SIZE_BAND = (0.5, 2.0)     # 坪數比例上下限
+# 相似度（越小越像）：距離每 300 公尺、屋齡每差 5 年、坪數每差 30%（對數）各算 1 分，加上樓層差異。
+# 回測（2026-11 真實資料）：比原本「半徑內全部」的中位數誤差 8.4% → 7.7%
 BAND = 0.4              # 保守／積極 = 合理分位 ∓ 0.4（回測：P10–P90 約涵蓋 75% 的實際成交）
 SHIFT = 0.15           # 市場燈號 H（−1 買方～+1 賣方）讓合理分位移動 0.15·H
 BAD_NOTE = re.compile(r'親友|員工|共有人|特殊關係|親等|債權|債務|急買|急賣|瑕疵|凶宅|地上權|持分|毛胚|協議價購|政府機關|公共設施保留地|法拍|塔位|畸零|無償|贈與')
@@ -349,15 +352,32 @@ def now_effect(model):
     return sum(model['q'][k] for k in ks) / len(ks)
 
 
+def floor_pen(s, r):
+    """樓層差異：無電梯公寓看實際樓層（爬樓梯），其他看樓層比；一樓和非一樓差很多"""
+    one = 1.0 if (s['fl'] == 1) != (r['fl'] == 1) else 0.0
+    if s['t'] == 2:
+        return one * 1.5 + 0.4 * min(3, abs(s['fl'] - r['fl']))
+    return one + abs(s['fl'] / s['tot'] - r['fl'] / r['tot']) / 0.3
+
+
+def similarity(s, r, d):
+    """與 index.html 的 similarity() 相同"""
+    return d / 300 + abs(r['age'] - s['age']) / 5 + abs(math.log(r['ping'] / s['ping'])) / 0.3 + floor_pen(s, r)
+
+
 def comps_for(subject, recs, now_ym):
-    """可比案例：同型態、屋齡 ±10 年、近 24 個月；300 → 600 → 1000 公尺放寬到至少 20 筆。回傳 (案例, 半徑)"""
-    pool = [r for r in recs if r['t'] == subject['t'] and abs(r['age'] - subject['age']) <= AGE_BAND and now_ym - r['ym'] < KEEP_MONTHS and r is not subject]
-    near = [(dist_m(subject['pt'], r['pt']), r) for r in pool]; near = [x for x in near if x[0] <= RADII[-1]]
-    for rad in RADII:
-        c = [r for d, r in near if d <= rad]
-        if len(c) >= MIN_COMPS[0]:
-            return c, rad
-    return [r for _, r in near], RADII[-1]
+    """可比案例：同型態、近 24 個月、1.2 公里內、屋齡 ±12 年、坪數 0.5～2 倍，依相似度取最像的 25 筆。回傳 (案例, 最遠距離)"""
+    c = []
+    for r in recs:
+        if r is subject or r['t'] != subject['t'] or abs(r['age'] - subject['age']) > AGE_BAND or now_ym - r['ym'] >= KEEP_MONTHS:
+            continue
+        if not SIZE_BAND[0] <= r['ping'] / subject['ping'] <= SIZE_BAND[1]:
+            continue
+        d = dist_m(subject['pt'], r['pt'])
+        if d <= RADII[-1]:
+            c.append((similarity(subject, r, d), d, r))
+    c.sort(key=lambda x: x[0]); c = c[:MIN_COMPS[0]]
+    return [r for _, _, r in c], (max(d for _, d, _ in c) if c else RADII[-1])
 
 
 def estimate(subject, model, recs, now_ym, tq=None):
@@ -365,7 +385,7 @@ def estimate(subject, model, recs, now_ym, tq=None):
     comps, rad = comps_for(subject, recs, now_ym)
     s = dict(subject, ym=now_ym)
     base = math.exp(sum(b * v for b, v in zip(model['b'], base_x(s))) + model['dist'].get(s['dist'], 0.0) + (now_effect(model) if tq is None else tq))
-    out = {'ok': len(comps) >= MIN_COMPS[1], 'n': len(comps), 'radius': rad, 'base': base, 'q': {}, 'poi': 0.0}
+    out = {'ok': len(comps) >= MIN_COMPS[1], 'n': len(comps), 'radius': round(rad), 'base': base, 'q': {}, 'poi': 0.0}
     if comps:
         res = [r['e'] for r in comps]
         for q in (0.1, 0.15, 0.25, 0.5, 0.75, 0.85, 0.9):
@@ -408,8 +428,10 @@ def market(recs, model, now_ym, fitted=None):
     qs = sorted(model['q'], key=int); mom = None
     if len(qs) >= 4:
         mom = math.exp((model['q'][qs[-1]] + model['q'][qs[-2]]) / 2 - (model['q'][qs[-3]] + model['q'][qs[-4]]) / 2) - 1
-    for d in sorted({r['dist'] for r in recs}) + ['全市']:
-        rs = [r for r in recs if d == '全市' or r['dist'] == d]
+    keys = sorted({r['dist'] for r in recs}) + ['全市'] + sorted({f"{r['dist']}|{r['t']}" for r in recs})
+    for d in keys:
+        dd, tt = (d.split('|')[0], int(d.split('|')[1])) if '|' in d else (d, None)
+        rs = [r for r in recs if (dd == '全市' or r['dist'] == dd) and (tt is None or r['t'] == tt)]
         cnt = lambda lo, hi: sum(1 for r in rs if lo <= r['ym'] <= hi)
         cur = cnt(a0, a1); prev = cnt(a0 - 12, a1 - 12)
         # 和自己過去三年比：同樣長度（3 個月）的 10 個區間，平均與標準差 → z 分數（各區的「平常」不一樣）
@@ -423,10 +445,13 @@ def market(recs, model, now_ym, fitted=None):
                   'vol_avg': round(mu, 1), 'vol_z': round((cur - mu) / sd, 3) if mu >= 10 and sd > 0 else None,
                   'price_mom': mom, 'price_mom_local': False, 'series': series}
         # 各區價格動能：全市的季效果 ×（這區最近兩季殘差中位數 − 前兩季）；兩期各至少 30 筆才算，否則用全市
+        # 同區同型態（例如「松山區|1」= 松山區華廈）門檻 20 筆
         if mom is not None and fitted and d != '全市':
-            e1 = [r['e'] for r in fitted if r['dist'] == d and str(quarter(r['ym'])) in qs[-2:]]
-            e0 = [r['e'] for r in fitted if r['dist'] == d and str(quarter(r['ym'])) in qs[-4:-2]]
-            if len(e1) >= 30 and len(e0) >= 30:
+            seg = [r for r in fitted if r['dist'] == dd and (tt is None or r['t'] == tt)]
+            e1 = [r['e'] for r in seg if str(quarter(r['ym'])) in qs[-2:]]
+            e0 = [r['e'] for r in seg if str(quarter(r['ym'])) in qs[-4:-2]]
+            need = 30 if tt is None else 20
+            if len(e1) >= need and len(e0) >= need:
                 out[d]['price_mom'] = (1 + mom) * math.exp(quantile(e1, .5) - quantile(e0, .5)) - 1; out[d]['price_mom_local'] = True
     return out
 
@@ -531,7 +556,7 @@ def build(sales, rents, addr, layers, out_dir=os.path.join(B.ROOT, 'data'), toda
           'rent_cols': ['lat', 'lon', 'ym', 'ping', 'rent'], 'rents': rent_out}
     val = {'built': built, 'through': ym_str(now_ym), 'now_ym': now_ym, 'feats': FEATS, 'poi_layers': POI,
            'model': {'b': [round(x, 6) for x in model['b']], 'dist': {k: round(v, 5) for k, v in model['dist'].items()}, 'now': round(now_effect(model), 5)},
-           'comps': {'radii': RADII, 'min': list(MIN_COMPS), 'age_band': AGE_BAND, 'months': KEEP_MONTHS}, 'offer': {'band': BAND, 'shift': SHIFT},
+           'comps': {'radii': RADII, 'min': list(MIN_COMPS), 'age_band': AGE_BAND, 'size_band': list(SIZE_BAND), 'months': KEEP_MONTHS}, 'offer': {'band': BAND, 'shift': SHIFT},
            'backtest': {k: (round(v, 4) if isinstance(v, float) else v) for k, v in bt.items()},
            'market': market(all_recs, model, now_ym, recs), 'stats': dict(stats, used=len(recs), shown=len(out), rents=len(rent_out))}
     os.makedirs(out_dir, exist_ok=True)
