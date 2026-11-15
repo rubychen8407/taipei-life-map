@@ -7,14 +7,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: |
-          python3 scripts/build_market.py
-          python3 -c "
-          import json;d=json.load(open('data/market.json'))
-          print(d['through'],d['light'])
-          f=d['forecast'];print(f['as_of'],f['probs'],f['call'],f['backtest'],f['train_n'])
-          for c in f['contrib']: print(' ',c)
-          for c in d['chain']: print(c)
-          for i in d['indicators']: print(i['key'],i['t'],i['v'],i['unit'],i['chg_label'],i['chg'],i['signal'],len(i['pts']),i['pts'][:1],i['pts'][-2:])
-          print([h for h in f['history'] if h[0].endswith('-01')])"
-          ls -l data/market.json
+      - run: python3 scripts/exp_market.py
