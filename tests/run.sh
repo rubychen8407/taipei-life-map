@@ -8,4 +8,5 @@ python3 -m playwright install chromium
 [ -f mock.json ] || python3 make_mock.py
 python3 test_transit.py
 python3 test_sidewalk.py
+python3 test_realprice.py
 python3 e2e.py
