@@ -5,26 +5,12 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - name: real price download
-        run: |
-          set +e
-          for u in "https://plvr.land.moi.gov.tw/Download?type=zip&fileName=lvr_landcsv.zip" "https://plvr.land.moi.gov.tw/DownloadSeason?season=115S2&type=zip&fileName=lvr_landcsv.zip" "https://plvr.land.moi.gov.tw/DownloadSeason?season=115S3&type=zip&fileName=lvr_landcsv.zip"; do
-            echo "== $u"; curl -sSL -m 180 -A "Mozilla/5.0" -o f.zip -w "%{http_code} %{size_download}\n" "$u"; file f.zip | cut -c1-120
-            unzip -l f.zip 2>/dev/null | grep -iE "a_lvr|manifest|schema|build_time" | head -20
-          done
-          mkdir x && cd x && unzip -qo ../f.zip 'a_lvr_land_a*' 'a_lvr_land_c.csv' 2>/dev/null; ls -la
-          for f in a_lvr_land_a.csv a_lvr_land_a_park.csv a_lvr_land_a_build.csv a_lvr_land_c.csv; do echo "== $f"; wc -l $f; head -4 $f; done
-      - name: address points + transfer stats
-        run: |
-          set +e
-          for id in 155472 134492; do echo "== dataset $id"; curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/$id" | python3 -c "
-          import json,sys
-          d=json.load(sys.stdin); r=d.get('result') or d
-          print(r.get('title'), r.get('updateFrequency'), r.get('modifiedDate') or r.get('metadataModified'))
-          for x in r.get('distribution',[]): print(' ',x.get('resourceFormat'),x.get('resourceDescription'),x.get('resourceDownloadUrl'),x.get('resourceModifiedDate'))
-          "; done
-          u=$(curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/155472" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or d;print(r['distribution'][0]['resourceDownloadUrl'])")
-          echo "addr url $u"; curl -sSL -m 300 -A "Mozilla/5.0" -o addr.bin -w "%{http_code} %{size_download} %{content_type}\n" "$u"; file addr.bin | cut -c1-150; head -c 600 addr.bin; echo; wc -l addr.bin
-          u=$(curl -sSL -m 60 "https://data.gov.tw/api/v2/rest/dataset/134492" | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or d;print(r['distribution'][0]['resourceDownloadUrl'])")
-          echo "transfer url $u"; curl -sSL -m 120 -A "Mozilla/5.0" "$u" | head -c 1500
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: RP_DUMP=/tmp/rp_dump.json python3 scripts/build_realprice.py || true
+      - run: mkdir out && cp data/realprice.json data/valuation.json out/ 2>/dev/null; gzip -c /tmp/rp_dump.json > out/rp_dump.json.gz; ls -la out
+      - uses: actions/upload-artifact@v4
+        with: { name: rp, path: out }
