@@ -1,0 +1,12 @@
+name: probe trees
+on: { push: { branches: ['probe/trees'] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/128274 > meta.json; python3 -c "
+          import json;m=json.load(open('meta.json'));r=m.get('result',m)
+          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"
+          for u in $(python3 -c "import json;m=json.load(open('meta.json'));r=m.get('result',m);print(' '.join(d['resourceDownloadUrl'] for d in r.get('distribution',[])))"); do echo "== $u"; curl -sSL -m 120 "$u" -o f; ls -l f; file f; head -c 1500 f; echo; done
+          curl -sS -m 60 "https://data.taipei/api/v1/dataset/a7fd5b1c-de7c-4e24-8ff5-e9a4e5e2de3b?scope=resourceAquire&limit=2" | head -c 800; echo
