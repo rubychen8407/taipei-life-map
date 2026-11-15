@@ -339,6 +339,7 @@ function categoryIcon(id){const paths={
  value:'<path d="M4 12.6V5h7.6l8.4 8.4-7.6 7.6z"/><circle cx="8.4" cy="9.4" r="1.3"/>',
  doc:'<path d="M7 3.5h7l4 4V20.5H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/>',
  edit:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
+ tree:'<path d="M12 3.5c-3 0-5.5 2.3-5.5 5.2 0 .9.2 1.7.6 2.4A4.2 4.2 0 0 0 9 18.5h6a4.2 4.2 0 0 0 1.9-7.4c.4-.7.6-1.5.6-2.4 0-2.9-2.5-5.2-5.5-5.2Z"/><path d="M12 11.5V21M12 15l2.3-1.8"/>',
  land:'<path d="M3.5 18.5 9 9l4 5.5 2.5-3.5 5 7H3.5Z"/>'
 };return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[id]||paths.park)+'</svg>';}
 function facilityIcon(l,f,z,showLabel){const text=showLabel?(l.id==='bus'?(f.name||''):facilityLabel(f,l)):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[44,44],iconAnchor:[22,22]});}
@@ -376,7 +377,7 @@ let heat=null;
 
 const state={active:new Set(['park','school','mrt']),minsByLayer:{sidewalk:3,park:10,school:10,sport:10,market:10,bus:10,mrt:10,life:20},modeByLayer:{sidewalk:'walk',park:'walk',school:'walk',sport:'walk',market:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
-  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true},val:null};
+  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true,trees:false},val:null};
 
 // ---------- geometry ----------
 function ringContains(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
@@ -634,7 +635,7 @@ function drawFacilities(){if(state.transit||!state.res||!state.layers.fac){facLa
       next.set(key,lyr);cnt++;if(facCache.has(key)){if(!facLayer.hasLayer(lyr))facLayer.addLayer(lyr);continue;}
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);}}
   facCache.forEach((ly,k)=>{if(!next.has(k))facLayer.removeLayer(ly);});facCache=next;}
-map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();drawDeals();});
+map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();drawDeals();drawTrees();});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();}); // zoomend 之後一定還有 moveend，設施只在 moveend 重畫一次
 map.on('click',e=>{if(state.editing)return;if(state.view.type==='val'){closePops();return;}if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
@@ -758,7 +759,7 @@ function selectTransit(i){const T=state.transit;if(!T||!T.items)return;T.sel=T.s
   T.items.forEach((it,j)=>{const show=T.sel<0||T.sel===j;if(show&&!transitLayer.hasLayer(it.group))transitLayer.addLayer(it.group);if(!show&&transitLayer.hasLayer(it.group))transitLayer.removeLayer(it.group);});
   const it=T.items[T.sel];if(it&&it.bounds){if(isMob())setSheet('half');fit(L.latLngBounds(T.f.center,T.f.center).extend(it.bounds),{maxZoom:16});}
   document.querySelectorAll('#body [data-tr]').forEach(el=>el.classList.toggle('sel',+el.dataset.tr===T.sel));}
-function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();}
+function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();drawTrees();}
 function renderPlace(){const v=state.view,l=v.l,T=state.transit,rail=l.id==='mrt',items=T&&T.items||[];
   const sub=!T||T.loading?'正在找經過這一站的路線…':!T.n?'':rail?[...new Set(items.map(it=>it.line))].join('、'):`${T.n} 條公車路線可從這一站上車`;
   headDetail(v.f.name||l.name,sub,{name:l.name,color:l.color,icon:l.icon});
@@ -852,7 +853,7 @@ function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKe
   $('filterSave').onclick=()=>{const a=loadFilters(),snap=filterSnap(),k=filterKey(snap),dup=a.find(f=>filterKey(f)===k);if(dup){toast('這組條件已存為「'+dup.name+'」');return;}
     const name=$('filterName').value.trim()||'篩選 '+(a.length+1);a.push(Object.assign({name},snap));saveFilters(a);renderFilterPop();toast('已儲存「'+name+'」');};}
 addEventListener('pagehide',saveLast);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLast();});
-const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['homes','我的物件','star']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['land','土地價值','land']]}];
+const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['homes','我的物件','star']]},{name:'環境',items:[['trees','行道樹','tree']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['land','土地價值','land']]}];
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
 function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k=>state.layers[k]).length;
   let h=`<h3>圖層<small>已開 ${on} 項</small></h3>`;
@@ -862,7 +863,7 @@ function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k
   el.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{const k=b.dataset.layer;state.layers[k]=!state.layers[k];
     if(state.layers[k]&&(k==='heat'||k==='priceheat')){const o=k==='heat'?'priceheat':'heat';if(state.layers[o]){state.layers[o]=false;toast(k==='heat'?'已關閉單價熱圖（兩種熱圖一次只顯示一種）':'已關閉生活機能熱圖（兩種熱圖一次只顯示一種）');}}applyLayers();});
   el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);if(state.layers.heat&&state.layers.priceheat)state.layers[g.items.some(x=>x[0]==='priceheat')?'heat':'priceheat']=false;applyLayers();});}
-function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
+function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();drawTrees();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
@@ -1035,6 +1036,25 @@ async function drawFuture(){futureLayer.clearLayers();if(!state.layers.future||s
     .bindTooltip(`${Ln.name}（${FUT_TXT[sg.s]}）`,{sticky:true,className:'future-tip'}).addTo(futureLayer)));
   FUTURE.stations.forEach(st=>L.circleMarker(st.c,{radius:6,color:FUT_C,weight:2.5,fillColor:'#fff',fillOpacity:1,dashArray:st.s==='construction'?null:'2 3',bubblingMouseEvents:false,className:'future-st'})
     .bindPopup(`<b>${esc(st.n)}</b><br>${esc(st.line)}${st.ref&&!st.n.includes(st.ref)?'・'+esc(st.ref):''}（${FUT_TXT[st.s]}）<br><small>資料來源：OpenStreetMap，站名與位置可能還會調整</small>`,{closeButton:false}).addTo(futureLayer));}
+// ---------- 行道樹：臺北市公園處「行道樹分布圖」（data/trees.json，build-trees 每月更新）；勾選才下載，放大到 15 以上才畫 ----------
+const treeLayer=L.layerGroup().addTo(map),treeCanvas=L.canvas({padding:.2});let TREES=null,TREELOAD=null,treeSeq=0,treeHinted=false;
+const TREE_F=6,TREE_Z=15,TREE_MAX=6000,TREE_C='#2E9E4F',TREE_CELL=.005;
+function loadTrees(){if(!TREELOAD)TREELOAD=getJSON('data/trees.json').then(d=>{const a=d.a,n=a.length/TREE_F,lat=new Float64Array(n),lon=new Float64Array(n),grid=new Map();
+    for(let i=0;i<n;i++){lat[i]=d.base[0]+a[i*TREE_F]/1e5;lon[i]=d.base[1]+a[i*TREE_F+1]/1e5;const k=Math.floor(lat[i]/TREE_CELL)+','+Math.floor(lon[i]/TREE_CELL);let c=grid.get(k);if(!c)grid.set(k,c=[]);c.push(i);}
+    TREES={d,lat,lon,grid,n};return TREES;}).catch(e=>{TREELOAD=null;throw e;});return TREELOAD;}
+function treeInfo(i){const d=TREES.d,a=d.a,o=i*TREE_F,h=a[o+4]/10,dm=a[o+5];
+  return `<b>${esc(d.sp[a[o+2]])}</b><br>${esc(d.rd[a[o+3]]||'')}<br>${[h?'樹高 '+h+' 公尺':'',dm?'胸徑 '+dm+' 公分':''].filter(Boolean).join('・')}<br><small>臺北市公園處行道樹資料</small>`;}
+function treesInView(){const b=map.getBounds().pad(.1),s=b.getSouth(),n=b.getNorth(),w=b.getWest(),e=b.getEast(),out=[];
+  for(let y=Math.floor(s/TREE_CELL);y<=Math.floor(n/TREE_CELL);y++)for(let x=Math.floor(w/TREE_CELL);x<=Math.floor(e/TREE_CELL);x++){const c=TREES.grid.get(y+','+x);if(!c)continue;
+    for(const i of c)if(TREES.lat[i]>=s&&TREES.lat[i]<=n&&TREES.lon[i]>=w&&TREES.lon[i]<=e)out.push(i);}return out;}
+async function drawTrees(){const seq=++treeSeq;if(!state.layers.trees||state.transit||state.drawing||state.editing){treeLayer.clearLayers();return;}
+  if(map.getZoom()<TREE_Z){treeLayer.clearLayers();if(!treeHinted){treeHinted=true;toast('放大地圖就會看到行道樹');}return;}
+  if(!TREES){busy(true);try{await loadTrees();}catch(e){busy(false);toast('行道樹資料還沒建好，暫時無法顯示',true);return;}busy(false);}
+  if(seq!==treeSeq||!state.layers.trees||map.getZoom()<TREE_Z)return;treeLayer.clearLayers();
+  let ids=treesInView();if(ids.length>TREE_MAX)ids=ids.filter((_,k)=>k%Math.ceil(ids.length/TREE_MAX)===0);
+  const z=map.getZoom(),sc=z>=18?2.4:z>=17?1.8:z>=16?1.3:1,a=TREES.d.a;
+  for(const i of ids){const h=a[i*TREE_F+4]/10;L.circleMarker([TREES.lat[i],TREES.lon[i]],{renderer:treeCanvas,radius:(1.4+Math.min(2,h/7))*sc,color:'#fff',weight:.8,fillColor:TREE_C,fillOpacity:.8,bubblingMouseEvents:false,className:'tree-dot'})
+    .bindPopup(()=>treeInfo(i),{closeButton:false}).addTo(treeLayer);}}
 function nearestFuture(pt){if(!FUTURE||!FUTURE.stations.length)return null;let b=null,bd=1e9;for(const s of FUTURE.stations){const d=distM(pt,s.c);if(d<bd){bd=d;b=s;}}return b?{st:b,d:bd,min:Math.max(1,Math.ceil(bd*1.25/80))}:null;}
 function futureRow(pt){const f=nearestFuture(pt);if(!f||f.d>2500)return '';return `<div class="vrow"><div>最近的未來捷運站：${esc(f.st.n)}<small>${esc(f.st.line)}（${FUT_TXT[f.st.s]}）・OpenStreetMap；不計入估價</small></div><span class="r">步行 ${f.min} 分</span></div>`;}
 
@@ -1195,7 +1215,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();})();
+  await loadBaked();busy(false);state.loading=false;run();drawTrees();})();
 </script>
 </body>
 </html>
