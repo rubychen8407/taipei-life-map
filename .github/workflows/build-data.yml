@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: python3 scripts/build_data.py
+      - name: Future MRT lines (興建中／規劃中捷運)
+        run: python3 scripts/build_future.py || echo "::warning::future.json 沒有更新"
       - name: Commit data
         run: |
           git config user.name "github-actions[bot]"

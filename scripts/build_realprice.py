@@ -401,7 +401,7 @@ def backtest(recs, test_months=3):
             'by_district': {d: {'n': len(v), 'mdape': round(quantile(v, 0.5), 4)} for d, v in sorted(per.items())}}
 
 
-def market(recs, model, now_ym):
+def market(recs, model, now_ym, fitted=None):
     """各區市場指標：交易量年增率（避開申報還沒到齊的最近 4 個月）、品質調整後的價格動能（最近兩季 vs 前兩季）"""
     # 實價登錄有申報落差：成交後 2～4 個月資料才大致到齊（實測最近 4 個月的筆數明顯偏少），所以看「5～7 個月前」那三個月
     out = {}; a0, a1 = now_ym - 7, now_ym - 5
@@ -421,7 +421,13 @@ def market(recs, model, now_ym):
         series = [[ym_str(m), len(months.get(m, [])), round(quantile(months[m], 0.5), 1) if months.get(m) else None] for m in range(now_ym - 23, now_ym + 1)]
         out[d] = {'vol': cur, 'vol_prev': prev, 'vol_yoy': (cur / prev - 1) if prev >= 10 else None, 'vol_months': [ym_str(a0), ym_str(a1)],
                   'vol_avg': round(mu, 1), 'vol_z': round((cur - mu) / sd, 3) if mu >= 10 and sd > 0 else None,
-                  'price_mom': mom, 'series': series}
+                  'price_mom': mom, 'price_mom_local': False, 'series': series}
+        # 各區價格動能：全市的季效果 ×（這區最近兩季殘差中位數 − 前兩季）；兩期各至少 30 筆才算，否則用全市
+        if mom is not None and fitted and d != '全市':
+            e1 = [r['e'] for r in fitted if r['dist'] == d and str(quarter(r['ym'])) in qs[-2:]]
+            e0 = [r['e'] for r in fitted if r['dist'] == d and str(quarter(r['ym'])) in qs[-4:-2]]
+            if len(e1) >= 30 and len(e0) >= 30:
+                out[d]['price_mom'] = (1 + mom) * math.exp(quantile(e1, .5) - quantile(e0, .5)) - 1; out[d]['price_mom_local'] = True
     return out
 
 
@@ -527,7 +533,7 @@ def build(sales, rents, addr, layers, out_dir=os.path.join(B.ROOT, 'data'), toda
            'model': {'b': [round(x, 6) for x in model['b']], 'dist': {k: round(v, 5) for k, v in model['dist'].items()}, 'now': round(now_effect(model), 5)},
            'comps': {'radii': RADII, 'min': list(MIN_COMPS), 'age_band': AGE_BAND, 'months': KEEP_MONTHS}, 'offer': {'band': BAND, 'shift': SHIFT},
            'backtest': {k: (round(v, 4) if isinstance(v, float) else v) for k, v in bt.items()},
-           'market': market(all_recs, model, now_ym), 'stats': dict(stats, used=len(recs), shown=len(out), rents=len(rent_out))}
+           'market': market(all_recs, model, now_ym, recs), 'stats': dict(stats, used=len(recs), shown=len(out), rents=len(rent_out))}
     os.makedirs(out_dir, exist_ok=True)
     for name, obj in (('realprice.json', rp), ('valuation.json', val)):
         with open(os.path.join(out_dir, name), 'w', encoding='utf-8') as f:

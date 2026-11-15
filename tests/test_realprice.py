@@ -50,6 +50,7 @@ with tempfile.TemporaryDirectory() as d:
     check(bt['n'] > 200 and bt['mdape'] < 0.07 and 0.6 < bt['hit_10_90'] < 0.95, f"回測：只用更早的資料估最近 3 個月（MdAPE {bt['mdape']:.1%}、P10–P90 命中 {bt['hit_10_90']:.0%}）")
     mk = val['market']
     check('全市' in mk and len(mk['全市']['series']) == 24 and mk['大安區']['vol'] > 0 and mk['全市']['price_mom'] is not None and abs(mk['全市']['price_mom'] - 0.02) < 0.02, f"市場指標：交易量年增率、品質調整後價格動能（模擬每季 +1% → 兩季 {mk['全市']['price_mom']:+.1%}）")
+    check(mk['大安區']['price_mom_local'] and abs(mk['大安區']['price_mom'] - 0.02) < 0.03 and not mk['全市']['price_mom_local'], f"各區價格動能：大安區 {mk['大安區']['price_mom']:+.1%}（模擬每季 +1%，各區相同）")
     da = mk['大安區']; hist_ok = da['vol_avg'] > 0 and da['vol_z'] is not None and abs(da['vol_z']) < 3
     check(hist_ok, f"交易量和自己過去三年比：大安區近 3 個月 {da['vol']} 筆、過去平均 {da['vol_avg']} 筆、z = {da['vol_z']}（模擬資料各月均勻，不該偏離太多）")
     try:
