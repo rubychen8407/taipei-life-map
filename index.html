@@ -345,7 +345,7 @@ function categoryIcon(id){const paths={
  edit:'<path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
  land:'<path d="M3.5 18.5 9 9l4 5.5 2.5-3.5 5 7H3.5Z"/>'
 };return '<svg viewBox="0 0 24 24" aria-hidden="true">'+(paths[id]||paths.park)+'</svg>';}
-function facilityIcon(l,f,z,showLabel){const text=showLabel?facilityLabel(f,l):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[44,44],iconAnchor:[22,22]});}
+function facilityIcon(l,f,z,showLabel){const text=showLabel?(l.id==='bus'?(f.name||''):facilityLabel(f,l)):'';const label=text?'<span class="facility-name" aria-label="'+esc(text)+'">'+esc(text)+'</span>':'';return L.divIcon({className:'facility-marker',html:'<span class="facility-bubble" style="background:'+l.color+'">'+categoryIcon(l.id)+'</span>'+label,iconSize:[44,44],iconAnchor:[22,22]});}
 const LAYERS = [
   {id:'park',  name:'公園',  icon:categoryIcon('park'), color:'#2e7d32', bg:'#e6f4ea', geom:true,  q:'nwr["leisure"="park"]', is:t=>t.leisure==='park'},
   {id:'school',name:'學校',  icon:categoryIcon('school'), color:'#1565c0', bg:'#e8f0fe', geom:false, q:'nwr["amenity"~"^(school|kindergarten|university|college)$"]', is:t=>/^(school|kindergarten|university|college)$/.test(t.amenity||'')},
