@@ -1,0 +1,21 @@
+name: probe market
+on: { push: { branches: ['probe/market'] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sSL -m 300 "https://data.gov.tw/datasets/export/csv" -o cat.csv || true
+          ls -l cat.csv; head -c 600 cat.csv; echo
+          python3 - <<'PY'
+          import csv,io,re
+          raw=open('cat.csv','rb').read()
+          t=raw.decode('utf-8-sig',errors='replace')
+          rows=list(csv.reader(io.StringIO(t)))
+          h=rows[0];print(h[:12])
+          kw=['住宅價格指數','房價負擔','房貸','購屋貸款','新承做','不動產貸款','不動產放款','建物買賣','買賣移轉','建物所有權','使用執照','建造執照','開工','餘屋','空屋','營造工程物價','住宅存量','預售','不動產交易','法拍','拍賣','房地產','景氣對策']
+          for r in rows[1:]:
+              d=dict(zip(h,r)); title=d.get('資料集名稱','')
+              if any(k in title for k in kw) and ('臺北' in title or '台北' in title or '全國' in title or d.get('提供機關','') in ('內政部','中央銀行','行政院主計總處','國家發展委員會','內政部國土管理署','內政部地政司','臺北市政府主計處','臺北市政府地政局','臺北市政府都市發展局') or '內政部' in d.get('提供機關','')):
+                  print(d.get('資料集識別碼'),'|',title,'|',d.get('提供機關'),'|',d.get('更新頻率'),'|',(d.get('資料下載網址') or '')[:160])
+          PY
