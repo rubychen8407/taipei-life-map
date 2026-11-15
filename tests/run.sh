@@ -10,4 +10,5 @@ python3 test_transit.py
 python3 test_sidewalk.py
 python3 test_realprice.py
 python3 test_future.py
+python3 test_trees.py
 python3 e2e.py

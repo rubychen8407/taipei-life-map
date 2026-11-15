@@ -503,7 +503,7 @@ async def baked_suite(b, errs):
     check(await ev("state.lifeCenters.length===1 && lifeLayer.getLayers().length===1"), '可刪除地點，地圖標記同步')
     # 10c. 圖層：分組、開關、全選、儲存組合
     await page.click('#layersBtn')
-    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===4 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市三組')
+    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===5 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市、環境')
     check(await ev("[...document.querySelectorAll('#layersPop [data-layer=sale],#layersPop [data-layer=land]')].every(b=>b.disabled)&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal"), '房市：實價登錄成交可以開（預設關），房屋出售、土地價值先預留')
     await shot(page, '8_layers')
     await page.click('#layersPop [data-layer=heat]')
@@ -515,6 +515,21 @@ async def baked_suite(b, errs):
     await page.click('#layersPop [data-group="0"]')
     check(await ev("!state.layers.heat && !state.layers.pins && !state.layers.fac && !state.layers.labels"), '再按一次「全部關閉」')
     check(await ev("!document.querySelector('#layersPop [data-save-preset],#layersPop .presets')"), '圖層面板不再有「儲存」組合按鈕')
+    # 行道樹：預設關、勾選才下載、放大才畫、可以點、可以關
+    check(await ev("!state.layers.trees && document.querySelector('#layersPop [data-layer=trees]').getAttribute('aria-pressed')==='false'") and 'trees.json' not in data_hits, '圖層「環境」有行道樹，預設關閉，還沒下載行道樹資料')
+    await ev("void map.setView([25.0415,121.542],16,{animate:false})"); await page.wait_for_timeout(300)
+    await page.click('#layersPop [data-layer=trees]'); await page.wait_for_function("treeLayer.getLayers().length>0", timeout=5000)
+    tr = await ev("(()=>{const ms=treeLayer.getLayers(),b=map.getBounds();return {n:ms.length,inView:ms.every(m=>b.pad(.11).contains(m.getLatLng())),want:(()=>{let c=0;for(let i=0;i<TREES.n;i++)if(b.pad(.1).contains([TREES.lat[i],TREES.lon[i]]))c++;return c})()}})()")
+    check('trees.json' in data_hits and tr['n'] == tr['want'] and tr['n'] >= 20 and tr['inView'], f'打開行道樹：這時才下載資料，畫出畫面內的每一棵（{tr["n"]} 棵）')
+    await page.click('#layersBtn'); await shot(page, '8t_trees')
+    await ev("void treeLayer.getLayers().find(m=>Math.abs(m.getLatLng().lng-121.542)<1e-4&&Math.abs(m.getLatLng().lat-25.0415)<1e-4).fire('click')"); await page.wait_for_timeout(200)
+    pop = await ev("document.querySelector('.leaflet-popup-content')?.innerText||''")
+    check('忠孝東路四段' in pop and ('臺灣欒樹' in pop or '樟樹' in pop) and '樹高 8.5 公尺' in pop and '胸徑' in pop, f'點行道樹：顯示樹種、路段、樹高、胸徑 {pop!r}')
+    await ev("void map.closePopup()"); await ev("void map.setView([25.0415,121.542],13,{animate:false})"); await page.wait_for_timeout(300)
+    check(await ev("treeLayer.getLayers().length===0 && state.layers.trees"), '縮小到 15 以下：不畫行道樹（避免整個城市一次畫太多點）')
+    await ev("void map.setView([25.0415,121.542],16,{animate:false})"); await page.wait_for_timeout(300)
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=trees]')
+    check(await ev("treeLayer.getLayers().length===0 && !state.layers.trees && JSON.parse(localStorage.getItem('tlm.layers')).trees===false"), '再按一次關掉行道樹，開關狀態記在這台裝置')
     await page.click('#layersPop [data-group="0"]')
     await page.click('#layersBtn')
     check(await ev("document.getElementById('layersPop').hidden && !!heat"), '再點圖層按鈕關閉面板')
@@ -829,6 +844,8 @@ async def main():
                 MODE['sw'] = build_sidewalk.build(sidewalk_mock.mock(), DATA_DIR, built='2026-11-14', period='202606', log=lambda *a: None)
                 import build_future as BF, future_mock as FM
                 MODE['future'] = BF.build(FM.mock(), DATA_DIR, built='2026-11-15', log=lambda *a: None)
+                import build_trees as BT, trees_mock as TM
+                MODE['trees'] = BT.build(TM.mock(), DATA_DIR, built='2026-11-16', min_trees=10, log=lambda *a: None)
                 import build_realprice as RP, realprice_mock as RM   # 估價：模擬的實價登錄 → 實際跑建置程式
                 rs, rr, raddr, _ = RM.mock()
                 clean = RP.parse_sales(rs); layers = json.load(open(os.path.join(DATA_DIR, 'city.json'), encoding='utf-8'))['layers']

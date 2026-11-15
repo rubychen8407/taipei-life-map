@@ -4,9 +4,14 @@ jobs:
   p:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
       - run: |
-          curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/128274 > meta.json; python3 -c "
-          import json;m=json.load(open('meta.json'));r=m.get('result',m)
-          for d in r.get('distribution',[]): print(d.get('resourceFormat'),d.get('resourceDescription'),d.get('resourceDownloadUrl'))"
-          for u in $(python3 -c "import json;m=json.load(open('meta.json'));r=m.get('result',m);print(' '.join(d['resourceDownloadUrl'] for d in r.get('distribution',[])))"); do echo "== $u"; curl -sSL -m 120 "$u" -o f; ls -l f; file f; head -c 1500 f; echo; done
-          curl -sS -m 60 "https://data.taipei/api/v1/dataset/a7fd5b1c-de7c-4e24-8ff5-e9a4e5e2de3b?scope=resourceAquire&limit=2" | head -c 800; echo
+          python3 scripts/build_trees.py
+          ls -l data/trees.json; gzip -9 -c data/trees.json | wc -c
+          python3 -c "
+          import json;d=json.load(open('data/trees.json'));print(d['n'],len(d['sp']),len(d['rd']),d['base'],d['stats']);print(d['sp'][:15])
+          a=d['a'];import collections
+          print('maxd',max(a[0::6]),max(a[1::6]),'h',max(a[4::6]),'dia',max(a[5::6]))
+          b=d['base'];c=collections.Counter((round(b[0]+a[i]/1e5,2),round(b[1]+a[i+1]/1e5,2)) for i in range(0,len(a),6));print('densest 0.01 cells',c.most_common(3))"
