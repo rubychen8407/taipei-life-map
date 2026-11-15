@@ -277,6 +277,33 @@ async def baked_suite(b, errs):
     pin = await ev("(()=>{const r=document.querySelector('.pin').getBoundingClientRect(),s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return r.top>t.bottom&&r.bottom<s.top&&r.left>0&&r.right<innerWidth})()")
     check(pin, '大頭針在可見的地圖範圍內（不被上方列或卡片擋住）')
     await shot(page, '3_zone')
+    # 4b. 點清單裡的設施：地圖移到該設施，卡片顯示設施與附近交通；返回回到標記位置，✕ 離開
+    poi = await ev("(()=>{const el=[...document.querySelectorAll('#body [data-poi]')].find(e=>!/^(bus|mrt)/.test(e.dataset.poi));return el?el.dataset.poi:null})()")
+    check(poi is not None and await ev("document.querySelectorAll('#body [data-poi] .go').length") >= 2, f'標記位置的設施清單可以點（{poi}）')
+    await page.click(f'#body [data-poi="{poi}"]'); await page.wait_for_timeout(700)
+    pv = await ev("""(()=>{const v=state.view,p=map.latLngToContainerPoint(v.f.center),s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();
+      return {type:v.type,title:document.querySelector('#head h1').innerText,near:document.querySelectorAll('#body [data-near]').length,from:!!document.querySelector('#body .verdict'),
+        vis:p.y>t.bottom&&p.y<s.top&&p.x>0&&p.x<innerWidth,zoom:map.getZoom(),back:!document.getElementById('back').hidden,focus:!!document.querySelector('.poi-focus')}})()""")
+    check(pv['type'] == 'poi' and pv['vis'] and pv['zoom'] >= 16 and pv['focus'], f"點設施：地圖移到該設施並標示（z{pv['zoom']}）")
+    check(pv['near'] >= 1 and pv['from'], f"設施卡片顯示從標記位置過去的時間與附近交通（{pv['near']} 站）")
+    check(pv['back'] and await ev("!!document.getElementById('close')"), '設施卡片有返回鍵和 ✕')
+    check(await ev("[...document.querySelectorAll('#body .ic svg')].every(e=>getComputedStyle(e).fill==='none'&&getComputedStyle(e).width==='20px')"), '清單的類別圖示是線條圖示（不是黑色方塊）')
+    await shot(page, '3c_poi_focus')
+    await page.click('#body [data-near]'); await page.wait_for_function("state.view.type==='place'&&state.transit&&state.transit.loading===false", timeout=15000)
+    check(await ev("!document.getElementById('back').hidden"), '從設施點附近車站：顯示車站路線，仍有返回鍵')
+    await page.click('#back'); await page.wait_for_timeout(500)
+    check(await ev("state.view.type") == 'poi', '返回回到設施')
+    await page.click('#back'); await page.wait_for_timeout(500)
+    check(await ev("state.view.type==='cell'&&state.view.fromList&&!!document.querySelector('.pin')"), '再返回回到標記的位置')
+    bus = await ev("(()=>{const el=document.querySelector('#body [data-poi^=\"bus:\"],#body [data-poi^=\"mrt:\"]');return el?el.dataset.poi:null})()")
+    if bus:
+        await page.click(f'#body [data-poi="{bus}"]'); await page.wait_for_function("state.view.type==='place'&&state.transit&&state.transit.loading===false", timeout=15000)
+        z = await ev("(()=>{const p=map.latLngToContainerPoint(state.view.f.center);return p.y>0&&p.y<innerHeight&&p.x>0&&p.x<innerWidth})()")
+        check(z, '點清單裡的公車／捷運站：顯示路線，地圖移到該站')
+        await page.click('#close'); await page.wait_for_timeout(400)
+        check(await ev("state.view.type==='list'&&(state.backStack||[]).length===0"), '按 ✕ 直接離開，回到地圖')
+        await page.click('#resultBtn'); await page.wait_for_timeout(350)
+        await page.click('[data-z="0"]'); await page.wait_for_timeout(600)
     await page.click('#back'); await page.wait_for_timeout(300)
     check(await ev("state.view.type") == 'list' and await ev("selLayer.getLayers().length") == 0, '按返回回到清單')
 
