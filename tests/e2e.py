@@ -153,7 +153,9 @@ async def baked_suite(b, errs):
     except Exception:
         print('ERRS', errs[:3]); raise
     labels = await ev("""(()=>{const bus=data('bus')[0],mrt=data('mrt')[0],park=data('park').find(f=>f.name),old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]},{r:'subway',ref:'BL',name:'板南線',stops:[mrt.center]}]};const result={bus:facilityLabel(bus,LAYER.bus),mrt:facilityLabel(mrt,LAYER.mrt),park:facilityLabel(park,LAYER.park)};ROUTE_DATA=old;const el=document.createElement('span');el.className='facility-name';document.body.appendChild(el);result.labelPointerEvents=getComputedStyle(el).pointerEvents;el.remove();const marker=L.marker(park.center,{icon:facilityIcon(LAYER.park,park,17,true)}).on('click',()=>window.__labelClicked=true).addTo(map);marker._icon.querySelector('.facility-name').dispatchEvent(new MouseEvent('click',{bubbles:true}));result.labelClick=!!window.__labelClicked;marker.remove();delete window.__labelClicked;FACILITY_LABEL_CACHE.delete(bus);FACILITY_LABEL_CACHE.delete(mrt);return result;})()""")
-    check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、公車顯示路線號、捷運顯示路線名稱')
+    check(labels['bus']=='307' and labels['mrt']=='板南線' and bool(labels['park']), '地圖標籤：一般設施顯示地點名稱、（路線資料）公車路線號、捷運顯示路線名稱')
+    busname = await ev("""(()=>{const bus=data('bus').find(f=>f.name),old=ROUTE_DATA;ROUTE_DATA={routes:[{r:'bus',ref:'307',name:'307',stops:[bus.center]}]};const m=L.marker(bus.center,{icon:facilityIcon(LAYER.bus,bus,17,true)}).addTo(map);const t=m._icon.querySelector('.facility-name')?.innerText||'';m.remove();ROUTE_DATA=old;FACILITY_LABEL_CACHE.delete(bus);return {t,name:bus.name};})()""")
+    check(busname['t']==busname['name'] and '307' not in busname['t'], f'地圖上公車站標籤顯示站名（{busname["t"]}），不列出所有公車號碼')
     check(labels['labelPointerEvents']=='auto', '地圖標籤文字可接收點擊，不會穿透')
     check(labels['labelClick'], '點擊標籤文字會觸發對應 POI 標記事件')
     check(await ev("toFeature({type:'way',id:1,center:{lat:25.05,lon:121.55},tags:{leisure:'pitch',sport:'basketball'}}).name==='籃球場'"), '沒有正式名稱的運動設施依 OSM sport 標籤顯示設施類型名稱')
