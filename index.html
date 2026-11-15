@@ -188,15 +188,20 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;table-layout:fixed}.cmp th,.cmp td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}.cmp th:first-child,.cmp td:first-child{text-align:left;color:#5F6368;font-weight:500;width:28%}
 .cmp thead th{font-size:12.5px;color:var(--ink);font-weight:600}.cmp td.best{color:#137333;font-weight:700}.cmp small{display:block;color:#80868b;font-size:11px;font-weight:400}
 .future-tip{font-size:12px;font-weight:600;color:#6A1B9A}
+.deal-iso{filter:drop-shadow(0 0 .5px rgba(255,255,255,.9))}
+.deal-cl span{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);color:#fff;line-height:1.05}.deal-cl b{font-size:14px;font-weight:700}.deal-cl small{font-size:9px;opacity:.9}
+.deal-legend .dl-n{display:flex;align-items:center;gap:4px}.deal-legend .dl-n b{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:hsl(127 78% 47%);color:#fff;font-size:9.5px;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.deal-legend .dl-t svg{width:20px;height:23px;stroke:none;fill:initial}
 .deal-ic span{position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .deal-ic svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .deal-ic b{position:absolute;top:-7px;right:-8px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:#1D1D1F;color:#fff;font-size:10px;line-height:16px;text-align:center}
 .deal-legend{position:absolute;left:12px;right:84px;z-index:1000;bottom:calc(112px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;pointer-events:none}
-.deal-legend[hidden]{display:none}.deal-legend .dl-t{display:flex;align-items:center;gap:2px}.deal-legend svg{width:16px;height:16px;fill:none;stroke:#3c4043;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.deal-legend[hidden],.deal-legend.under-pop{display:none}.deal-legend .dl-t{display:flex;align-items:center;gap:2px}.deal-legend svg{width:16px;height:16px;fill:none;stroke:#3c4043;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
 .deal-legend .dl-c{display:flex;align-items:center;gap:4px}.deal-legend i{display:block;width:60px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}
 .deal-pop .leaflet-popup-content{margin:12px 12px 10px;width:auto!important;min-width:240px}.dp-h{display:flex;gap:10px;align-items:center;margin-bottom:6px}.dp-h b{display:block;font-size:14px}.dp-h small,.dp-r small{display:block;color:#5F6368;font-size:12px}
-.dp-ic{flex:none;display:flex;width:34px;height:34px;border-radius:10px;background:#E8EEF8;align-items:center;justify-content:center}.dp-ic svg{width:22px;height:22px;fill:none;stroke:#123B8A;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.dp-ic{flex:none;display:flex;width:38px;height:40px;border-radius:10px;background:#F1F3F6;align-items:center;justify-content:center}.dp-ic svg{width:30px;height:34px}
 .dp-r{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #eceef1;font-size:13px}.dp-r>div{flex:1;min-width:0}.dp-use{flex:none;min-height:36px;border:0;border-radius:10px;background:#E8EEF8;color:#123B8A;font-weight:600;font-size:12.5px;padding:0 10px}
+.deal-pop .dp{max-height:min(46vh,380px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dp-more,.dp-note{font-size:11.5px;color:#80868b;padding-top:6px}
 .home-pin span{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--A);box-shadow:0 1px 5px rgba(0,0,0,.3)}.home-pin svg{width:17px;height:17px;fill:var(--A);stroke:var(--A);stroke-width:1.4;stroke-linejoin:round}
 .ph-legend[hidden]{display:none}.ph-legend{position:absolute;left:12px;z-index:1000;bottom:calc(68px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;align-items:center;gap:6px;pointer-events:none}.ph-legend i{display:block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}#filterPop .hint{font-size:12px;color:#5F6368;margin-top:-4px}
@@ -904,7 +909,8 @@ $('locate').onclick=()=>{if(!navigator.geolocation){toast('這個瀏覽器不支
    ()=>toast('無法取得位置，請確認已允許定位'),{enableHighAccuracy:true,timeout:8000});};
 
 // ---------- 中古屋估價（PRD：長按地圖 →「評估這裡的房子」）。estimate()、modelX()、quantile()、poiScore() 與 scripts/build_realprice.py 相同，改一邊要同步改另一邊 ----------
-let VALDATA=null,VALLOAD=null;const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
+let VALDATA=null,VALLOAD=null;map.on('popupopen',()=>{$('dealLegend').classList.add('under-pop');});map.on('popupclose',()=>{$('dealLegend').classList.remove('under-pop');});
+const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
 function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture()]).then(([rp,v,fin])=>{
     VALDATA={sales:rp.sales.map(a=>({pt:[a[0],a[1]],ym:a[2],dist:rp.districts[a[3]],t:a[4],ping:a[5],age:a[6],fl:a[7],tot:a[8],up:a[9],s:a[10],e:a[11]})),rents:rp.rents,types:rp.types,through:rp.through,v,fin};return VALDATA;}).catch(e=>{VALLOAD=null;throw e;});
   return VALLOAD;}
@@ -1102,24 +1108,73 @@ let phSeq=0;async function drawPriceHeat(){const seq=++phSeq,lg=$('phLegend');if
   phLayer.addTo(map);lg.innerHTML=`<span>${P.lo.toFixed(0)}</span><i></i><span>${P.hi.toFixed(0)} 萬／坪</span>`;lg.hidden=false;}
 
 // ---------- 「實價登錄成交」圖層：放大到街區才畫（畫面內的成交點，顏色＝單價高低），點一筆可用它的條件估價
-// 房屋型態圖示（住宅大樓／華廈／公寓），顏色＝單價（藍低→橘高）
-const DEAL_IC=['<path d="M8 3.5h8V20.5H8z"/><path d="M10.4 6.5h3.2M10.4 9.5h3.2M10.4 12.5h3.2M10.4 15.5h3.2M11 20.5v-2.3h2v2.3"/>',
-  '<path d="M5.5 8.5h13v12h-13z"/><path d="M8.5 11.5h2M13.5 11.5h2M8.5 14.5h2M13.5 14.5h2M11 20.5v-3h2v3"/>',
-  '<path d="M4.5 11 12 5.5l7.5 5.5v9.5h-15z"/><path d="M8.5 14h2M13.5 14h2M10.8 20.5V17h2.4v3.5"/>'];
-function dealIcon(t,color,n){return L.divIcon({className:'deal-ic',html:`<span style="background:${color}"><svg viewBox="0 0 24 24" aria-hidden="true">${DEAL_IC[t]||DEAL_IC[0]}</svg>${n>1?`<b>${n}</b>`:''}</span>`,iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-12]});}
+// 房屋型態：等角 3D 建物（住宅大樓高、華廈中、公寓矮＋斜屋頂），整棟用單價色（藍低→橘高）
+// t：0 住宅大樓、1 華廈、2 公寓；base：[色相, 飽和, 亮度]（單價色）；mode：'color' | 'mono'
+function isoSVG(t,base,mode,n,px=44){
+  const S=[{s:7,H:31,rows:9,cols:2,top:'tank'},{s:8.6,H:19,rows:5,cols:3,top:'parapet',balc:true},{s:9.6,H:10.5,rows:3,cols:3,roof:6.5}][t];
+  const s=S.s,H=S.H,cx=19,by=44,[hh,ss,ll]=base,hsl=(l,a=1,sat=ss)=>`hsla(${hh},${sat}%,${Math.max(8,Math.min(94,l))}%,${a})`;
+  const C=mode==='mono'
+    ?{L:'#FBFBFA',R:'#E2E5EA',top:hsl(ll+6),topEdge:hsl(ll-8),glassL:'#B8C6D6',glassR:'#94A6BA',lobby:'#7E8DA0',edge:'rgba(70,78,90,.42)',ledge:'#FFFFFF',roofA:hsl(ll),roofB:hsl(ll+12)}
+    :{L:hsl(ll+4),R:hsl(ll-10),top:hsl(ll+20),topEdge:hsl(ll-4),glassL:hsl(ll+34,.9,ss*.45),glassR:hsl(ll+18,.85,ss*.5),lobby:hsl(ll-22),edge:hsl(ll-26,.55),ledge:hsl(ll+28,.9),roofA:hsl(ll+12),roofB:hsl(ll+26)};
+  const B=[cx,by],Lp=[cx-s,by-s/2],Rp=[cx+s,by-s/2],T=[cx,by-s];
+  const onL=(u,v)=>[Lp[0]+u*(B[0]-Lp[0]),Lp[1]+u*(B[1]-Lp[1])-v],onR=(u,v)=>[B[0]+u*(Rp[0]-B[0]),B[1]+u*(Rp[1]-B[1])-v];
+  const P=a=>a.map(p=>p[0].toFixed(2)+','+p[1].toFixed(2)).join(' '),quad=(f,u0,u1,v0,v1)=>P([f(u0,v0),f(u1,v0),f(u1,v1),f(u0,v1)]);
+  const up=(p,h=H)=>[p[0],p[1]-h];
+  let g=`<path d="M${cx-s-1} ${by-s/2+1}L${cx} ${by+1.5}L${cx+s*1.9} ${by-s*.05}L${cx+s*.9} ${by-s*.55}Z" fill="rgba(30,40,60,.16)" filter="url(#isoBlur)"/>`; // 往右下的落地陰影
+  g+=`<polygon points="${P([B,Lp,up(Lp),up(B)])}" fill="${C.L}"/><polygon points="${P([B,Rp,up(Rp),up(B)])}" fill="${C.R}"/>`;
+  g+=`<polygon points="${P([B,Lp,up(Lp),up(B)])}" fill="url(#isoShade)"/><polygon points="${P([B,Rp,up(Rp),up(B)])}" fill="url(#isoShade)"/>`;
+  // 一樓：大樓是玻璃大廳，其他是門
+  const gf=t===0?3.2:2.4,body=H-gf-(S.roof?0:.9),rh=body/S.rows,cw=1/S.cols;
+  if(t===0){g+=`<polygon points="${quad(onL,.08,.92,0,gf)}" fill="${C.lobby}"/><polygon points="${quad(onR,.08,.92,0,gf)}" fill="${C.lobby}" opacity=".85"/>`;}
+  else g+=`<polygon points="${quad(onL,.42,.62,0,gf)}" fill="${C.lobby}"/>`;
+  for(let r=0;r<S.rows;r++){const v0=gf+r*rh+rh*.28,v1=gf+(r+1)*rh-rh*.12;
+    for(let c=0;c<S.cols;c++){const u0=c*cw+cw*.2,u1=(c+1)*cw-cw*.2;
+      g+=`<polygon points="${quad(onL,u0,u1,v0,v1)}" fill="${C.glassL}"/><polygon points="${quad(onR,u0,u1,v0,v1)}" fill="${C.glassR}"/>`;}
+    if(S.balc){const v=gf+r*rh+rh*.2;g+=`<polygon points="${quad(onL,.04,.96,v-.55,v)}" fill="${C.ledge}"/><polygon points="${quad(onR,.04,.96,v-.55,v)}" fill="${C.ledge}" opacity=".7"/>`;}}
+  // 屋頂
+  if(S.roof){const r=S.roof,uL=up(Lp),uR=up(Rp),uB=up(B),uT=up(T),m=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],R1=up(m(uL,uT),r),R2=up(m(uB,uR),r);
+    g+=`<polygon points="${P([uB,uR,R2])}" fill="${C.R}"/><polygon points="${P([uB,uR,R2])}" fill="url(#isoShade)"/>`;
+    g+=`<polygon points="${P([uL,uB,R2,R1])}" fill="${C.roofA}" stroke="${C.edge}" stroke-width=".35"/><polygon points="${P([uT,uR,R2,R1])}" fill="${C.roofB}" stroke="${C.edge}" stroke-width=".35"/>`;
+    for(let k=1;k<4;k++){const a=k/4,p1=[uL[0]+(R1[0]-uL[0])*a,uL[1]+(R1[1]-uL[1])*a],p2=[uB[0]+(R2[0]-uB[0])*a,uB[1]+(R2[1]-uB[1])*a];g+=`<line x1="${p1[0].toFixed(2)}" y1="${p1[1].toFixed(2)}" x2="${p2[0].toFixed(2)}" y2="${p2[1].toFixed(2)}" stroke="${C.edge}" stroke-width=".3" opacity=".6"/>`;}}
+  else{const tp=[up(B),up(Lp),up(T),up(Rp)],ins=.82,ctr=[cx,by-H-s/2],inner=tp.map(p=>[ctr[0]+(p[0]-ctr[0])*ins,ctr[1]+(p[1]-ctr[1])*ins]);
+    g+=`<polygon points="${P(tp)}" fill="${C.topEdge}"/><polygon points="${P(inner)}" fill="${C.top}"/>`; // 女兒牆
+    if(S.top==='tank'){const ts=2.4,tb=[cx+1.2,by-H-s/2+1.2],tl=[tb[0]-ts,tb[1]-ts/2],tr=[tb[0]+ts,tb[1]-ts/2],th=2.6;
+      g+=`<polygon points="${P([tb,tl,up(tl,th),up(tb,th)])}" fill="${C.L}" stroke="${C.edge}" stroke-width=".3"/><polygon points="${P([tb,tr,up(tr,th),up(tb,th)])}" fill="${C.R}" stroke="${C.edge}" stroke-width=".3"/><polygon points="${P([up(tb,th),up(tl,th),up([tb[0],tb[1]-ts],th),up(tr,th)])}" fill="${C.top}" stroke="${C.edge}" stroke-width=".3"/>`;}}
+  // 輪廓：只描外框與中間稜線，讓形體俐落
+  g+=`<polyline points="${P([Lp,B,Rp])}" fill="none" stroke="${C.edge}" stroke-width=".5"/><line x1="${cx}" y1="${by}" x2="${cx}" y2="${by-H}" stroke="${mode==='mono'?'rgba(255,255,255,.9)':hsl(ll+30,.6)}" stroke-width=".45"/>`;
+  g+=`<polyline points="${P([Lp,up(Lp),up(B),up(Rp),Rp])}" fill="none" stroke="${C.edge}" stroke-width=".5" stroke-linejoin="round"/>`;
+  const badge=n>1?`<g transform="translate(${cx+s+2.5},${by-H-s-3})"><rect x="-6.5" y="-6" width="${n>9?15:13}" height="12" rx="6" fill="#1D1D1F" stroke="#fff" stroke-width="1.2"/><text x="${n>9?1:0}" y="3.4" font-size="8.2" font-weight="700" text-anchor="middle" fill="#fff" font-family="-apple-system,'SF Pro',sans-serif">${n}</text></g>`:'';
+  return `<svg viewBox="0 0 44 50" width="${px}" height="${Math.round(px*50/44)}" style="overflow:visible" aria-hidden="true"><defs><linearGradient id="isoShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".10"/><stop offset="1" stop-color="#000" stop-opacity=".10"/></linearGradient><filter id="isoBlur" x="-40%" y="-80%" width="180%" height="260%"><feGaussianBlur stdDeviation="1.3"/></filter></defs>${g}${badge}</svg>`;
+}
+function priceBase(up,lo,hi){const t=Math.max(0,Math.min(1,(up-lo)/((hi-lo)||1)));return[Math.round(222-190*t),78,Math.round(42+10*t)];}
+function dealIcon(t,base,n){return L.divIcon({className:'deal-iso',html:isoSVG(t,base,'color',n,54),iconSize:[54,61],iconAnchor:[23,54],popupAnchor:[0,-48]});}
+function clusterIcon(n,b,base){const d=Math.round(34+Math.min(16,Math.log2(n)*3.2));return L.divIcon({className:'deal-cl',html:`<span style="width:${d}px;height:${d}px;background:hsl(${base[0]} ${base[1]}% ${base[2]}%)"><b>${n}</b><small>${b} 棟</small></span>`,iconSize:[d,d],iconAnchor:[d/2,d/2]});}
+const DEAL_MAX=10; // 一個畫面最多畫 10 棟建物，其餘就近聚合成數字（成交筆數）
 // 「實價登錄成交」圖層：放大到街區才畫；同一個門牌位置的多筆成交合成一個圖示（右上角數字＝筆數），點了看每一筆的房屋資訊
 let dealSeq=0;async function drawDeals(){const seq=++dealSeq,lg=$('dealLegend');if(!state.layers.deal||state.transit||state.drawing||state.editing){dealLayer.clearLayers();lg.hidden=true;return;}
   try{await loadVal();}catch(e){dealLayer.clearLayers();lg.hidden=true;if(state.layers.deal){state.layers.deal=false;toast('實價登錄資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();}return;}
-  if(seq!==dealSeq)return;dealLayer.clearLayers();lg.hidden=false;if(map.getZoom()<15){lg.hidden=true;if(!state.dealHint){state.dealHint=true;toast('放大地圖就會顯示成交點');}return;}
-  const b=map.getBounds().pad(.1),vis=VALDATA.sales.filter(r=>b.contains(r.pt)),ups=vis.map(r=>r.up),lo=quantile(ups,.1),hi=quantile(ups,.9),groups=new Map();
+  if(seq!==dealSeq)return;dealLayer.clearLayers();lg.hidden=false;if(map.getZoom()<13){lg.hidden=true;if(!state.dealHint){state.dealHint=true;toast('放大地圖就會顯示成交點');}return;}
+  const b=map.getBounds().pad(.05),vis=VALDATA.sales.filter(r=>b.contains(r.pt)),ups=vis.map(r=>r.up),lo=quantile(ups,.1),hi=quantile(ups,.9),groups=new Map();
   for(const r of vis){const k=r.pt[0]+','+r.pt[1];if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r);}
-  const c=map.getCenter(),gs=[...groups.values()].sort((a,b2)=>distM([c.lat,c.lng],a[0].pt)-distM([c.lat,c.lng],b2[0].pt)).slice(0,500);
-  lg.innerHTML=VALDATA.types.map((n,i)=>`<span class="dl-t"><svg viewBox="0 0 24 24" aria-hidden="true">${DEAL_IC[i]}</svg>${n}</span>`).join('')+`<span class="dl-c"><span>${lo.toFixed(0)}</span><i></i><span>${hi.toFixed(0)} 萬／坪</span></span>`;
-  gs.forEach(g=>{g.sort((x,y)=>y.ym-x.ym);const r=g[0],t=g.every(x=>x.t===r.t)?r.t:r.t,med=quantile(g.map(x=>x.up),.5);
-    L.marker(r.pt,{icon:dealIcon(t,upColor(med,lo,hi),g.length),title:`${VALDATA.types[t]}・${med.toFixed(1)} 萬／坪`,bubblingMouseEvents:false,riseOnHover:true})
-      .on('click',()=>{if(state.drawing||state.editing)return;openDealPop(g);}).addTo(dealLayer);});}
-function openDealPop(g){const T=VALDATA.types,r0=g[0],show=g.slice(0,8);
-  const html=`<div class="dp"><div class="dp-h"><span class="dp-ic">${'<svg viewBox="0 0 24 24" aria-hidden="true">'+DEAL_IC[r0.t]+'</svg>'}</span><div><b>${T[r0.t]}・${r0.tot} 層樓</b><small>屋齡約 ${r0.age} 年・${g.length} 筆成交（近 24 個月）</small></div></div>`+
+  const bl=[...groups.values()].map(g=>{g.sort((x,y)=>y.ym-x.ym);const p=map.latLngToContainerPoint(g[0].pt);return{g,x:p.x,y:p.y};});
+  lg.innerHTML=VALDATA.types.map((n,i)=>`<span class="dl-t">${isoSVG(i,[127,60,42],'color',1,20)}${n}</span>`).join('')+`<span class="dl-c"><span>${(lo||0).toFixed(0)}</span><i></i><span>${(hi||0).toFixed(0)} 萬／坪</span></span><span class="dl-n"><b>12</b>聚合的成交筆數</span>`;
+  // 先挑最多 10 棟單獨顯示：成交筆數多的優先、彼此在螢幕上至少隔 64 px；其餘依格子聚合成數字（格子大小讓一個畫面約 14 個以內）
+  let cells;
+  if(bl.length<=DEAL_MAX)cells=bl.map(o=>[o]);
+  else{const c0=map.latLngToContainerPoint(map.getCenter()),pick=[],rest=[];
+    bl.sort((p,q)=>q.g.length-p.g.length||Math.hypot(p.x-c0.x,p.y-c0.y)-Math.hypot(q.x-c0.x,q.y-c0.y));
+    for(const o of bl){if(pick.length<DEAL_MAX&&pick.every(p=>Math.hypot(p.x-o.x,p.y-o.y)>=64))pick.push(o);else rest.push(o);}
+    const sz=map.getSize(),cs=Math.max(110,Math.sqrt(sz.x*sz.y/14)),m=new Map();for(const o of rest){const k=Math.floor(o.x/cs)+','+Math.floor(o.y/cs);if(!m.has(k))m.set(k,[]);m.get(k).push(o);}
+    cells=pick.map(o=>[o]).concat([...m.values()].map(c=>Object.assign(c,{cl:true})));}
+  state.dealView={buildings:cells.filter(c=>!c.cl).length,clusters:cells.filter(c=>c.cl).length};
+  cells.forEach(c=>{if(!c.cl){const g=c[0].g,med=quantile(g.map(x=>x.up),.5);
+      L.marker(g[0].pt,{icon:dealIcon(g[0].t,priceBase(med,lo,hi),g.length),title:`${VALDATA.types[g[0].t]}・${med.toFixed(1)} 萬／坪`,bubblingMouseEvents:false,riseOnHover:true})
+        .on('click',()=>{if(state.drawing||state.editing)return;openDealPop(g);}).addTo(dealLayer);return;}
+    const all=c.flatMap(o=>o.g),med=quantile(all.map(x=>x.up),.5),la=c.reduce((a,o)=>a+o.g[0].pt[0],0)/c.length,ln=c.reduce((a,o)=>a+o.g[0].pt[1],0)/c.length;
+    L.marker([la,ln],{icon:clusterIcon(all.length,c.length,priceBase(med,lo,hi)),title:`${c.length} 棟、${all.length} 筆成交，單價中位數 ${med.toFixed(1)} 萬／坪`,bubblingMouseEvents:false,zIndexOffset:500})
+      .on('click',()=>{if(state.drawing||state.editing)return;const bb=L.latLngBounds(c.map(o=>o.g[0].pt));if(map.getZoom()>=18||bb.getNorthEast().equals(bb.getSouthWest()))map.setView(bb.getCenter(),Math.min(19,map.getZoom()+2));else fit(bb,{maxZoom:19});}).addTo(dealLayer);});}
+function openDealPop(g){const T=VALDATA.types,r0=g[0],show=g.slice(0,5);
+  const html=`<div class="dp"><div class="dp-h"><span class="dp-ic">${isoSVG(r0.t,[217,60,46],'color',1,30)}</span><div><b>${T[r0.t]}・${r0.tot} 層樓</b><small>屋齡約 ${r0.age} 年・${g.length} 筆成交（近 24 個月）</small></div></div>`+
     show.map((r,i)=>`<div class="dp-r"><div><b>${r.up.toFixed(1)} 萬／坪</b><small>${ymTxt(r.ym)}・${r.ping.toFixed(1)} 坪・${r.fl}/${r.tot} 樓・總價約 ${wan(r.up*r.ping)}</small></div><button type="button" class="dp-use" data-di="${i}" aria-label="用這筆的條件估價">估價 ›</button></div>`).join('')+
     (g.length>show.length?`<div class="dp-more">還有 ${g.length-show.length} 筆較早的成交</div>`:'')+`<div class="dp-note">總價不含車位；實價登錄門牌只到同一棟，不代表同一戶</div></div>`;
   L.popup({className:'deal-pop',closeButton:false,maxWidth:300,minWidth:240,autoPanPaddingTopLeft:[10,$('top').offsetHeight+16],autoPanPaddingBottomRight:[10,(state.sheetVis||0)+76]}).setLatLng(r0.pt).setContent(html).openOn(map);

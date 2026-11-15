@@ -677,22 +677,31 @@ async def baked_suite(b, errs):
     await page.click('#close')
     await ev("void map.setView([25.030,121.543],16,{animate:false})"); await page.wait_for_timeout(300)
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.wait_for_function("dealLayer.getLayers().length>10", timeout=5000); await page.click('#layersBtn')
-    dl = await ev("""(()=>{const ms=dealLayer.getLayers(),ic=[...document.querySelectorAll('.deal-ic')];const kinds=new Set(ic.map(e=>e.querySelector('svg').innerHTML));
-      return {n:ms.length,svg:ic.length,kinds:kinds.size,colors:new Set(ic.map(e=>e.querySelector('span').style.background)).size,multi:document.querySelectorAll('.deal-ic b').length,leg:!document.getElementById('dealLegend').hidden&&document.getElementById('dealLegend').innerText}})()""")
-    check(dl['svg'] == dl['n'] and dl['kinds'] == 3 and dl['colors'] > 3 and all(t in (dl['leg'] or '') for t in ('住宅大樓', '華廈', '公寓')),
-          f"實價登錄成交：每個點是房屋型態的 SVG 圖示（大樓／華廈／公寓 {dl['kinds']} 種），顏色區分單價，並有圖例（{dl['n']} 個位置）")
-    check(dl['multi'] > 0, f"同一棟的多筆成交合成一個圖示，右上角顯示筆數（{dl['multi']} 個）")
+    dl = await ev("""(()=>{const ms=dealLayer.getLayers(),iso=[...document.querySelectorAll('.deal-iso')],cl=[...document.querySelectorAll('.deal-cl')];
+      return {n:ms.length,iso:iso.length,cl:cl.length,clN:cl.map(e=>+e.querySelector('b').innerText),bg:iso.some(e=>getComputedStyle(e).backgroundColor!=='rgba(0, 0, 0, 0)'),total:VALDATA.sales.filter(r=>map.getBounds().pad(.05).contains(r.pt)).length,
+        isoTotal:iso.reduce((a,e)=>{const b=e.querySelector('text');return a+(b?+b.textContent:1)},0),leg:!document.getElementById('dealLegend').hidden&&document.getElementById('dealLegend').innerText,kinds:new Set(dealLayer.getLayers().filter(m=>m.options.icon.options.className==='deal-iso').map(m=>m.options.icon.options.html.includes('<line')?'roof':m.options.icon.options.html.length)).size}})()""")
+    check(dl['iso'] == 10 and 0 < dl['cl'] <= 20 and dl['iso'] + dl['cl'] == dl['n'] and not dl['bg'], f"一個畫面最多 10 棟 3D 建物（{dl['iso']} 棟、沒有底板），其餘聚合成 {dl['cl']} 個數字")
+    check(sum(dl['clN']) + dl['isoTotal'] == dl['total'] and all(t in (dl['leg'] or '') for t in ('住宅大樓', '華廈', '公寓', '聚合')), f"聚合的數字是成交筆數，加起來等於畫面內全部 {dl['total']} 筆；圖例有三種型態與聚合說明")
     await shot(page, '8e_deals')
-    gi = await ev("dealLayer.getLayers().findIndex(m=>m.options.icon.options.html.includes('<b>'))")
+    z0 = await ev("map.getZoom()")
+    await ev("void dealLayer.getLayers().find(m=>m.options.icon.options.className==='deal-cl').fire('click')"); await page.wait_for_timeout(700)
+    check(await ev("map.getZoom()") > z0, f"點聚合數字：地圖放大到那一群（z{z0} → z{await ev('map.getZoom()')}）")
+    for _ in range(4):
+        gi = await ev("dealLayer.getLayers().findIndex(m=>m.options.icon.options.className==='deal-iso'&&m.options.icon.options.html.includes('<text'))")
+        if gi >= 0: break
+        await ev("void map.setZoom(map.getZoom()+1,{animate:false})"); await page.wait_for_timeout(500)
     await ev(f"void dealLayer.getLayers()[{gi}].fire('click')"); await page.wait_for_timeout(300)
     pop = await ev("({t:document.querySelector('.leaflet-popup-content').innerText,rows:document.querySelectorAll('.deal-pop .dp-r').length,btn:document.querySelectorAll('.deal-pop .dp-use').length})")
     check(pop['rows'] >= 2 and pop['btn'] == pop['rows'] and '萬／坪' in pop['t'] and '總價約' in pop['t'] and '屋齡' in pop['t'] and '樓' in pop['t'] and any(t in pop['t'] for t in ('住宅大樓', '華廈', '公寓')),
           f"點圖示：顯示房屋型態、總樓層、屋齡，以及這棟每一筆成交的單價、年月、坪數、樓層、總價（{pop['rows']} 筆）")
+    check(await ev("document.getElementById('dealLegend').classList.contains('under-pop')&&getComputedStyle(document.getElementById('dealLegend')).display==='none'&&document.querySelectorAll('.deal-pop .dp-r').length<=5"), '資訊卡打開時隱藏圖例；最多列 5 筆，卡片可捲動')
     await shot(page, '8e2_deal_pop')
     await page.click('.deal-pop .dp-use[data-di="1"]'); await page.wait_for_function("state.view.type==='val'&&!!document.getElementById('valGo')", timeout=5000)
     check(await ev("(()=>{const d=VALDATA.sales.filter(r=>r.pt[0]===state.val.pt[0]&&r.pt[1]===state.val.pt[1]).sort((a,b)=>b.ym-a.ym)[1];return !!d&&Math.abs(+document.querySelector('#body [data-vf=ping]').value-d.ping)<.06&&state.val.form.t===d.t&&+document.querySelector('#body [data-vf=fl]').value===d.fl})()"), '「估價 ›」：帶入那一筆的型態、坪數、屋齡、樓層')
+    await ev("void map.setView([25.05,121.55],13.5,{animate:false})"); await page.wait_for_timeout(500)
+    check(await ev("document.querySelectorAll('.deal-iso').length") <= 10 and await ev("document.querySelectorAll('.deal-cl').length") > 0, '縮小到全區時仍最多 10 棟，其餘聚合成數字')
     await ev("void map.setView([25.05,121.55],12,{animate:false})"); await page.wait_for_timeout(500)
-    check(await ev("dealLayer.getLayers().length") == 0, '縮小時不畫成交點')
+    check(await ev("dealLayer.getLayers().length") == 0, '縮小到全市時不畫成交點')
     await page.click('#close'); await page.wait_for_timeout(300)
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=priceheat]'); await page.wait_for_function("!!phLayer&&phLayer.getLayers().length>5", timeout=5000)
     ph = await ev("({n:phLayer.getLayers().length,heat:state.layers.heat,leg:!document.getElementById('phLegend').hidden&&document.getElementById('phLegend').innerText,lo:PH.lo,hi:PH.hi,da:PH.cells.filter(c=>Math.abs(c.c[0]-25.030)<.004&&Math.abs(c.c[1]-121.543)<.004).map(c=>c.v),wen:PH.cells.filter(c=>Math.abs(c.c[0]-24.992)<.004&&Math.abs(c.c[1]-121.565)<.004).map(c=>c.v)})")
