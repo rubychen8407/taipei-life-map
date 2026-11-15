@@ -4,8 +4,17 @@ jobs:
   p:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
       - run: |
-          B=https://plvr.land.moi.gov.tw/
-          for s in 101S4 108S2 115S3; do for f in A_lvr_land_A.csv A_lvr_land_B.csv a_lvr_land_a.csv; do echo "== $s $f"; curl -sSL -m 120 "${B}DownloadSeason?season=$s&fileName=$f" -o f; ls -l f | awk '{print $5}'; file f; head -c 300 f | iconv -f utf-8 -t utf-8 -c; echo; python3 -c "
-          t=open('f','rb').read().decode('utf-8-sig','replace').splitlines();print('rows',len(t))"; done; done
-          time curl -sSL -m 300 "${B}DownloadSeason?season=113S1&type=zip&fileName=lvr_landcsv.zip" -o z.zip; ls -l z.zip
+          python3 scripts/build_market.py
+          python3 -c "
+          import json;d=json.load(open('data/market.json'))
+          print(d['through'],d['light'])
+          f=d['forecast'];print(f['as_of'],f['probs'],f['call'],f['backtest'],f['train_n'])
+          for c in f['contrib']: print(' ',c)
+          for c in d['chain']: print(c)
+          for i in d['indicators']: print(i['key'],i['t'],i['v'],i['unit'],i['chg_label'],i['chg'],i['signal'],len(i['pts']),i['pts'][:1],i['pts'][-2:])
+          print([h for h in f['history'] if h[0].endswith('-01')])"
+          ls -l data/market.json
