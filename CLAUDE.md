@@ -9,3 +9,4 @@
 - 公車／捷運路線改由 TDX 產生：`scripts/build_transit.py`（工作流程 `build-transit.yml`，GitHub Secrets 名稱 `TDX_CLIENT_ID`、`TDX_CLIENT_SECRET`）寫入 `data/routes.json`（`src: "tdx"`），請勿手動編輯；`tests/test_transit.py` 用 TDX 格式的模擬資料測試，`tests/run.sh` 會一併執行。
 - 改動一律開 PR（分支 `feat/**` 或 `fix/**`），GitHub 上的 Tests 通過後直接合併（使用者同意自動合併），不需再詢問。
 - 人行道類別由 `scripts/build_sidewalk.py`（工作流程 `build-sidewalk.yml`，每月）從內政部「各縣市人行道資訊」產生 `data/sidewalk.json`，只收淨寬 ≥ 1.5 公尺；app 勾選人行道時才下載。`tests/test_sidewalk.py` 用 `tests/sidewalk_mock.py` 的模擬資料測試。
+- 中古屋估價模組（PRD：https://claude.ai/artifact/D9dMHpPZK7yg4NfgDMjdx4）：`scripts/build_realprice.py`（工作流程 `build-realprice.yml`，每月 2、12、22 日）從內政部實價登錄＋臺北市門牌位置數值資料產生 `data/realprice.json`、`data/valuation.json`，請勿手動編輯；回測 MdAPE 超過 12% 時建置失敗、不更新。估價公式（`estimate()`、`base_x()`、`quantile()`、生活機能分數）在 Python 與 `index.html` 各有一份，改一邊要同步改另一邊。`config/finance.json`（利率、成數、議價率）是手動維護，每個數字要附來源。`tests/test_realprice.py` 用 `tests/realprice_mock.py` 的模擬資料測試。
