@@ -5,27 +5,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          cat > show.py <<'PY'
-          import sys
-          raw=open('f','rb').read()
-          t=None
-          for enc in ('utf-8-sig','cp950','utf-16'):
-              try: t=raw.decode(enc); break
-              except Exception: pass
-          t=t or raw.decode('cp950','replace')
-          L=t.splitlines(); print('lines',len(L),'bytes',len(raw))
-          print('\n'.join(x[:300] for x in L[:5])); print('...'); print('\n'.join(x[:300] for x in L[-3:]))
+          curl -sSL -m 300 "https://data.gov.tw/datasets/export/csv" -o cat.csv
+          python3 - <<'PY'
+          import csv,io
+          t=open('cat.csv','rb').read().decode('utf-8-sig',errors='replace')
+          rows=list(csv.reader(io.StringIO(t)));h=rows[0]
+          kw=['登記概況','移轉','價格指數','負擔能力','房價','住宅','購置住宅','建築貸款','房地產']
+          for r in rows[1:]:
+              d=dict(zip(h,r)); title=d.get('資料集名稱',''); org=d.get('提供機關','')
+              if any(k in title for k in kw) and (('臺北' in title) or org in ('內政部','中央銀行','內政部地政司','內政部國土管理署','行政院主計總處','國家發展委員會','財政部','金融監督管理委員會')):
+                  print(d.get('資料集識別碼'),'|',title,'|',org,'|',d.get('更新頻率'),'|',(d.get('資料下載網址') or '')[:200])
           PY
-          show(){ echo; echo "=== $1"; curl -sSL -m 120 "$2" -o f || echo FAIL; python3 show.py || true; }
-          meta(){ curl -sS -m 60 https://data.gov.tw/api/v2/rest/dataset/$1 | python3 -c "import json,sys;m=json.load(sys.stdin);r=m.get('result',m);[print(d.get('resourceFormat'),d.get('resourceDescription'),d['resourceDownloadUrl']) for d in r['distribution']]"; }
-          echo "### 121381"; meta 121381; U=$(meta 121381 | grep -m1 CSV | awk '{print $NF}'); show price_m "$U"
-          echo "### 121969"; meta 121969; U=$(meta 121969 | grep -m1 CSV | awk '{print $NF}'); show price_q "$U"
-          show cbc "https://www.cbc.gov.tw/public/data/OpenData/經研處/EH45M01.csv"
-          show tsis_trade_m "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=9101&kind=21&type=0&funid=a05013701&cycle=1&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
-          show tsis_permit_use_m "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=9501&kind=21&type=0&funid=a05018702&cycle=1&outmode=12&compmode=0&outkind=3&deflst=2&nzo=1"
-          show tsis_usage_m "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=9501&kind=21&type=0&funid=a05019101&cycle=1&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
-          show tsis_start_m "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=10401&kind=21&type=0&funid=a05040301&cycle=1&outmode=12&compmode=0&outkind=3&deflst=2&nzo=1"
-          show tsis_cost "https://tsis.dbas.gov.taipei/statis/webMain.aspx?sys=220&ymf=9201&kind=21&type=0&funid=a04004101&cycle=1&outmode=12&compmode=0&outkind=1&deflst=2&nzo=1"
-          show dgbas_cost "https://ws.dgbas.gov.tw/001/Upload/461/relfile/11525/230553/pr0501a1m.xml"
-          echo "### 173425"; meta 173425; U=$(meta 173425 | grep -m1 -i csv | awk '{print $NF}'); show presale "$U"
-          echo "### 23854"; meta 23854
