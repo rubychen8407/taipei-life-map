@@ -239,6 +239,8 @@ html,body{touch-action:pan-x pan-y}
 .facility-marker .facility-name{top:40px}
 #pressMenu{height:52px}#pressMenu button{width:44px;height:44px;border-radius:22px}
 #map{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+/* iPhone Safari 的底部工具列是半透明的：地圖延伸到最大視窗高度（100lvh），工具列後面直接看到地圖；版權標示往上移到工具列上方 */
+@supports (height:100lvh){#map{position:fixed;inset:0 0 auto 0;height:100lvh}#map .leaflet-bottom{bottom:calc(100lvh - 100dvh)}}
 
 /* 結果面板收成左下角的按鈕，點了才展開（不遮地圖） */
 #resultBtn{position:absolute;z-index:1100;left:12px;bottom:calc(16px + env(safe-area-inset-bottom));height:44px;padding:0 12px 0 14px;border-radius:22px;border:0;background:var(--glass);box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);max-width:calc(100% - 90px)}
@@ -397,7 +399,8 @@ function fitSheet(max='half'){if(!isMob())return;$('body').style.maxHeight='none
     const v=state.sheetVis+(moved<0?60:-60);setSheet(pts.reduce((a,b)=>Math.abs(snapPx(b)-v)<Math.abs(snapPx(a)-v)?b:a));};
   g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);})();
 window.addEventListener('resize',()=>setSheet(snap,false));
-function padding(){return isMob()?{paddingTopLeft:[28,$('top').offsetHeight+28],paddingBottomRight:[28,state.sheetVis+28]}:{paddingTopLeft:[420,30],paddingBottomRight:[60,30]};}
+function underBar(){return Math.max(0,$('map').clientHeight-innerHeight);} // 地圖延伸到工具列後面的高度
+function padding(){return isMob()?{paddingTopLeft:[28,$('top').offsetHeight+28],paddingBottomRight:[28,state.sheetVis+28+underBar()]}:{paddingTopLeft:[420,30],paddingBottomRight:[60,30]};}
 function fit(b,o={}){map.fitBounds(b,Object.assign(padding(),o));}
 
 CATS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.dataset.id=l.id;b.setAttribute('aria-pressed',state.active.has(l.id));b.setAttribute('aria-expanded','false');
