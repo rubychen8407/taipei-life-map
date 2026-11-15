@@ -305,7 +305,7 @@ html,body{background:#e8eaed}
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
-<div id="phLegend" class="ph-legend glass" hidden></div>
+<div id="phLegend" class="ph-legend glass" hidden></div><div id="landLegend" class="ph-legend glass" hidden></div>
 <div id="dealLegend" class="deal-legend glass" hidden></div>
 <div id="pressMenu" class="glass" hidden role="menu" aria-label="這個位置"></div>
 <div id="toast"></div>
@@ -377,7 +377,7 @@ let heat=null;
 
 const state={active:new Set(['park','school','mrt']),minsByLayer:{sidewalk:3,park:10,school:10,sport:10,market:10,bus:10,mrt:10,life:20},modeByLayer:{sidewalk:'walk',park:'walk',school:'walk',sport:'walk',market:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
-  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true,trees:false},val:null};
+  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,pins:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true,trees:false,land:false},val:null};
 
 // ---------- geometry ----------
 function ringContains(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
@@ -759,7 +759,7 @@ function selectTransit(i){const T=state.transit;if(!T||!T.items)return;T.sel=T.s
   T.items.forEach((it,j)=>{const show=T.sel<0||T.sel===j;if(show&&!transitLayer.hasLayer(it.group))transitLayer.addLayer(it.group);if(!show&&transitLayer.hasLayer(it.group))transitLayer.removeLayer(it.group);});
   const it=T.items[T.sel];if(it&&it.bounds){if(isMob())setSheet('half');fit(L.latLngBounds(T.f.center,T.f.center).extend(it.bounds),{maxZoom:16});}
   document.querySelectorAll('#body [data-tr]').forEach(el=>el.classList.toggle('sel',+el.dataset.tr===T.sel));}
-function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();drawTrees();}
+function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();drawTrees();drawLand();}
 function renderPlace(){const v=state.view,l=v.l,T=state.transit,rail=l.id==='mrt',items=T&&T.items||[];
   const sub=!T||T.loading?'正在找經過這一站的路線…':!T.n?'':rail?[...new Set(items.map(it=>it.line))].join('、'):`${T.n} 條公車路線可從這一站上車`;
   headDetail(v.f.name||l.name,sub,{name:l.name,color:l.color,icon:l.icon});
@@ -853,7 +853,8 @@ function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKe
   $('filterSave').onclick=()=>{const a=loadFilters(),snap=filterSnap(),k=filterKey(snap),dup=a.find(f=>filterKey(f)===k);if(dup){toast('這組條件已存為「'+dup.name+'」');return;}
     const name=$('filterName').value.trim()||'篩選 '+(a.length+1);a.push(Object.assign({name},snap));saveFilters(a);renderFilterPop();toast('已儲存「'+name+'」');};}
 addEventListener('pagehide',saveLast);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLast();});
-const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['homes','我的物件','star']]},{name:'環境',items:[['trees','行道樹','tree']]},{name:'房市',soon:true,items:[['sale','房屋出售','house'],['land','土地價值','land']]}];
+const FILLS={heat:'生活機能熱圖',priceheat:'單價熱圖',land:'土地價值'}; // 會把地圖塗滿顏色的圖層，一次只開一種
+const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['pins','推薦區域','pin'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['land','土地價值（公告現值）','land'],['homes','我的物件','star']]},{name:'環境',items:[['trees','行道樹','tree']]},{name:'房市',soon:true,items:[['sale','房屋出售','house']]}];
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
 function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k=>state.layers[k]).length;
   let h=`<h3>圖層<small>已開 ${on} 項</small></h3>`;
@@ -861,9 +862,9 @@ function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k
     h+=`<div class="lgroup-h"><span>${g.name}${g.soon?'・之後加入':''}</span>${g.soon?'':`<button type="button" data-group="${gi}">${all?'全部關閉':'全選'}</button>`}</div><div class="lgroup">${g.items.map(([k,n,icon])=>`<div class="lrow">${categoryIcon(icon)}<span>${n}</span><button type="button" class="switch" data-layer="${k}" aria-label="${n}" aria-pressed="${!!state.layers[k]}" ${g.soon?'disabled':''}></button></div>`).join('')}</div>`;});
   el.innerHTML=h;
   el.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{const k=b.dataset.layer;state.layers[k]=!state.layers[k];
-    if(state.layers[k]&&(k==='heat'||k==='priceheat')){const o=k==='heat'?'priceheat':'heat';if(state.layers[o]){state.layers[o]=false;toast(k==='heat'?'已關閉單價熱圖（兩種熱圖一次只顯示一種）':'已關閉生活機能熱圖（兩種熱圖一次只顯示一種）');}}applyLayers();});
-  el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);if(state.layers.heat&&state.layers.priceheat)state.layers[g.items.some(x=>x[0]==='priceheat')?'heat':'priceheat']=false;applyLayers();});}
-function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();drawTrees();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
+    if(state.layers[k]&&FILLS[k]){const off=Object.keys(FILLS).filter(o=>o!==k&&state.layers[o]);off.forEach(o=>state.layers[o]=false);if(off.length)toast('已關閉'+off.map(o=>FILLS[o]).join('、')+'（色塊圖層一次只顯示一種）');}applyLayers();});
+  el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);{const on=Object.keys(FILLS).filter(o=>state.layers[o]);if(on.length>1){const keep=on.find(o=>g.items.some(x=>x[0]===o))||on[0];on.forEach(o=>{if(o!==keep)state.layers[o]=false;});}}applyLayers();});}
+function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();drawTrees();drawLand();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
@@ -1026,6 +1027,19 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
   Bd.querySelectorAll('[data-fin]').forEach(i=>i.onchange=()=>{V.fin[i.dataset.fin]=i.value.trim();if(!(+V.fin.years>=1))V.fin.years=VALDATA.fin.years;if(!(+V.fin.rate>=0)||V.fin.rate==='')V.fin.rate=VALDATA.fin.mortgage_rate.value;const y=Bd.scrollTop;render();Bd.scrollTop=y;});}
+// ---------- 土地價值：各地段（小段）的公告土地現值（data/land.json，build-land 每月更新）；勾選才下載 ----------
+// 公告土地現值是政府每年 1/1 公告、課土地增值稅用的參考價，通常低於市價；這裡取小段內地號的中位數
+const PING_M2=3.305785;let LAND=null,LANDLOAD=null,landLayer=null,landSeq=0;
+function loadLand(){if(!LANDLOAD)LANDLOAD=getJSON('data/land.json').then(d=>{LAND=d;return d;}).catch(e=>{LANDLOAD=null;throw e;});return LANDLOAD;}
+const wanPing=v=>v*PING_M2/1e4,fmtWan=w=>w>=100?Math.round(w).toString():w>=10?w.toFixed(0):w.toFixed(1);
+function landColor(v){const l=x=>Math.log(Math.max(1,x));return upColor(l(v),l(LAND.lo),l(LAND.hi));}
+function landInfo(s){return `<b>${esc(s.n)}</b>（${esc(s.d)}）<br>公告土地現值 約 <b>${fmtWan(wanPing(s.v))} 萬／坪</b><br><small>${s.v.toLocaleString()} 元／㎡・${LAND.year} 年${s.g!=null?`・比去年 ${s.g>0?'+':''}${s.g}%`:''}<br>${s.b==='est'?`小段內 ${s.k} 筆地號的中位數`:`小段內 ${s.k} 筆公有土地的中位數`}；公告現值是課稅用的參考價，通常低於市價</small>`;}
+async function drawLand(){const seq=++landSeq,lg=$('landLegend');if(!state.layers.land||state.transit||state.drawing||state.editing){if(landLayer){map.removeLayer(landLayer);landLayer=null;}lg.hidden=true;return;}
+  if(landLayer)return;
+  if(!LAND){busy(true);try{await loadLand();}catch(e){busy(false);state.layers.land=false;lg.hidden=true;toast('土地價值資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();return;}busy(false);}
+  if(seq!==landSeq||landLayer||!state.layers.land)return;const rend=L.canvas({padding:.3});landLayer=L.layerGroup();
+  LAND.sections.forEach(s=>L.polygon(s.r,{renderer:rend,color:'#fff',weight:.7,opacity:.8,fillColor:landColor(s.v),fillOpacity:.45,bubblingMouseEvents:false,className:'land-sect'}).on('click',e=>{if(state.drawing||state.editing)return;L.popup({closeButton:false}).setLatLng(e.latlng).setContent(landInfo(s)).openOn(map);}).addTo(landLayer));
+  landLayer.addTo(map);lg.innerHTML=`<span>${fmtWan(wanPing(LAND.lo))}</span><i></i><span>${fmtWan(wanPing(LAND.hi))} 萬／坪・公告現值</span>`;lg.hidden=false;}
 // ---------- 未來捷運：OpenStreetMap 興建中／規劃中的捷運與輕軌（data/future.json，build-data 每週更新）----------
 const futureLayer=L.layerGroup().addTo(map);let FUTURE=null,FUTLOAD=null;
 function loadFuture(){if(!FUTLOAD)FUTLOAD=getJSON('data/future.json').then(d=>{FUTURE=d&&d.lines?d:{lines:[],stations:[]};return FUTURE;}).catch(()=>{FUTURE={lines:[],stations:[]};return FUTURE;});return FUTLOAD;}
@@ -1215,7 +1229,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();drawTrees();})();
+  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();})();
 </script>
 </body>
 </html>

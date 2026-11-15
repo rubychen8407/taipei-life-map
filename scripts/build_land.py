@@ -111,9 +111,17 @@ def median(xs):
 # ---------- 建置 ----------
 def build(sections, values, base_year, rates, public, out_dir=os.path.join(B.ROOT, 'data'), built=None, min_sections=400, log=print):
     year = max((y for d in rates.values() for y in d), default=base_year)
-    stats = {'sections': len(sections), 'est': 0, 'pub': 0, 'none': 0}
-    out = []
+    stats = {'sections': 0, 'est': 0, 'pub': 0, 'none': 0}
+    merged = {}                                   # 同一小段可能分成幾筆圖形，合併
     for rec, rings in sections:
+        k = rec.get('段代碼', '').zfill(4)
+        if k in merged:
+            merged[k][1].extend(rings)
+        else:
+            merged[k] = (rec, list(rings))
+    stats['sections'] = len(merged)
+    out = []
+    for rec, rings in merged.values():
         code, name, dist = rec.get('段代碼', '').zfill(4), rec.get('地段名', ''), rec.get('行政區', '')
         vs, pv = values.get((dist, name), []), public.get(code, [])
         rt = rates.get(dist) or rates.get('全市') or {}
