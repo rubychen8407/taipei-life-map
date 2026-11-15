@@ -188,8 +188,18 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .cmp{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;table-layout:fixed}.cmp th,.cmp td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}.cmp th:first-child,.cmp td:first-child{text-align:left;color:#5F6368;font-weight:500;width:28%}
 .cmp thead th{font-size:12.5px;color:var(--ink);font-weight:600}.cmp td.best{color:#137333;font-weight:700}.cmp small{display:block;color:#80868b;font-size:11px;font-weight:400}
 .future-tip{font-size:12px;font-weight:600;color:#6A1B9A}
+.deal-ic span{position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.deal-ic svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.deal-ic b{position:absolute;top:-7px;right:-8px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:#1D1D1F;color:#fff;font-size:10px;line-height:16px;text-align:center}
+.deal-legend{position:absolute;left:12px;right:84px;z-index:1000;bottom:calc(112px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;pointer-events:none}
+.deal-legend[hidden]{display:none}.deal-legend .dl-t{display:flex;align-items:center;gap:2px}.deal-legend svg{width:16px;height:16px;fill:none;stroke:#3c4043;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.deal-legend .dl-c{display:flex;align-items:center;gap:4px}.deal-legend i{display:block;width:60px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}
+.deal-pop .leaflet-popup-content{margin:12px 12px 10px;width:auto!important;min-width:240px}.dp-h{display:flex;gap:10px;align-items:center;margin-bottom:6px}.dp-h b{display:block;font-size:14px}.dp-h small,.dp-r small{display:block;color:#5F6368;font-size:12px}
+.dp-ic{flex:none;display:flex;width:34px;height:34px;border-radius:10px;background:#E8EEF8;align-items:center;justify-content:center}.dp-ic svg{width:22px;height:22px;fill:none;stroke:#123B8A;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.dp-r{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #eceef1;font-size:13px}.dp-r>div{flex:1;min-width:0}.dp-use{flex:none;min-height:36px;border:0;border-radius:10px;background:#E8EEF8;color:#123B8A;font-weight:600;font-size:12.5px;padding:0 10px}
+.dp-more,.dp-note{font-size:11.5px;color:#80868b;padding-top:6px}
 .home-pin span{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--A);box-shadow:0 1px 5px rgba(0,0,0,.3)}.home-pin svg{width:17px;height:17px;fill:var(--A);stroke:var(--A);stroke-width:1.4;stroke-linejoin:round}
-.ph-legend{position:absolute;left:12px;z-index:1000;bottom:calc(68px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;align-items:center;gap:6px;pointer-events:none}.ph-legend i{display:block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}#filterPop .hint{font-size:12px;color:#5F6368;margin-top:-4px}
+.ph-legend[hidden]{display:none}.ph-legend{position:absolute;left:12px;z-index:1000;bottom:calc(68px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;align-items:center;gap:6px;pointer-events:none}.ph-legend i{display:block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}#filterPop .hint{font-size:12px;color:#5F6368;margin-top:-4px}
 .frow{display:flex;align-items:center;gap:4px;border-radius:14px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}.frow[aria-current=true]{box-shadow:inset 0 0 0 1.5px var(--D)}
 .frow .fapply{flex:1;min-width:0;min-height:52px;border:0;background:none;text-align:left;padding:8px 4px 8px 12px;color:var(--ink)}.frow .fapply b{display:block;font-size:14px;font-weight:600}.frow .fapply span{display:block;font-size:11.5px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .frow .fdel{flex:none;width:44px;height:44px;border:0;background:none;color:#80868b;font-size:14px}
@@ -295,6 +305,7 @@ html,body{background:#e8eaed}
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
 <div id="phLegend" class="ph-legend glass" hidden></div>
+<div id="dealLegend" class="deal-legend glass" hidden></div>
 <div id="pressMenu" class="glass" hidden role="menu" aria-label="這個位置"></div>
 <div id="toast"></div>
 <button id="resultBtn" type="button" aria-label="打開分析結果"></button>
@@ -1091,13 +1102,28 @@ let phSeq=0;async function drawPriceHeat(){const seq=++phSeq,lg=$('phLegend');if
   phLayer.addTo(map);lg.innerHTML=`<span>${P.lo.toFixed(0)}</span><i></i><span>${P.hi.toFixed(0)} 萬／坪</span>`;lg.hidden=false;}
 
 // ---------- 「實價登錄成交」圖層：放大到街區才畫（畫面內的成交點，顏色＝單價高低），點一筆可用它的條件估價
-let dealSeq=0;async function drawDeals(){const seq=++dealSeq;if(!state.layers.deal||state.transit||state.drawing||state.editing){dealLayer.clearLayers();return;}
-  try{await loadVal();}catch(e){dealLayer.clearLayers();if(state.layers.deal){state.layers.deal=false;toast('實價登錄資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();}return;}
-  if(seq!==dealSeq)return;dealLayer.clearLayers();if(map.getZoom()<15){if(!state.dealHint){state.dealHint=true;toast('放大地圖就會顯示成交點');}return;}
-  const b=map.getBounds().pad(.1),vis=VALDATA.sales.filter(r=>b.contains(r.pt)).slice(0,1500),ups=vis.map(r=>r.up),lo=quantile(ups,.1),hi=quantile(ups,.9);
-  vis.forEach(r=>L.circleMarker(r.pt,{renderer:dealCanvas,radius:6,color:'#fff',weight:1.2,fillColor:upColor(r.up,lo,hi),fillOpacity:.9,bubblingMouseEvents:false})
-    .on('click',()=>{if(state.drawing||state.editing)return;L.popup({className:'deal-pop',closeButton:false,offset:[0,-4]}).setLatLng(r.pt).setContent(`<b>${r.up.toFixed(1)} 萬／坪</b><br>${ymTxt(r.ym)}・${VALDATA.types[r.t]}・${r.ping.toFixed(0)} 坪・${r.fl}/${r.tot} 樓・屋齡 ${r.age} 年<br><button type="button" class="vedit" id="dealUse">用這筆的條件估價 ›</button>`).openOn(map);
-      setTimeout(()=>{const u=document.getElementById('dealUse');if(u)u.onclick=()=>{map.closePopup();openVal(r.pt,{t:r.t,ping:r.ping,age:Math.max(1,r.age),fl:r.fl,tot:r.tot,ask:''});};},0);}).addTo(dealLayer));}
+// 房屋型態圖示（住宅大樓／華廈／公寓），顏色＝單價（藍低→橘高）
+const DEAL_IC=['<path d="M8 3.5h8V20.5H8z"/><path d="M10.4 6.5h3.2M10.4 9.5h3.2M10.4 12.5h3.2M10.4 15.5h3.2M11 20.5v-2.3h2v2.3"/>',
+  '<path d="M5.5 8.5h13v12h-13z"/><path d="M8.5 11.5h2M13.5 11.5h2M8.5 14.5h2M13.5 14.5h2M11 20.5v-3h2v3"/>',
+  '<path d="M4.5 11 12 5.5l7.5 5.5v9.5h-15z"/><path d="M8.5 14h2M13.5 14h2M10.8 20.5V17h2.4v3.5"/>'];
+function dealIcon(t,color,n){return L.divIcon({className:'deal-ic',html:`<span style="background:${color}"><svg viewBox="0 0 24 24" aria-hidden="true">${DEAL_IC[t]||DEAL_IC[0]}</svg>${n>1?`<b>${n}</b>`:''}</span>`,iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-12]});}
+// 「實價登錄成交」圖層：放大到街區才畫；同一個門牌位置的多筆成交合成一個圖示（右上角數字＝筆數），點了看每一筆的房屋資訊
+let dealSeq=0;async function drawDeals(){const seq=++dealSeq,lg=$('dealLegend');if(!state.layers.deal||state.transit||state.drawing||state.editing){dealLayer.clearLayers();lg.hidden=true;return;}
+  try{await loadVal();}catch(e){dealLayer.clearLayers();lg.hidden=true;if(state.layers.deal){state.layers.deal=false;toast('實價登錄資料還沒建好，暫時無法顯示',true);if(!$('layersPop').hidden)renderLayersPop();}return;}
+  if(seq!==dealSeq)return;dealLayer.clearLayers();lg.hidden=false;if(map.getZoom()<15){lg.hidden=true;if(!state.dealHint){state.dealHint=true;toast('放大地圖就會顯示成交點');}return;}
+  const b=map.getBounds().pad(.1),vis=VALDATA.sales.filter(r=>b.contains(r.pt)),ups=vis.map(r=>r.up),lo=quantile(ups,.1),hi=quantile(ups,.9),groups=new Map();
+  for(const r of vis){const k=r.pt[0]+','+r.pt[1];if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r);}
+  const c=map.getCenter(),gs=[...groups.values()].sort((a,b2)=>distM([c.lat,c.lng],a[0].pt)-distM([c.lat,c.lng],b2[0].pt)).slice(0,500);
+  lg.innerHTML=VALDATA.types.map((n,i)=>`<span class="dl-t"><svg viewBox="0 0 24 24" aria-hidden="true">${DEAL_IC[i]}</svg>${n}</span>`).join('')+`<span class="dl-c"><span>${lo.toFixed(0)}</span><i></i><span>${hi.toFixed(0)} 萬／坪</span></span>`;
+  gs.forEach(g=>{g.sort((x,y)=>y.ym-x.ym);const r=g[0],t=g.every(x=>x.t===r.t)?r.t:r.t,med=quantile(g.map(x=>x.up),.5);
+    L.marker(r.pt,{icon:dealIcon(t,upColor(med,lo,hi),g.length),title:`${VALDATA.types[t]}・${med.toFixed(1)} 萬／坪`,bubblingMouseEvents:false,riseOnHover:true})
+      .on('click',()=>{if(state.drawing||state.editing)return;openDealPop(g);}).addTo(dealLayer);});}
+function openDealPop(g){const T=VALDATA.types,r0=g[0],show=g.slice(0,8);
+  const html=`<div class="dp"><div class="dp-h"><span class="dp-ic">${'<svg viewBox="0 0 24 24" aria-hidden="true">'+DEAL_IC[r0.t]+'</svg>'}</span><div><b>${T[r0.t]}・${r0.tot} 層樓</b><small>屋齡約 ${r0.age} 年・${g.length} 筆成交（近 24 個月）</small></div></div>`+
+    show.map((r,i)=>`<div class="dp-r"><div><b>${r.up.toFixed(1)} 萬／坪</b><small>${ymTxt(r.ym)}・${r.ping.toFixed(1)} 坪・${r.fl}/${r.tot} 樓・總價約 ${wan(r.up*r.ping)}</small></div><button type="button" class="dp-use" data-di="${i}" aria-label="用這筆的條件估價">估價 ›</button></div>`).join('')+
+    (g.length>show.length?`<div class="dp-more">還有 ${g.length-show.length} 筆較早的成交</div>`:'')+`<div class="dp-note">總價不含車位；實價登錄門牌只到同一棟，不代表同一戶</div></div>`;
+  L.popup({className:'deal-pop',closeButton:false,maxWidth:300,minWidth:240,autoPanPaddingTopLeft:[10,$('top').offsetHeight+16],autoPanPaddingBottomRight:[10,(state.sheetVis||0)+76]}).setLatLng(r0.pt).setContent(html).openOn(map);
+  setTimeout(()=>document.querySelectorAll('.deal-pop .dp-use').forEach(b=>b.onclick=()=>{const r=show[+b.dataset.di];map.closePopup();openVal(r.pt,{t:r.t,ping:Math.round(r.ping*10)/10,age:Math.max(1,r.age),fl:r.fl,tot:r.tot,ask:''});}),0);}
 
 // ---------- main flow ----------
 async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCenters();
