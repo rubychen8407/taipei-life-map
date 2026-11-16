@@ -1086,7 +1086,7 @@ const NOMINATIM='https://nominatim.openstreetmap.org/search',XLSX_URL='https://c
 let LISTINGS=[],GEOCACHE={},geoRunning=false;try{LISTINGS=JSON.parse(localStorage.getItem('tlm.listings')||'[]');GEOCACHE=JSON.parse(localStorage.getItem('tlm.geocache')||'{}');}catch(e){}
 const saleLayer=L.layerGroup().addTo(map);
 function saveListings(){try{localStorage.setItem('tlm.listings',JSON.stringify(LISTINGS));localStorage.setItem('tlm.geocache',JSON.stringify(GEOCACHE));}catch(e){toast('手機儲存空間不足，部分房源沒存到',true);}}
-function platformOf(u){return /591\.com/.test(u)?'591':/sinyi/.test(u)?'信義':/yungching/.test(u)?'永慶':/rakuya/.test(u)?'樂屋':/hbhousing/.test(u)?'住商':'網站';}
+function platformOf(u){return /591\.com/.test(u)?'591':/sinyi/.test(u)?'信義':/yungching/.test(u)?'永慶':/rakuya/.test(u)?'樂屋':/hbhousing/.test(u)?'住商':/cthouse/.test(u)?'中信':/twhg|taiwanhouse/.test(u)?'台灣房屋':'網站';}
 function parseDelim(text){const d=(text.split('\n')[0].match(/\t/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?'\t':',',rows=[];let row=[],f='',q=false;
   for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
     else if(c==='"'&&f==='')q=true;else if(c===d){row.push(f);f='';}else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f='';}else f+=c;}
