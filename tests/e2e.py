@@ -925,7 +925,7 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
         GH['files']['listings.json'] = json.dumps({'updated': updated, 'rows': [LH] + rows}, ensure_ascii=False)
     RA = ['1 主塊', '範圍內', '民生東路五段36巷8號', '公寓', 2688, 30.5, "'3/4", 45, -4.2, 'https://sale.591.com.tw/home/house/detail/2/111.html', '', '', '', '', '', 25.0598, 121.5628]
     RB = ['1 主塊', '範圍內', '南京東路五段100號', '大樓', 2600, 32.5, "'7/12", 20, -6.5, 'https://sale.591.com.tw/home/house/detail/2/555.html', '', '', '', '', '', 25.0510, 121.5600]
-    RC = ['1 主塊', '範圍內', '延壽街100號', '華廈', 2400, 28, "'4/7", 35, -2, '', 'https://www.sinyi.com.tw/buy/house/NEW1', '', '', '', '', 25.0560, 121.5580]
+    RC = ['1 主塊', '範圍內', '延壽街100號', '華廈', 2400, 28, "'4/7", 35, -2, '', 'https://www.sinyi.com.tw/buy/house/NEW1', '', 'https://www.cthouse.com.tw/buy/house/ABC', 'https://www.twhg.com.tw/house/123', '', 25.0560, 121.5580]
     gh_rows([RA, RB], '2026-11-23T01:00:00Z'); GH['calls'].clear()
     page = await new_page(b, errs, **PHONE); ev = page.evaluate
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(300)
@@ -952,7 +952,8 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await page.click('#close'); await page.reload(); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(800)
     check(await ev("LISTINGS.filter(l=>l.isNew).length===1&&LISTINGS.length===2"), '沒有新的找房結果時，重新打開不會改動（新上架標記保留到下一次找房）')
     await ev("void saleLayer.getLayers().find(m=>m.getElement().innerText.startsWith('新')).fire('click')"); await page.wait_for_timeout(300)
-    check('新上架' in await ev("document.querySelector('.leaflet-popup-content .sp').innerText"), '點新上架的房子，資訊卡標出「新上架」')
+    pt = await ev("document.querySelector('.leaflet-popup-content .sp').innerText")
+    check('新上架' in pt and '中信' in pt and '台灣房屋' in pt, f'點新上架的房子，資訊卡標出「新上架」，中信、台灣房屋連結也認得（{pt}）')
     await shot(page, '8s_sync_new'); await ev("void map.closePopup()")
     # 手動匯入和私人房源並存；清除只清手動的
     await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
