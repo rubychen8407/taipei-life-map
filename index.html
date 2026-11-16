@@ -335,6 +335,8 @@ html,body{background:#e8eaed}
 #map .leaflet-bottom{margin-bottom:var(--navh)}
 .ph-legend,.deal-legend{margin-bottom:var(--navh)}
 #homesPop h3.h2{margin-top:0}
+.sv-embed{margin:4px 0 8px;border-radius:14px;overflow:hidden;background:#e8eaed;aspect-ratio:16/10;position:relative}.sv-embed iframe{width:100%;height:100%;border:0;display:block}.sv-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5F6368;font-size:13px;padding:8px;text-align:center}
+.sp .sv-embed{width:240px;margin-top:8px}.gm-key{margin:6px 0 10px;font-size:13px;color:#5F6368}.gm-key summary{cursor:pointer;color:var(--D);font-weight:600}.gm-key input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}
 .svl{display:inline-flex;align-items:center;gap:4px;color:var(--D);font-weight:600;text-decoration:none}.svl svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.cell-sv{margin:2px 0 10px;font-size:14px;padding:6px 12px;border-radius:16px;background:var(--bluebg)}
 .fab.fab-ex{width:auto;padding:0 14px;gap:5px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--D)}.fab.fab-ex svg{width:19px;height:19px;stroke:#fff}
 .exh{display:flex;align-items:center;gap:8px}.exbtn{margin-left:auto;display:flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:15px;border:0;background:var(--bluebg);color:var(--D);font-size:12.5px;font-weight:600}.exbtn svg{width:15px;height:15px}
@@ -807,15 +809,37 @@ function renderPoi(){const v=state.view,f=v.f,l=v.l;headDetail(facilityTitle(f,l
   $('body').innerHTML=h+foot();$('body').querySelectorAll('[data-near]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.near.split(':');pushBack();openPlace(data(id)[+i],LAYER[id]);});}
 // Google 街景：用官方網址開啟（手機會開 Google 地圖 app），不需要金鑰
 const svUrl=(la,lo)=>`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${(+la).toFixed(6)},${(+lo).toFixed(6)}`;
-const svLink=(la,lo,cls)=>`<a class="${cls||'svl'}" href="${svUrl(la,lo)}" target="_blank" rel="noopener noreferrer">${categoryIcon('eye')}看街景</a>`;
+const svLink=(la,lo,cls)=>`<a class="${cls||'svl'}" data-svla="${la}" data-svlo="${lo}" href="${svUrl(la,lo)}" target="_blank" rel="noopener noreferrer">${categoryIcon('eye')}看街景</a>`;
+// 有 Google 金鑰（只存在這台裝置）時：找最近的「Google 室外街景」全景，卡片裡直接嵌入可轉動的街景，鏡頭朝向該點
+let GMKEY='';try{GMKEY=localStorage.getItem('tlm.gmkey')||'';}catch(e){}
+let gmP=null;function gmReady(){if(gmP)return gmP;gmP=new Promise((ok,no)=>{if(window.google&&google.maps&&google.maps.StreetViewService)return ok();window.__gmcb=()=>ok();const s=document.createElement('script');
+  s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GMKEY)}&v=weekly&loading=async&callback=__gmcb`;s.async=true;s.onerror=()=>{gmP=null;no(new Error('load'));};document.head.appendChild(s);setTimeout(()=>no(new Error('timeout')),15000);});return gmP;}
+window.gm_authFailure=()=>{SVC.bad=true;document.querySelectorAll('.sv-embed').forEach(e=>e.innerHTML='<div class="sv-msg">Google 金鑰無法使用，請到「看街景」旁的設定檢查</div>');};
+const SVC={};function bearing(a,b){const r=Math.PI/180,y=Math.sin((b[1]-a[1])*r)*Math.cos(b[0]*r),x=Math.cos(a[0]*r)*Math.sin(b[0]*r)-Math.sin(a[0]*r)*Math.cos(b[0]*r)*Math.cos((b[1]-a[1])*r);return (Math.atan2(y,x)/r+360)%360;}
+async function findPano(la,lo){const k=(+la).toFixed(5)+','+(+lo).toFixed(5);if(k in SVC)return SVC[k];await gmReady();
+  const sv=new google.maps.StreetViewService();
+  const tryR=async r=>{try{const res=await sv.getPanorama({location:{lat:+la,lng:+lo},radius:r,sources:[google.maps.StreetViewSource.OUTDOOR],preference:google.maps.StreetViewPreference.NEAREST});const d=res.data,p=d.location.latLng;return {pano:d.location.pano,la:p.lat(),lo:p.lng()};}catch(e){return null;}};
+  const r=await tryR(60)||await tryR(150);if(r)r.heading=Math.round(bearing([r.la,r.lo],[+la,+lo]));return SVC[k]=r;}
+function svEmbedHTML(la,lo){return GMKEY?`<div class="sv-embed" data-la="${la}" data-lo="${lo}"><div class="sv-msg">街景載入中…</div></div>`:'';}
+async function fillStreetViews(root){if(!GMKEY||!root)return;for(const box of root.querySelectorAll('.sv-embed:not([data-done])')){box.dataset.done=1;const la=+box.dataset.la,lo=+box.dataset.lo;
+    try{const r=await findPano(la,lo);if(!r){box.innerHTML='<div class="sv-msg">附近 150 公尺內沒有 Google 街景</div>';continue;}
+      box.innerHTML=`<iframe title="Google 街景" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(GMKEY)}&pano=${encodeURIComponent(r.pano)}&heading=${r.heading}&pitch=5&fov=80"></iframe>`;
+      root.querySelectorAll(`a[data-svla="${box.dataset.la}"][data-svlo="${box.dataset.lo}"]`).forEach(a=>a.href=`https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(r.pano)}&heading=${r.heading}`);}
+    catch(e){box.innerHTML='<div class="sv-msg">街景載入失敗（請檢查 Google 金鑰或網路）</div>';}}}
+function gmKeyBox(){return `<details class="gm-key"><summary>${GMKEY?'Google 街景金鑰（已設定）':'在 app 內看 360° 街景：設定 Google 金鑰'}</summary>
+  <div class="note">金鑰只存在這台裝置。請在 Google Cloud 建立金鑰、啟用 Maps JavaScript API 與 Maps Embed API，並限制只能從 rubychen8407.github.io 使用。</div>
+  <div class="im-row"><input id="gmKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" value="${esc(GMKEY)}"><button type="button" id="gmSave">儲存</button>${GMKEY?'<button type="button" class="s" id="gmDel">移除</button>':''}</div></details>`;}
+function bindGmKey(root){const sv=root.querySelector('#gmSave');if(!sv)return;sv.onclick=()=>{const v=root.querySelector('#gmKey').value.trim();if(!/^AIza[\w-]{20,}$/.test(v)){toast('金鑰格式不對（應該是 AIza 開頭）',true);return;}
+    GMKEY=v;try{localStorage.setItem('tlm.gmkey',v);}catch(e){}gmP=null;for(const k in SVC)delete SVC[k];toast('已儲存 Google 金鑰');render();};
+  const d=root.querySelector('#gmDel');if(d)d.onclick=()=>{GMKEY='';try{localStorage.removeItem('tlm.gmkey');}catch(e){}toast('已移除 Google 金鑰');render();};}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
   const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
-  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>${svLink(c.la,c.lo,'svl cell-sv')}`;
+  let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>${svEmbedHTML(c.la,c.lo)}${svLink(c.la,c.lo,'svl cell-sv')}`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
     const tap=f&&id!=='life'&&t!==Infinity;
     h+=`<div class="row${tap?' tap':''}"${tap?` data-poi="${id}:${D.nf[k]}" data-ok="${good?1:0}"`:''}><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span>${tap?'<span class="go">›</span>':''}</div>`;});
-  $('body').innerHTML=h+foot();
+  $('body').innerHTML=h+gmKeyBox()+foot();bindGmKey($('body'));fillStreetViews($('body'));
   $('body').querySelectorAll('[data-poi]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.poi.split(':'),f=data(id)[+i];pushBack();openPoi(f,LAYER[id],{pt:[c.la,c.lo],txt:el.querySelector('.time').textContent,ok:el.dataset.ok==='1'});});}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
 function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
@@ -1217,7 +1241,7 @@ function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$
     <div class="p">開價 ${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':'—'}${l.unit!=null?`・${f(l.unit)} 萬／坪`:''}</div>
     <div>${[l.vsReal!=null?`開價 vs 實價 ${pc(l.vsReal)}`:'',l.vsEst!=null?`vs 估價 ${pc(l.vsEst)}`:'',l.rank!=null?`CP 第 ${l.rank} 名`:'',l.conf?`可信度 ${esc(l.conf)}`:''].filter(Boolean).join('・')}</div>
     ${l.prec==='road'?'<small>只定位到路段，位置是約略的</small>':''}${l.note?`<small>${esc(l.note)}</small>`:''}
-    <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}${l.lat!=null&&l.prec!=='none'?svLink(l.lat,l.lng,'svl'):''}</div>
+    <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}${l.lat!=null&&l.prec!=='none'?svLink(l.lat,l.lng,'svl'):''}</div>${l.lat!=null&&l.prec!=='none'?svEmbedHTML(l.lat,l.lng):''}
     <button type="button" data-sval="${i}">用 app 估價這間</button></div>`;}
 // 畫面內最多畫 SALE_MAX 間房子的價格標籤（新上架優先，再依開價相對估價／實價由低到高），其餘依畫面格子聚合成「N 間」圓點；點圓點放大，放大不了就列出那幾間
 const SALE_MAX=10,SALE_CELL=64;let salePop=false;
@@ -1243,6 +1267,7 @@ function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.tran
 map.on('moveend',()=>{if(!salePop)drawSale();}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
 map.on('popupopen',e=>{const el=e.popup.getElement();if(!el)return;el.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const i=+a.dataset.sopen,l=LISTINGS[i];if(!l)return;
   setTimeout(()=>{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);},0);});});
+map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>e.popup.update());});
 map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
   openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));};});

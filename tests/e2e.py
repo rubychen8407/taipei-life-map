@@ -18,6 +18,7 @@ geo_calls = []
 GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon': '121.5705', 'addresstype': 'house', 'type': 'house'}],
        '台北市松山區八德路三段': [{'lat': '25.0480', 'lon': '121.5560', 'addresstype': 'road', 'type': 'secondary'}],
        '臺北市南京東路五段100號': [{'lat': '25.0510', 'lon': '121.5600', 'addresstype': 'house', 'type': 'house'}]}
+GMAPS = []
 GH = {'files': {}, 'calls': [], 'token': 'tok_ok', 'write': True}  # 模擬 GitHub contents API（私人房源 repo）
 GH_CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Accept, Content-Type, X-GitHub-Api-Version', 'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'}
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
@@ -96,6 +97,15 @@ async def route(r):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query).get('q', [''])[0]
         geo_calls.append(q)
         return await r.fulfill(body=json.dumps(GEO.get(q, [])), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
+    if u.startswith('https://maps.googleapis.com/maps/api/js'):   # 模擬 Google Maps JS（街景服務）
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query)
+        GMAPS.append(q.get('key', [''])[0])
+        js = ("window.google={maps:{StreetViewSource:{OUTDOOR:'outdoor'},StreetViewPreference:{NEAREST:'nearest'},StreetViewService:class{async getPanorama(o){(window.__svq=window.__svq||[]).push(o);"
+              "if(o.location.lat<24.99)throw new Error('ZERO_RESULTS');return {data:{location:{pano:'PANO_'+o.location.lat.toFixed(4),latLng:{lat:()=>o.location.lat+0.0003,lng:()=>o.location.lng}}}};}}}};"
+              f"window['{q.get('callback', ['__gmcb'])[0]}']&&window['{q.get('callback', ['__gmcb'])[0]}']();")
+        return await r.fulfill(body=js, content_type='text/javascript')
+    if u.startswith('https://www.google.com/maps/embed'):
+        return await r.fulfill(body='<html><body style="background:#9ab">street view</body></html>', content_type='text/html')
     if u.startswith('https://api.github.com/'):
         rq = r.request
         if rq.method == 'OPTIONS':
@@ -364,6 +374,15 @@ async def baked_suite(b, errs):
     check(await ev("state.view.type") == 'cell' and '這個位置' in await ev("document.querySelector('#head h1').innerText"), '點地圖任一位置，下方卡片顯示該點的生活機能')
     sv = await ev("(()=>{const a=document.querySelector('#body .cell-sv'),c=CELLS[state.view.k];return a&&{h:a.href,t:a.target,ok:a.href.includes('map_action=pano')&&a.href.includes('viewpoint='+c.la.toFixed(6)+','+c.lo.toFixed(6))}})()")
     check(sv and sv['ok'] and sv['t'] == '_blank', f"位置卡有「看街景」：用 Google 地圖街景開這個點 {sv}")
+    check(await ev("!document.querySelector('#body .sv-embed')&&!!document.querySelector('#body .gm-key')") and not GMAPS, '沒有 Google 金鑰時不載入 Google 地圖程式，只提供「看街景」連結與金鑰設定')
+    await ev("document.querySelector('#body .gm-key').open=true"); await page.fill('#gmKey', 'bad'); await page.click('#gmSave')
+    check('格式不對' in await ev("document.getElementById('toast').innerText"), '金鑰格式不對會提示')
+    await page.fill('#gmKey', 'AIzaTEST_key_1234567890abcdefXYZ'); await page.click('#gmSave')
+    await page.wait_for_selector('#body .sv-embed iframe', timeout=8000)
+    em = await ev("(()=>{const f=document.querySelector('#body .sv-embed iframe'),a=document.querySelector('#body .cell-sv'),c=CELLS[state.view.k],q=window.__svq[0];return {src:f.src,href:a.href,key:localStorage.getItem('tlm.gmkey'),src2:q.sources[0],r:q.radius,want:'PANO_'+c.la.toFixed(4)}})()")
+    print('  sv', em)
+    check(GMAPS == ['AIzaTEST_key_1234567890abcdefXYZ'] and em['key'] == 'AIzaTEST_key_1234567890abcdefXYZ' and em['src2'] == 'outdoor' and 'embed/v1/streetview' in em['src'] and 'pano=' + em['want'] in em['src'] and 'heading=180' in em['src'] and 'pano=' + em['want'] in em['href'], f"設定金鑰後：找最近的 Google 室外街景（不用網友照片），卡片裡直接嵌入可轉動街景、鏡頭朝向這個點；「看街景」也改開同一個全景 {em}")
+    await shot(page, '3c_streetview')
     await page.click('#close'); await page.wait_for_timeout(300)
     check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('listBtn').hidden"), '關閉地點卡片後結果面板保持收起，只留清單按鈕')
 
@@ -509,6 +528,7 @@ async def baked_suite(b, errs):
     await page.wait_for_function("state.res.key==='city'", timeout=5000)
 
     # 9. 我的位置
+    await page.context.set_geolocation({'latitude': 25.0335, 'longitude': 121.5436})   # 內嵌的跨網域街景框會讓無頭 Chrome 的定位模擬失效，重設一次
     await page.click('#locate'); await page.wait_for_function("state.view.type==='cell'", timeout=8000)
     check('我的位置' in await ev("document.querySelector('#head h1').innerText") and await ev("meLayer.getLayers().length") == 1, '「我的位置」按鈕：顯示藍點與所在位置的生活機能')
     await page.click('#close')
