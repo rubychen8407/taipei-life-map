@@ -362,6 +362,8 @@ async def baked_suite(b, errs):
     pt = await ev(f"(()=>{{const p=map.latLngToContainerPoint([CELLS[{k}].la,CELLS[{k}].lo]);return [p.x,p.y]}})()")
     await page.mouse.click(pt[0], pt[1]); await page.wait_for_timeout(500)
     check(await ev("state.view.type") == 'cell' and '這個位置' in await ev("document.querySelector('#head h1').innerText"), '點地圖任一位置，下方卡片顯示該點的生活機能')
+    sv = await ev("(()=>{const a=document.querySelector('#body .cell-sv'),c=CELLS[state.view.k];return a&&{h:a.href,t:a.target,ok:a.href.includes('map_action=pano')&&a.href.includes('viewpoint='+c.la.toFixed(6)+','+c.lo.toFixed(6))}})()")
+    check(sv and sv['ok'] and sv['t'] == '_blank', f"位置卡有「看街景」：用 Google 地圖街景開這個點 {sv}")
     await page.click('#close'); await page.wait_for_timeout(300)
     check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('listBtn').hidden"), '關閉地點卡片後結果面板保持收起，只留清單按鈕')
 
@@ -896,7 +898,7 @@ async def baked_suite(b, errs):
     check(len(geo_calls) == g1 and await ev("LISTINGS.length===4") and '重複略過' in await ev("document.getElementById('toast').innerText"), '再匯入同一個檔：全部略過，不重新定位')
     await page.click('#close'); await page.wait_for_timeout(200)
     await ev("void saleLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(300)
-    pop = await ev("(()=>{const e=document.querySelector('.leaflet-popup-content .sp');return e?{t:e.innerText,href:[...e.querySelectorAll('.lk a')].map(a=>[a.innerText,a.href,a.target])}:null})()")
+    pop = await ev("(()=>{const e=document.querySelector('.leaflet-popup-content .sp');return e?{t:e.innerText,href:[...e.querySelectorAll('.lk a:not(.svl)')].map(a=>[a.innerText,a.href,a.target])}:null})()")
     check(pop and '忠孝東路五段790巷59弄37號' in pop['t'] and '開價 1,998 萬' in pop['t'] and '開價 vs 實價 -8.1%' in pop['t'] and 'CP 第 4 名' in pop['t'] and pop['href'] == [['591', 'https://sale.591.com.tw/home/house/detail/2/20726738.html', '_blank'], ['永慶', 'https://buy.yungching.com.tw/house/7521145', '_blank']], f'點房子：地址、開價、和實價比較，各房仲網站連結在新分頁開啟 {pop}')
     await shot(page, '8r_sale_pop')
     await page.click('.leaflet-popup-content [data-sval]'); await page.wait_for_function("state.view.type==='val'", timeout=10000)
@@ -1006,6 +1008,7 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await ev("void saleLayer.getLayers().find(m=>m.getElement().innerText.startsWith('新')).fire('click')"); await page.wait_for_timeout(300)
     pt = await ev("document.querySelector('.leaflet-popup-content .sp').innerText")
     check('新上架' in pt and '中信' in pt and '台灣房屋' in pt, f'點新上架的房子，資訊卡標出「新上架」，中信、台灣房屋連結也認得（{pt}）')
+    check(await ev("(()=>{const a=document.querySelector('.leaflet-popup-content .svl');return !!a&&a.href.includes('map_action=pano')&&a.href.includes('viewpoint=25.056000,121.558000')})()"), '房子資訊卡有「看街景」，用房子座標開 Google 街景')
     await shot(page, '8s_sync_new'); await ev("void map.closePopup()")
     # 手動匯入和私人房源並存；清除只清手動的
     await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
