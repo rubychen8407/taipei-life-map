@@ -104,6 +104,9 @@ async def route(r):
               "if(o.location.lat<24.99)throw new Error('ZERO_RESULTS');return {data:{location:{pano:'PANO_'+o.location.lat.toFixed(4),latLng:{lat:()=>o.location.lat+0.0003,lng:()=>o.location.lng}}}};}}}};"
               f"window['{q.get('callback', ['__gmcb'])[0]}']&&window['{q.get('callback', ['__gmcb'])[0]}']();")
         return await r.fulfill(body=js, content_type='text/javascript')
+    if u.startswith('https://router.project-osrm.org/nearest/'):   # 模擬 OSRM：最近的道路在南邊約 30 公尺
+        lo, la = map(float, urllib.parse.urlparse(u).path.split('/')[-1].split(','))
+        return await r.fulfill(body=json.dumps({'code': 'Ok', 'waypoints': [{'location': [lo, la - 0.00027], 'distance': 30}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
     if u.startswith('https://www.google.com/maps/embed'):
         return await r.fulfill(body='<html><body style="background:#9ab">street view</body></html>', content_type='text/html')
     if u.startswith('https://api.github.com/'):
@@ -372,8 +375,9 @@ async def baked_suite(b, errs):
     pt = await ev(f"(()=>{{const p=map.latLngToContainerPoint([CELLS[{k}].la,CELLS[{k}].lo]);return [p.x,p.y]}})()")
     await page.mouse.click(pt[0], pt[1]); await page.wait_for_timeout(500)
     check(await ev("state.view.type") == 'cell' and '這個位置' in await ev("document.querySelector('#head h1').innerText"), '點地圖任一位置，下方卡片顯示該點的生活機能')
-    sv = await ev("(()=>{const a=document.querySelector('#body .cell-sv'),c=CELLS[state.view.k];return a&&{h:a.href,t:a.target,ok:a.href.includes('map_action=pano')&&a.href.includes('viewpoint='+c.la.toFixed(6)+','+c.lo.toFixed(6))}})()")
-    check(sv and sv['ok'] and sv['t'] == '_blank', f"位置卡有「看街景」：用 Google 地圖街景開這個點 {sv}")
+    await page.wait_for_function("document.querySelector('#body .cell-sv')&&document.querySelector('#body .cell-sv').href.includes('heading=')", timeout=5000)
+    sv = await ev("(()=>{const a=document.querySelector('#body .cell-sv'),c=CELLS[state.view.k];return a&&{h:a.href,t:a.target,ok:a.href.includes('map_action=pano')&&a.href.includes('viewpoint='+(c.la-0.00027).toFixed(6)+','+c.lo.toFixed(6))&&a.href.includes('heading=0')}})()")
+    check(sv and sv['ok'] and sv['t'] == '_blank', f"位置卡「看街景」不用金鑰：先把點移到最近的道路上、鏡頭朝向這個點，Google 會開路面街景而不是附近店家的網友照片 {sv}")
     check(await ev("!document.querySelector('#body .sv-embed')&&!!document.querySelector('#body .gm-key')") and not GMAPS, '沒有 Google 金鑰時不載入 Google 地圖程式，只提供「看街景」連結與金鑰設定')
     await ev("document.querySelector('#body .gm-key').open=true"); await page.fill('#gmKey', 'bad'); await page.click('#gmSave')
     check('格式不對' in await ev("document.getElementById('toast').innerText"), '金鑰格式不對會提示')
@@ -1005,6 +1009,7 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(300)
     check(len(GH['calls']) == 0, '沒設定 token 時不會連 GitHub')
     await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    check(await ev("!!document.querySelector('#body .gm-key #gmKey')"), '「找房」頁也有 Google 街景金鑰設定')
     check(await ev("!!document.getElementById('syncTok')&&document.getElementById('syncTok').type==='password'&&document.getElementById('syncRepo').value==='rubychen8407/tlm-listings'&&document.getElementById('exRange').disabled"), '「找房」有私人房源設定（token 用密碼欄位、預設 repo）；沒設定時「設為每週找房範圍」不能按')
     await page.fill('#syncTok', 'tok_bad'); await page.click('#syncGo')
     await page.wait_for_function("document.getElementById('syncSt')&&/無效/.test(document.getElementById('syncSt').innerText)", timeout=5000)
@@ -1028,7 +1033,8 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await ev("void saleLayer.getLayers().find(m=>m.getElement().innerText.startsWith('新')).fire('click')"); await page.wait_for_timeout(300)
     pt = await ev("document.querySelector('.leaflet-popup-content .sp').innerText")
     check('新上架' in pt and '中信' in pt and '台灣房屋' in pt, f'點新上架的房子，資訊卡標出「新上架」，中信、台灣房屋連結也認得（{pt}）')
-    check(await ev("(()=>{const a=document.querySelector('.leaflet-popup-content .svl');return !!a&&a.href.includes('map_action=pano')&&a.href.includes('viewpoint=25.056000,121.558000')})()"), '房子資訊卡有「看街景」，用房子座標開 Google 街景')
+    await page.wait_for_function("(()=>{const a=document.querySelector('.leaflet-popup-content .svl');return !!a&&a.href.includes('viewpoint=25.055730,121.558000')&&a.href.includes('heading=0')})()", timeout=5000)
+    check(True, '房子資訊卡有「看街景」，從房子前面的道路朝向房子開 Google 街景')
     await shot(page, '8s_sync_new'); await ev("void map.closePopup()")
     # 手動匯入和私人房源並存；清除只清手動的
     await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
