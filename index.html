@@ -307,16 +307,17 @@ html,body{background:#e8eaed}
 .exfull{width:100%;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px}.exfull svg{width:18px;height:18px}
 .ex-list label{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.ex-list input{width:20px;height:20px;margin-top:1px;accent-color:var(--D)}.ex-list small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
 .ex-pre{white-space:pre-wrap;background:#F7F8FA;border-radius:12px;padding:12px;font-size:12.5px;line-height:1.55;max-height:260px;overflow:auto;margin-top:8px;user-select:text;-webkit-user-select:text}
-.ex-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.ex-btns button{height:46px;border-radius:14px;border:0;font-size:15px;font-weight:600}.ex-btns .p{background:var(--D);color:#fff}.ex-btns .s{background:var(--bluebg);color:var(--D)}
+.ex-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.ex-btns button{height:46px;border-radius:14px;border:0;font-size:15px;font-weight:600}.ex-btns .p{background:var(--D);color:#fff}.ex-btns .s{background:var(--bluebg);color:var(--D)}.ex-btns #exRange{grid-column:1/-1}.ex-btns button:disabled{opacity:.45}
 
 .sale-pin{background:none;border:0}.sale-pin b{display:inline-block;transform:translate(-50%,-100%);white-space:nowrap;padding:3px 7px;border-radius:10px;color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.25);position:relative}
 .sale-pin b:after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:inherit}
+.sale-pin b i{font-style:normal;background:#fff;color:#C5221F;border-radius:6px;padding:0 3px;margin-right:3px;font-size:10px}.sp .new{display:inline-block;background:#FCE8E6;color:#C5221F;border-radius:6px;padding:0 5px;margin-right:5px;font-size:11px;font-weight:700}.im-st .bad{color:#C5221F}
 .sale-pin.approx b{outline:2px dashed #fff;outline-offset:-4px;opacity:.88}
 .sp{font-size:13px;line-height:1.5;min-width:220px}.sp .a{font-weight:700;font-size:14px}.sp .p{font-size:15px;font-weight:700;margin:2px 0}.sp small{color:#5f6368;display:block}
 .sp .lk{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sp .lk a{background:var(--bluebg);color:var(--D);border-radius:12px;padding:3px 10px;font-weight:700;text-decoration:none}
 .sp button{margin-top:6px;border:0;background:var(--D);color:#fff;border-radius:12px;padding:6px 10px;font-weight:700;width:100%}
 .im-box{background:#F7F8FA;border-radius:14px;padding:12px;margin-bottom:14px}.im-box h3{margin:0 0 6px;font-size:14px}.im-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.im-row label,.im-row button{flex:1;min-width:120px;height:42px;border-radius:12px;border:0;background:var(--D);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}.im-row .s{background:var(--bluebg);color:var(--D)}
-.im-row input[type=file]{display:none}.im-paste{width:100%;min-height:90px;margin-top:8px;border-radius:10px;border:1px solid var(--line);padding:8px;font-size:12px;box-sizing:border-box}.im-st{font-size:12.5px;color:#3c4043;margin-top:8px}
+.im-row label svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2}.im-row input[type=file]{display:none}.im-paste{width:100%;min-height:90px;margin-top:8px;border-radius:10px;border:1px solid var(--line);padding:8px;font-size:12px;box-sizing:border-box}.im-st{font-size:12.5px;color:#3c4043;margin-top:8px}
 </style>
 </head>
 <body>
@@ -1136,7 +1137,7 @@ async function geocodeAll(fitAfter){if(geoRunning)return;geoRunning=true;let fou
   if(found&&fitAfter)drawSale(true);}finally{geoRunning=false;}}
 function saleColor(l){const v=l.vsEst!=null?l.vsEst:l.vsReal;return v==null?'#5F6368':v<=-5?'#188038':v>=5?'#B06000':'#1A56DB';}
 function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$/,''),pc=v=>v==null?'':`${v>0?'+':''}${f(v)}%`;
-  return `<div class="sp"><div class="a">${esc(l.addr)}${l.comm?`・${esc(l.comm)}`:''}</div>
+  return `<div class="sp"><div class="a">${l.isNew?'<span class="new">新上架</span>':''}${esc(l.addr)}${l.comm?`・${esc(l.comm)}`:''}</div>
     <div>${[l.type,l.ping!=null?`建坪 ${(+l.ping).toFixed(2).replace(/\.?0+$/,'')} 坪`:'',l.inner?`室內 ${esc(l.inner)} 坪`:'',l.floor?`${esc(l.floor)} 樓`:'',l.age!=null?`屋齡 ${f(l.age)} 年`:'',l.park?'有車位':''].filter(Boolean).map(esc).join('・')}</div>
     <div class="p">開價 ${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':'—'}${l.unit!=null?`・${f(l.unit)} 萬／坪`:''}</div>
     <div>${[l.vsReal!=null?`開價 vs 實價 ${pc(l.vsReal)}`:'',l.vsEst!=null?`vs 估價 ${pc(l.vsEst)}`:'',l.rank!=null?`CP 第 ${l.rank} 名`:'',l.conf?`可信度 ${esc(l.conf)}`:''].filter(Boolean).join('・')}</div>
@@ -1144,7 +1145,7 @@ function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$
     <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}</div>
     <button type="button" data-sval="${i}">用 app 估價這間</button></div>`;}
 function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;const pts=[];
-  LISTINGS.forEach((l,i)=>{if(!l.lat)return;pts.push([l.lat,l.lng]);const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
+  LISTINGS.forEach((l,i)=>{if(!l.lat)return;pts.push([l.lat,l.lng]);const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.isNew?'<i>新</i>':''}${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
     m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280}).addTo(saleLayer);});
   if(fit&&pts.length)map.fitBounds(L.latLngBounds(pts).pad(.15),{maxZoom:15});}
 map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
@@ -1160,7 +1161,57 @@ function importBox(){return `<div class="im-box"><h3>匯入房源</h3><div class
 function bindImport(){$('imFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;busy(true);try{await importListings(await readListingFile(f));}catch(err){toast(/xlsx/.test(err.message)?'讀不到 Excel 檔，請改用 CSV':'檔案讀取失敗',true);}finally{busy(false);e.target.value='';}};
   $('imPasteBtn').onclick=()=>{$('imPasteBox').hidden=!$('imPasteBox').hidden;if(!$('imPasteBox').hidden)$('imPaste').focus();};
   $('imPasteGo').onclick=()=>{const t=$('imPaste').value.trim();if(!t)return;importListings(rowsToListings(parseDelim(t)));$('imPaste').value='';$('imPasteBox').hidden=true;};
-  $('imClear').onclick=()=>{LISTINGS=[];saveListings();drawSale();renderImportStatus();toast('已清除匯入的房源');};}
+  $('imClear').onclick=()=>{const s=LISTINGS.some(l=>l.sync);LISTINGS=LISTINGS.filter(l=>l.sync);saveListings();drawSale();renderImportStatus();toast(s?'已清除手動匯入的房源（私人房源保留）':'已清除匯入的房源');};}
+// 私人房源：每週找房寫進使用者的私人 repo（listings.json），app 用存在這台裝置的 token 讀取；找房範圍寫回 range.json
+const GH_API='https://api.github.com';
+let SYNC=null,SYNCMETA={};try{SYNC=JSON.parse(localStorage.getItem('tlm.sync')||'null');SYNCMETA=JSON.parse(localStorage.getItem('tlm.syncmeta')||'{}');}catch(e){}
+function saveSync(){try{SYNC?localStorage.setItem('tlm.sync',JSON.stringify(SYNC)):localStorage.removeItem('tlm.sync');localStorage.setItem('tlm.syncmeta',JSON.stringify(SYNCMETA));}catch(e){}}
+function ghHead(raw){return {Authorization:`Bearer ${SYNC.token}`,Accept:raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};}
+function ghErr(r){return r.status===401?'token 無效或已過期':r.status===404?'找不到 repo（或 token 沒有這個 repo 的權限）':r.status===403?'token 沒有權限':`GitHub 回應 ${r.status}`;}
+let syncRunning=false;
+async function syncListings(force){if(!SYNC||!SYNC.token||syncRunning)return;syncRunning=true;
+  try{const r=await fetch(`${GH_API}/repos/${SYNC.repo}/contents/listings.json?t=${Date.now()}`,{headers:ghHead(true),cache:'no-store'});
+    if(r.status===404){SYNCMETA.err='';SYNCMETA.empty=true;saveSync();renderSyncStatus();
+      const rr=await fetch(`${GH_API}/repos/${SYNC.repo}`,{headers:ghHead()});if(!rr.ok){SYNCMETA.err=ghErr(rr);saveSync();renderSyncStatus();}return;}
+    if(!r.ok){SYNCMETA.err=ghErr(r);saveSync();renderSyncStatus();if(force)toast('私人房源讀取失敗：'+SYNCMETA.err,true);return;}
+    const j=JSON.parse(await r.text()),rows=Array.isArray(j)?j:j.rows,updated=(!Array.isArray(j)&&j.updated)||'';SYNCMETA.err='';SYNCMETA.empty=false;
+    if(!force&&updated&&updated===SYNCMETA.updated&&LISTINGS.some(l=>l.sync)){saveSync();renderSyncStatus();return;}
+    const list=rowsToListings(rows||[]);if(!list.length)throw new Error('format');
+    const old=new Map(LISTINGS.filter(l=>l.sync).map(l=>[listingKey(l),l])),had=old.size>0,keys=new Set();
+    for(const l of list){const k=listingKey(l);keys.add(k);l.sync=true;const o=old.get(k);
+      if(o){l.isNew=updated===SYNCMETA.updated?!!o.isNew:false;if(!l.lat&&o.lat){l.lat=o.lat;l.lng=o.lng;l.prec=o.prec;}}else l.isNew=had;}
+    const gone=[...old.entries()].filter(([k])=>!keys.has(k)).map(([,l])=>l);
+    LISTINGS=LISTINGS.filter(l=>!l.sync);const nNew=list.filter(l=>l.isNew).length;
+    LISTINGS=list.concat(LISTINGS.filter(l=>!keys.has(listingKey(l))));
+    if(updated!==SYNCMETA.updated)SYNCMETA.gone=gone.map(l=>({addr:l.addr,price:l.price}));
+    SYNCMETA.updated=updated;SYNCMETA.n=list.length;SYNCMETA.nNew=nNew;SYNCMETA.at=Date.now();saveListings();saveSync();
+    state.layers.sale=true;drawSale();renderSyncStatus();renderImportStatus();
+    if(had&&(nNew||gone.length))toast(`私人房源更新：新上架 ${nNew} 間${gone.length?`、已下架 ${gone.length} 間`:''}`);else if(!had)toast(`已載入私人房源 ${list.length} 間`);
+    geocodeAll();}
+  catch(e){console.warn(e);SYNCMETA.err='listings.json 格式不對';saveSync();renderSyncStatus();}
+  finally{syncRunning=false;}}
+async function saveRange(){const T=exText();if(!T.n){toast('地圖上沒有符合條件的範圍',true);return;}
+  const body={updated:new Date().toISOString(),prefs:state.view.prefs,criteria:exCriteria(),text:T.t,geojson:exGeoAll()},url=`${GH_API}/repos/${SYNC.repo}/contents/range.json`;
+  busy(true);try{const g=await fetch(url,{headers:ghHead(),cache:'no-store'}),sha=g.ok?(await g.json()).sha:undefined;
+    const bytes=new TextEncoder().encode(JSON.stringify(body,null,1));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));
+    const r=await fetch(url,{method:'PUT',headers:ghHead(),body:JSON.stringify(Object.assign({message:'更新找房範圍',content:btoa(bin)},sha?{sha}:{}))});
+    if(!r.ok){toast('存不進去：'+(r.status===403||r.status===404?'token 需要「Contents：Read and write」權限':ghErr(r)),true);return;}
+    SYNCMETA.range=body.updated;saveSync();renderSyncStatus();toast('已設為每週找房範圍');}
+  catch(e){toast('存不進去，請檢查網路',true);}finally{busy(false);}}
+function syncStatus(){if(!SYNC)return '還沒設定。';const m=SYNCMETA,d=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(m.err)return `<span class="bad">${esc(m.err)}</span>`;if(m.empty)return `已連到 ${esc(SYNC.repo)}，還沒有找房結果（每週找房後會出現）。`;
+  if(!m.n)return '讀取中…';
+  return `${esc(SYNC.repo)}：<b>${m.n}</b> 間${m.updated?`（${d(m.updated)} 找的）`:''}${m.nNew?`，新上架 <b>${m.nNew}</b> 間`:''}${m.gone&&m.gone.length?`，已下架 ${m.gone.length} 間：${m.gone.slice(0,3).map(g=>esc(g.addr)).join('、')}${m.gone.length>3?' 等':''}`:''}${m.range?`<br>每週找房範圍：${d(m.range)} 設定`:''}`;}
+function renderSyncStatus(){const e=$('syncSt');if(e)e.innerHTML=syncStatus();const b=$('exRange');if(b)b.disabled=!SYNC||!exSummary().n;}
+function syncBox(){return `<div class="im-box"><h3>私人房源（自動更新）</h3><div class="note" style="margin:0">每週找房的結果存在你的私人 GitHub repo。設定一次 token，之後打開 app 就會自動更新、標出新上架。token 只存在這台裝置。</div>
+  ${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div class="im-row"><button type="button" class="s" id="syncNow">立即更新</button><button type="button" class="s" id="syncOff">移除 token</button></div>`
+  :`<div class="vform"><label class="wide">Repo<input id="syncRepo" value="rubychen8407/tlm-listings" autocapitalize="off" spellcheck="false"></label><label class="wide">GitHub token<input id="syncTok" type="password" autocomplete="off" placeholder="github_pat_…" spellcheck="false"></label></div>
+  <div class="im-row"><button type="button" id="syncGo">儲存並讀取</button></div><div class="im-st" id="syncSt"></div>`}</div>`;}
+function bindSync(){const go=$('syncGo');if(go)go.onclick=async()=>{const repo=$('syncRepo').value.trim().replace(/^https:\/\/github\.com\//,'').replace(/\/$/,''),token=$('syncTok').value.trim();
+    if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||!token){$('syncSt').innerHTML='<span class="bad">請填 repo（帳號/名稱）和 token</span>';return;}
+    SYNC={repo,token};SYNCMETA={};saveSync();renderExport();await syncListings(true);};
+  const now=$('syncNow');if(now)now.onclick=()=>syncListings(true);
+  const off=$('syncOff');if(off)off.onclick=()=>{SYNC=null;SYNCMETA={};LISTINGS=LISTINGS.filter(l=>!l.sync);saveListings();saveSync();drawSale();renderExport();toast('已移除 token 和私人房源');};}
 function exPrefs(){let p={};try{p=JSON.parse(localStorage.getItem('tlm.export')||'{}');}catch(e){}return Object.assign({lo:2000,hi:3000,types:[0,1,2],note:'',geo:true},p);}
 function exSave(p){try{localStorage.setItem('tlm.export',JSON.stringify(p));}catch(e){}}
 const EX_TYPES=['公寓','華廈','電梯大樓'];
@@ -1201,14 +1252,14 @@ function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:
 function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export',prefs:exPrefs()};render();fitSheet('full');}
 function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('找房','匯入 Claude 找好的房源放到地圖上；或設定想要的房子，一次匯出全部符合條件的範圍給 Claude',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
   $('resultBtn').innerHTML=`<span>匯出找房條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  let h=importBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
+  let h=syncBox()+importBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
     <label class="wide">備註（可不填）<input data-exp="note" placeholder="例如：3 房、2 樓以上、有電梯" value="${esc(p.note)}"></label></div>
     <div class="ex-sum" id="exSum">${S.n?`會一起匯出：地圖上符合條件的範圍 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），和你的生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離再匯出。'}</div>
-    <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button></div>
+    <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button><button type="button" class="s" id="exRange" ${S.n&&SYNC?'':'disabled'}>設為每週找房範圍</button></div>
     <details class="ex-det"><summary>預覽匯出內容</summary><div class="ex-pre" id="exPre"></div></details>
-    <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。房子條件會記在這台裝置，下次沿用。</div>`;
-  $('body').innerHTML=h;bindImport();
+    <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。「設為每週找房範圍」會存進私人 repo，每週自動找房就用這個範圍。房子條件會記在這台裝置，下次沿用。</div>`;
+  $('body').innerHTML=h;bindImport();bindSync();if($('exRange'))$('exRange').onclick=saveRange;
   const upd=()=>{exSave(v.prefs);};
   $('body').querySelector('.ex-det').ontoggle=e=>{if(e.target.open)$('exPre').textContent=exText().t;};
   $('body').querySelectorAll('[data-exp]').forEach(el=>el.oninput=()=>{v.prefs[el.dataset.exp]=el.value.trim();upd();});
@@ -1441,7 +1492,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();})();
+  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
 </script>
 </body>
 </html>

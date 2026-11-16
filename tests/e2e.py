@@ -18,6 +18,8 @@ geo_calls = []
 GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon': '121.5705', 'addresstype': 'house', 'type': 'house'}],
        '台北市松山區八德路三段': [{'lat': '25.0480', 'lon': '121.5560', 'addresstype': 'road', 'type': 'secondary'}],
        '臺北市南京東路五段100號': [{'lat': '25.0510', 'lon': '121.5600', 'addresstype': 'house', 'type': 'house'}]}
+GH = {'files': {}, 'calls': [], 'token': 'tok_ok', 'write': True}  # 模擬 GitHub contents API（私人房源 repo）
+GH_CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Accept, Content-Type, X-GitHub-Api-Version', 'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'}
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
 SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'market': 'supermarket', 'bus': 'bus_stop', 'mrt': 'subway'}
@@ -94,6 +96,33 @@ async def route(r):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query).get('q', [''])[0]
         geo_calls.append(q)
         return await r.fulfill(body=json.dumps(GEO.get(q, [])), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
+    if u.startswith('https://api.github.com/'):
+        rq = r.request
+        if rq.method == 'OPTIONS':
+            return await r.fulfill(status=204, headers=GH_CORS)
+        path = urllib.parse.urlparse(u).path
+        GH['calls'].append((rq.method, path, rq.headers.get('authorization', ''), rq.headers.get('accept', '')))
+        if rq.headers.get('authorization') != 'Bearer ' + GH['token']:
+            return await r.fulfill(status=401, body='{"message":"Bad credentials"}', headers=GH_CORS, content_type='application/json')
+        m = re.match(r'^/repos/rubychen8407/tlm-listings(?:/contents/(.+))?$', path)
+        if not m:
+            return await r.fulfill(status=404, body='{}', headers=GH_CORS, content_type='application/json')
+        f = m.group(1)
+        if f is None:
+            return await r.fulfill(body='{"private":true}', headers=GH_CORS, content_type='application/json')
+        if rq.method == 'PUT':
+            if not GH['write']:
+                return await r.fulfill(status=403, body='{}', headers=GH_CORS, content_type='application/json')
+            b = json.loads(rq.post_data)
+            if f in GH['files'] and b.get('sha') != 'sha-' + f:
+                return await r.fulfill(status=409, body='{}', headers=GH_CORS, content_type='application/json')
+            GH['files'][f] = base64.b64decode(b['content']).decode()
+            return await r.fulfill(status=201, body='{}', headers=GH_CORS, content_type='application/json')
+        if f not in GH['files']:
+            return await r.fulfill(status=404, body='{}', headers=GH_CORS, content_type='application/json')
+        if 'raw' in rq.headers.get('accept', ''):
+            return await r.fulfill(body=GH['files'][f], headers=GH_CORS, content_type='application/json')
+        return await r.fulfill(body=json.dumps({'sha': 'sha-' + f}), headers=GH_CORS, content_type='application/json')
     if 'leaflet.js' in u:
         return await r.fulfill(path=LF + 'leaflet.js', content_type='application/javascript')
     if 'tile.openstreetmap.org' in u or 'cartocdn.com' in u:
@@ -890,6 +919,60 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     big = [LH] + [['1 主塊', '範圍內', f'民生東路五段{i}巷{i%30+1}號', '公寓', 2000 + i, 30.25, f"'{i%5+1}/5", 40, -3.5, f'https://sale.591.com.tw/home/house/detail/2/{(i*7919**3)%90000000+10000000}.html', f'https://www.sinyi.com.tw/buy/house/{(i*104729)%9999:04d}{chr(65+i*7%26)}{chr(65+i*11%26)}', f'https://buy.yungching.com.tw/house/{(i*15485863)%9000000+1000000}', '', f'https://www.hbhousing.com.tw/detail/?sn=WS{(i*7907)%90000+10000}', '', round(25.03 + (i * 7919 % 1000) * 4.1e-5, 6), round(121.53 + (i * 104729 % 1000) * 5.3e-5, 6)] for i in range(150)]
     blen = len(import_link(big)); print('  150 間的連結長度', blen)
     check(blen < 60000, f'150 間房源的匯入連結約 {blen // 1000} KB，手機瀏覽器可以開')
+    await page.close()
+    # 11c. 私人房源：每週找房寫進私人 repo，app 用 token 自動讀取、標新上架／已下架，並可把範圍存回 repo
+    def gh_rows(rows, updated):
+        GH['files']['listings.json'] = json.dumps({'updated': updated, 'rows': [LH] + rows}, ensure_ascii=False)
+    RA = ['1 主塊', '範圍內', '民生東路五段36巷8號', '公寓', 2688, 30.5, "'3/4", 45, -4.2, 'https://sale.591.com.tw/home/house/detail/2/111.html', '', '', '', '', '', 25.0598, 121.5628]
+    RB = ['1 主塊', '範圍內', '南京東路五段100號', '大樓', 2600, 32.5, "'7/12", 20, -6.5, 'https://sale.591.com.tw/home/house/detail/2/555.html', '', '', '', '', '', 25.0510, 121.5600]
+    RC = ['1 主塊', '範圍內', '延壽街100號', '華廈', 2400, 28, "'4/7", 35, -2, '', 'https://www.sinyi.com.tw/buy/house/NEW1', '', '', '', '', 25.0560, 121.5580]
+    gh_rows([RA, RB], '2026-11-23T01:00:00Z'); GH['calls'].clear()
+    page = await new_page(b, errs, **PHONE); ev = page.evaluate
+    await page.goto(URL); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(300)
+    check(len(GH['calls']) == 0, '沒設定 token 時不會連 GitHub')
+    await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    check(await ev("!!document.getElementById('syncTok')&&document.getElementById('syncTok').type==='password'&&document.getElementById('syncRepo').value==='rubychen8407/tlm-listings'&&document.getElementById('exRange').disabled"), '「找房」有私人房源設定（token 用密碼欄位、預設 repo）；沒設定時「設為每週找房範圍」不能按')
+    await page.fill('#syncTok', 'tok_bad'); await page.click('#syncGo')
+    await page.wait_for_function("document.getElementById('syncSt')&&/無效/.test(document.getElementById('syncSt').innerText)", timeout=5000)
+    check(await ev("LISTINGS.length===0"), 'token 錯誤：顯示「token 無效或已過期」，地圖不變')
+    await page.click('#syncOff'); await page.fill('#syncTok', 'tok_ok'); await page.click('#syncGo')
+    await page.wait_for_function("LISTINGS.filter(l=>l.sync).length===2&&!syncRunning", timeout=8000); await page.wait_for_timeout(300)
+    s1 = await ev("({n:saleLayer.getLayers().length,nw:LISTINGS.filter(l=>l.isNew).length,st:document.getElementById('syncSt').innerText,t:document.getElementById('toast').innerText,tok:JSON.parse(localStorage.getItem('tlm.sync')).token})")
+    gc = [c for c in GH['calls'] if c[1].endswith('listings.json')]
+    check(s1['n'] == 2 and s1['nw'] == 0 and '2 間' in s1['st'] and '已載入私人房源 2 間' in s1['t'] and s1['tok'] == 'tok_ok' and gc and gc[-1][2] == 'Bearer tok_ok' and 'raw' in gc[-1][3], f"正確 token：讀私人 repo 的 listings.json，2 間放到地圖（第一次不標新上架），token 存在這台裝置 {s1}")
+    gh_rows([RA, RC], '2026-11-30T01:00:00Z'); GH['calls'].clear()
+    await page.reload(); await page.wait_for_function(READY, timeout=20000)
+    await page.wait_for_function("LISTINGS.some(l=>l.addr==='延壽街100號')&&!syncRunning", timeout=8000); await page.wait_for_timeout(300)
+    s2 = await ev("({addr:LISTINGS.map(l=>l.addr),nw:LISTINGS.filter(l=>l.isNew).map(l=>l.addr),pins:saleLayer.getLayers().map(m=>m.getElement().innerText),t:document.getElementById('toast').innerText,m:SYNCMETA})")
+    print('  sync', s2)
+    check(sorted(s2['addr']) == sorted(['民生東路五段36巷8號', '延壽街100號']) and s2['nw'] == ['延壽街100號'] and '新上架 1 間、已下架 1 間' in s2['t'] and any(p.startswith('新') for p in s2['pins']) and s2['m']['gone'][0]['addr'] == '南京東路五段100號', '下次打開 app 自動更新：新上架的標「新」，已下架的從地圖移除並提示')
+    await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    st = await ev("document.getElementById('syncSt').innerText")
+    check('新上架 1 間' in st and '已下架 1 間' in st and '南京東路五段100號' in st, f'找房裡的狀態列出新上架、已下架的地址（{st}）')
+    await page.click('#close'); await page.reload(); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(800)
+    check(await ev("LISTINGS.filter(l=>l.isNew).length===1&&LISTINGS.length===2"), '沒有新的找房結果時，重新打開不會改動（新上架標記保留到下一次找房）')
+    await ev("void saleLayer.getLayers().find(m=>m.getElement().innerText.startsWith('新')).fire('click')"); await page.wait_for_timeout(300)
+    check('新上架' in await ev("document.querySelector('.leaflet-popup-content .sp').innerText"), '點新上架的房子，資訊卡標出「新上架」')
+    await shot(page, '8s_sync_new'); await ev("void map.closePopup()")
+    # 手動匯入和私人房源並存；清除只清手動的
+    await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    await page.click('#imPasteBtn'); await page.fill('#imPaste', '地址／路段\t開價(萬)\t緯度\t經度\n八德路四段1號\t2000\t25.049\t121.57'); await page.click('#imPasteGo'); await page.wait_for_timeout(300)
+    await page.click('#imClear'); await page.wait_for_timeout(200)
+    check(await ev("LISTINGS.length===2&&LISTINGS.every(l=>l.sync)"), '「清除匯入的房源」只清手動匯入的，私人房源保留')
+    # 把目前範圍存回私人 repo（range.json），每週找房用
+    zn = await ev("state.zones.length")
+    check(zn > 0 and await ev("!document.getElementById('exRange').disabled"), f'有 token 且地圖上有符合條件的範圍：「設為每週找房範圍」可以按（{zn} 塊）')
+    await shot(page, '8s_sync_box')
+    await page.click('#exRange'); await page.wait_for_function("/每週找房範圍：/.test(document.getElementById('syncSt').innerText)", timeout=5000)
+    rg = json.loads(GH['files'].get('range.json', '{}'))
+    check(rg.get('geojson', {}).get('geometry', {}).get('type') == 'MultiPolygon' and len(rg['geojson']['geometry']['coordinates']) == zn and 'MultiPolygon' in rg.get('text', '') and rg.get('prefs', {}).get('lo') is not None and rg.get('criteria'), f"範圍存進私人 repo 的 range.json：GeoJSON（{zn} 塊）、匯出文字、房子條件、生活機能條件 {list(rg)}")
+    await page.click('#exRange'); await page.wait_for_timeout(800)
+    check('已設為每週找房範圍' in await ev("document.getElementById('toast').innerText"), '再存一次：帶上原檔 sha 覆寫成功')
+    GH['write'] = False; await page.click('#exRange'); await page.wait_for_timeout(800)
+    check('Read and write' in await ev("document.getElementById('toast').innerText"), 'token 只有讀取權限：提示需要「Contents：Read and write」')
+    GH['write'] = True
+    await page.click('#syncOff'); await page.wait_for_timeout(200)
+    check(await ev("LISTINGS.length===0&&!localStorage.getItem('tlm.sync')&&!!document.getElementById('syncTok')"), '「移除 token」：token 和私人房源都從這台裝置移除')
     await page.close()
     # 12. 沒有 city.json → 改用即時查詢備援，不再去讀已移除的 12 區檔
     MODE['missing'] = {'city.json'}; d0 = len(data_hits); c0 = len(calls)
