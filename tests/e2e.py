@@ -4,7 +4,7 @@
   A 組：沒有預建資料 — 即時查 Overpass 的備援流程
 設 REAL_DATA=1 時，改用 repo 內真實的 data/ 跑一遍並截圖。
 """
-import json, asyncio, subprocess, urllib.parse, base64, sys, os, re, shutil, math, time, io, contextlib
+import json, zlib, asyncio, subprocess, urllib.parse, base64, sys, os, re, shutil, math, time, io, contextlib
 from playwright.async_api import async_playwright
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
@@ -866,7 +866,31 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     check(await ev("LISTINGS.length===6&&saleLayer.getLayers().length===5"), '重新整理後，匯入的房源還在地圖上（存在這台裝置）')
     await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000); await page.click('#imClear')
     check(await ev("LISTINGS.length===0&&saleLayer.getLayers().length===0&&JSON.parse(localStorage.getItem('tlm.listings')).length===0"), '「清除匯入的房源」：地圖與裝置上的房源都清掉')
-    await page.click('#close'); await page.wait_for_timeout(200); await page.close()
+    # 一鍵匯入連結：#import=<base64url(deflate-raw(JSON 列陣列))>（找房 skill 產生）
+    def import_link(rows):
+        co = zlib.compressobj(9, zlib.DEFLATED, -15); z = co.compress(json.dumps(rows, ensure_ascii=False, separators=(',', ':')).encode()) + co.flush()
+        return URL + '#import=' + base64.urlsafe_b64encode(z).decode().rstrip('=')
+    LH = ['區塊', '位置判定', '地址／路段', '型態', '開價(萬)', '建坪', '樓層', '屋齡', '開價 vs 實價(%)', "'591", '信義', '永慶', '樂屋', '住商', '備註', '緯度', '經度']
+    lrows = [LH, ['1 主塊', '範圍內', '民生東路五段36巷8號', '公寓', 2688, 30.5, "'3/4", 45, -4.2, 'https://sale.591.com.tw/home/house/detail/2/111.html', 'https://www.sinyi.com.tw/buy/house/ABC123', '', '', '', '', 25.0598, 121.5628],
+             ['1 主塊', '範圍外但很接近', '八德路四段', '大樓', 3200, 40, "'9/14", 18, 6.1, '', '', 'https://buy.yungching.com.tw/house/9', '', '', '', '', '']]
+    g2 = len(geo_calls); await page.close()
+    page = await new_page(b, errs, **PHONE); ev = page.evaluate
+    await page.goto(import_link(lrows)); await page.wait_for_function(READY, timeout=20000)
+    await page.wait_for_function("LISTINGS.length===2&&!geoRunning&&LISTINGS.every(l=>l.prec)", timeout=20000)
+    lk = await ev("({prec:LISTINGS.map(l=>l.prec),hash:location.hash,n:saleLayer.getLayers().length,l:LISTINGS[0].links.map(x=>x.p),fl:LISTINGS[0].floor,t:document.getElementById('toast').innerText,on:state.layers.sale})")
+    print('  link', lk, geo_calls[g2:])
+    check(lk['prec'] == ['given', 'none'] and lk['n'] == 1 and lk['l'] == ['591', '信義'] and lk['fl'] == '3/4' and lk['on'] and geo_calls[g2:] == ['臺北市八德路四段'], f"點房源連結自動匯入：有經緯度的直接放、沒有的才查地址，各平台連結都在 {lk}")
+    check(lk['hash'] == '' and '匯入 2 間' in lk['t'], f"匯入後網址的 #import 清掉，重新整理不會再匯入一次（{lk['t']}）")
+    await page.reload(); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(400)
+    check(await ev("LISTINGS.length===2&&saleLayer.getLayers().length===1"), '重新整理後房源仍在，沒有重複')
+    await page.goto(import_link(lrows)); await page.wait_for_timeout(600)
+    check(await ev("LISTINGS.length===2&&location.hash===''&&document.getElementById('toast').innerText.includes('重複略過')"), 'app 已經開著時點同一個連結（只換 #）：也會匯入，重複的全部略過')
+    await page.goto(URL + '#import=' + import_link(lrows).split('#import=')[1][:40]); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(500)
+    check(await ev("LISTINGS.length===2&&document.getElementById('toast').className==='err'&&document.getElementById('toast').innerText.includes('讀不到')"), '連結被截斷：提示改用檔案匯入，原本的房源不受影響')
+    big = [LH] + [['1 主塊', '範圍內', f'民生東路五段{i}巷{i%30+1}號', '公寓', 2000 + i, 30.25, f"'{i%5+1}/5", 40, -3.5, f'https://sale.591.com.tw/home/house/detail/2/{(i*7919**3)%90000000+10000000}.html', f'https://www.sinyi.com.tw/buy/house/{(i*104729)%9999:04d}{chr(65+i*7%26)}{chr(65+i*11%26)}', f'https://buy.yungching.com.tw/house/{(i*15485863)%9000000+1000000}', '', f'https://www.hbhousing.com.tw/detail/?sn=WS{(i*7907)%90000+10000}', '', round(25.03 + (i * 7919 % 1000) * 4.1e-5, 6), round(121.53 + (i * 104729 % 1000) * 5.3e-5, 6)] for i in range(150)]
+    blen = len(import_link(big)); print('  150 間的連結長度', blen)
+    check(blen < 60000, f'150 間房源的匯入連結約 {blen // 1000} KB，手機瀏覽器可以開')
+    await page.close()
     # 12. 沒有 city.json → 改用即時查詢備援，不再去讀已移除的 12 區檔
     MODE['missing'] = {'city.json'}; d0 = len(data_hits); c0 = len(calls)
     page = await new_page(b, errs, **PHONE)
