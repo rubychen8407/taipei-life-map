@@ -947,6 +947,30 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     big = [LH] + [['1 主塊', '範圍內', f'民生東路五段{i}巷{i%30+1}號', '公寓', 2000 + i, 30.25, f"'{i%5+1}/5", 40, -3.5, f'https://sale.591.com.tw/home/house/detail/2/{(i*7919**3)%90000000+10000000}.html', f'https://www.sinyi.com.tw/buy/house/{(i*104729)%9999:04d}{chr(65+i*7%26)}{chr(65+i*11%26)}', f'https://buy.yungching.com.tw/house/{(i*15485863)%9000000+1000000}', '', f'https://www.hbhousing.com.tw/detail/?sn=WS{(i*7907)%90000+10000}', '', round(25.03 + (i * 7919 % 1000) * 4.1e-5, 6), round(121.53 + (i * 104729 % 1000) * 5.3e-5, 6)] for i in range(150)]
     blen = len(import_link(big)); print('  150 間的連結長度', blen)
     check(blen < 60000, f'150 間房源的匯入連結約 {blen // 1000} KB，手機瀏覽器可以開')
+    # 畫面內最多 10 間價格標籤，其餘聚合成「N 間」圓點
+    await page.goto(import_link(big)); await page.wait_for_function("LISTINGS.length===152&&!geoRunning", timeout=20000); await page.wait_for_timeout(800)
+    SC = """(()=>{const ls=saleLayer.getLayers(),pins=ls.filter(m=>m.saleIdx!=null),cl=ls.filter(m=>m.saleGroup),vb=map.getBounds().pad(.05),vis=LISTINGS.filter(l=>l.lat&&vb.contains([l.lat,l.lng]));
+      return {pins:pins.length,cl:cl.length,sum:pins.length+cl.reduce((s,m)=>s+m.saleGroup.length,0),vis:vis.length,clTxt:cl.map(m=>+m.getElement().innerText),clN:cl.map(m=>m.saleGroup.length),
+        best:pins.some(m=>LISTINGS[m.saleIdx].vsReal===-4.2)===vis.some(l=>l.vsReal===-4.2),z:map.getZoom(),
+        order:(()=>{const ps=pins.map(m=>LISTINGS[m.saleIdx].price),rest=cl.flatMap(m=>m.saleGroup.map(i=>LISTINGS[i])).filter(l=>l.vsReal===-3.5).map(l=>l.price);return !rest.length||!ps.length||Math.max(...pins.map(m=>LISTINGS[m.saleIdx]).filter(l=>l.vsReal===-3.5).map(l=>l.price),0)<=Math.min(...rest)})()}})()"""
+    v = await ev(SC); print('  sale cluster', {k: v[k] for k in ('pins', 'cl', 'sum', 'vis', 'z')})
+    check(v['vis'] > 10 and v['pins'] == 10 and v['cl'] > 0 and v['sum'] == v['vis'] and v['clTxt'] == v['clN'], f"畫面內超過 10 間：只畫 10 間價格標籤，其餘聚合成圓點、圓點上的數字加起來剛好 {v}")
+    check(v['best'] and v['order'], '先顯示開價相對實價最低的，其次開價較低的')
+    await shot(page, '8s_sale_cluster')
+    z0 = v['z']; await ev("void saleLayer.getLayers().filter(m=>m.saleGroup).sort((a,b)=>b.saleGroup.length-a.saleGroup.length)[0].fire('click')"); await page.wait_for_timeout(900)
+    v2 = await ev(SC)
+    check(v2['z'] > z0 and v2['pins'] <= 10 and v2['sum'] == v2['vis'], f'點圓點：放大到那一區，重畫後仍最多 10 間標籤 {v2}')
+    await ev("LISTINGS=LISTINGS.slice(0,2).concat(Array.from({length:14},(_,k)=>({addr:'同棟路'+k+'號',type:'大樓',price:1500+k,floor:(k+2)+'/20',links:[{p:'信義',u:'https://www.sinyi.com.tw/buy/house/S'+k}],lat:25.0450,lng:121.5600,prec:'given'})));map.setView([25.045,121.56],map.getMaxZoom(),{animate:false});drawSale()")
+    await page.wait_for_timeout(500)
+    v3 = await ev(SC)
+    check(v3['pins'] == 10 and v3['cl'] == 1 and v3['clN'] == [4], f'同一點 14 間：10 間標籤＋1 個「4 間」圓點 {v3}')
+    await ev("void saleLayer.getLayers().find(m=>m.saleGroup).fire('click')"); await page.wait_for_timeout(400)
+    lp = await ev("(()=>{const p=document.querySelector('.leaflet-popup .sl');return p?[...p.querySelectorAll('a')].map(a=>a.innerText):null})()")
+    check(lp is not None and len(lp) == 4 and '同棟路10號' in lp[0], f'已經放到最大：點圓點列出那幾間 {lp}')
+    await ev("void document.querySelector('.leaflet-popup .sl a').click()"); await page.wait_for_timeout(400)
+    pt = await ev("(document.querySelector('.leaflet-popup .sp')||{}).innerText||''")
+    check('同棟路10號' in pt and '開價 1,510 萬' in pt and '用 app 估價這間' in pt, '點清單中的一間：顯示那間的資訊與連結')
+    await shot(page, '8t_sale_cluster_list')
     await page.close()
     # 11c. 私人房源：每週找房寫進私人 repo，app 用 token 自動讀取、標新上架／已下架，並可把範圍存回 repo
     def gh_rows(rows, updated):
