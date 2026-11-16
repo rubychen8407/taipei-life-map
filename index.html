@@ -819,9 +819,15 @@ const SVC={};function bearing(a,b){const r=Math.PI/180,y=Math.sin((b[1]-a[1])*r)
 async function findPano(la,lo){const k=(+la).toFixed(5)+','+(+lo).toFixed(5);if(k in SVC)return SVC[k];await gmReady();
   const sv=new google.maps.StreetViewService();
   const tryR=async r=>{try{const res=await sv.getPanorama({location:{lat:+la,lng:+lo},radius:r,sources:[google.maps.StreetViewSource.OUTDOOR],preference:google.maps.StreetViewPreference.NEAREST});const d=res.data,p=d.location.latLng;return {pano:d.location.pano,la:p.lat(),lo:p.lng()};}catch(e){return null;}};
-  const r=await tryR(60)||await tryR(150);if(r)r.heading=Math.round(bearing([r.la,r.lo],[+la,+lo]));return SVC[k]=r;}
+  const r=await tryR(60)||await tryR(150);if(r)r.heading=Math.round(bearing([r.la,r.lo],[+la,+lo]))%360;return SVC[k]=r;}
 function svEmbedHTML(la,lo){return GMKEY?`<div class="sv-embed" data-la="${la}" data-lo="${lo}"><div class="sv-msg">街景載入中…</div></div>`:'';}
-async function fillStreetViews(root){if(!GMKEY||!root)return;for(const box of root.querySelectorAll('.sv-embed:not([data-done])')){box.dataset.done=1;const la=+box.dataset.la,lo=+box.dataset.lo;
+// 沒有金鑰時：把點移到最近的道路上（OSRM nearest），鏡頭朝向該點，Google 就會開街景車拍的路面全景，而不是附近店家的網友照片
+const SNAP={};async function snapRoad(la,lo){const k=(+la).toFixed(5)+','+(+lo).toFixed(5);if(k in SNAP)return SNAP[k];
+  try{const r=await fetch(`https://router.project-osrm.org/nearest/v1/driving/${(+lo).toFixed(6)},${(+la).toFixed(6)}?number=1`);const j=await r.json();const w=j.waypoints&&j.waypoints[0];
+    if(j.code!=='Ok'||!w||w.distance>150)return SNAP[k]=null;const p=[w.location[1],w.location[0]];return SNAP[k]={la:p[0],lo:p[1],heading:Math.round(bearing(p,[+la,+lo]))%360};}catch(e){return null;}}
+async function snapLinks(root){if(!root||GMKEY)return;for(const a of root.querySelectorAll('a[data-svla]:not([data-snapped])')){a.dataset.snapped=1;const r=await snapRoad(a.dataset.svla,a.dataset.svlo);
+    if(r)a.href=`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.la.toFixed(6)},${r.lo.toFixed(6)}&heading=${r.heading}`;}}
+async function fillStreetViews(root){snapLinks(root);if(!GMKEY||!root)return;for(const box of root.querySelectorAll('.sv-embed:not([data-done])')){box.dataset.done=1;const la=+box.dataset.la,lo=+box.dataset.lo;
     try{const r=await findPano(la,lo);if(!r){box.innerHTML='<div class="sv-msg">附近 150 公尺內沒有 Google 街景</div>';continue;}
       box.innerHTML=`<iframe title="Google 街景" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(GMKEY)}&pano=${encodeURIComponent(r.pano)}&heading=${r.heading}&pitch=5&fov=80"></iframe>`;
       root.querySelectorAll(`a[data-svla="${box.dataset.la}"][data-svlo="${box.dataset.lo}"]`).forEach(a=>a.href=`https://www.google.com/maps/@?api=1&map_action=pano&pano=${encodeURIComponent(r.pano)}&heading=${r.heading}`);}
@@ -1267,7 +1273,7 @@ function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.tran
 map.on('moveend',()=>{if(!salePop)drawSale();}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
 map.on('popupopen',e=>{const el=e.popup.getElement();if(!el)return;el.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const i=+a.dataset.sopen,l=LISTINGS[i];if(!l)return;
   setTimeout(()=>{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);},0);});});
-map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>e.popup.update());});
+map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>e.popup.update());else if(pe)snapLinks(pe);});
 map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
   openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));};});
@@ -1372,14 +1378,14 @@ function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:
 function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export',prefs:exPrefs()};render();fitSheet('full');}
 function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('找房','匯入 Claude 找好的房源放到地圖上；或設定想要的房子，一次匯出全部符合條件的範圍給 Claude',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
   $('resultBtn').innerHTML=`<span>匯出找房條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  let h=syncBox()+importBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
+  let h=syncBox()+importBox()+gmKeyBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
     <label class="wide">備註（可不填）<input data-exp="note" placeholder="例如：3 房、2 樓以上、有電梯" value="${esc(p.note)}"></label></div>
     <div class="ex-sum" id="exSum">${S.n?`會一起匯出：地圖上符合條件的範圍 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），和你的生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離再匯出。'}</div>
     <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button><button type="button" class="s" id="exRange" ${S.n&&SYNC?'':'disabled'}>設為每週找房範圍</button></div>
     <details class="ex-det"><summary>預覽匯出內容</summary><div class="ex-pre" id="exPre"></div></details>
     <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。「設為每週找房範圍」會存進私人 repo，每週自動找房就用這個範圍。房子條件會記在這台裝置，下次沿用。</div>`;
-  $('body').innerHTML=h;bindImport();bindSync();if($('exRange'))$('exRange').onclick=saveRange;
+  $('body').innerHTML=h;bindImport();bindSync();bindGmKey($('body'));if($('exRange'))$('exRange').onclick=saveRange;
   const upd=()=>{exSave(v.prefs);};
   $('body').querySelector('.ex-det').ontoggle=e=>{if(e.target.open)$('exPre').textContent=exText().t;};
   $('body').querySelectorAll('[data-exp]').forEach(el=>el.oninput=()=>{v.prefs[el.dataset.exp]=el.value.trim();upd();});
