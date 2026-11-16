@@ -349,6 +349,8 @@ html,body{background:#e8eaed}
 .sale-pin b:after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:inherit}
 .sale-pin b i{font-style:normal;background:#fff;color:#C5221F;border-radius:6px;padding:0 3px;margin-right:3px;font-size:10px}.sp .new{display:inline-block;background:#FCE8E6;color:#C5221F;border-radius:6px;padding:0 5px;margin-right:5px;font-size:11px;font-weight:700}.im-st .bad{color:#C5221F}
 .sale-pin.approx b{outline:2px dashed #fff;outline-offset:-4px;opacity:.88}
+.sale-cl{background:none;border:0}.sale-cl b{display:block;transform:translate(-50%,-50%);border-radius:50%;background:rgba(26,86,219,.85);color:#fff;font-size:12px;font-weight:700;text-align:center;box-shadow:0 0 0 4px rgba(26,86,219,.25),0 2px 6px rgba(0,0,0,.25);cursor:pointer}.sale-cl.nw b{box-shadow:0 0 0 3px #fff,0 0 0 5px #C5221F,0 2px 6px rgba(0,0,0,.25)}
+.sp .sl{max-height:220px;overflow:auto;margin-top:4px}.sp .sl a{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #eee;color:#1A56DB;text-decoration:none;font-size:13px}.sp .sl a span{color:#5F6368;white-space:nowrap}
 .sp{font-size:13px;line-height:1.5;min-width:220px}.sp .a{font-weight:700;font-size:14px}.sp .p{font-size:15px;font-weight:700;margin:2px 0}.sp small{color:#5f6368;display:block}
 .sp .lk{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sp .lk a{background:var(--bluebg);color:var(--D);border-radius:12px;padding:3px 10px;font-weight:700;text-decoration:none}
 .sp button{margin-top:6px;border:0;background:var(--D);color:#fff;border-radius:12px;padding:6px 10px;font-weight:700;width:100%}
@@ -1212,10 +1214,30 @@ function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$
     ${l.prec==='road'?'<small>只定位到路段，位置是約略的</small>':''}${l.note?`<small>${esc(l.note)}</small>`:''}
     <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}</div>
     <button type="button" data-sval="${i}">用 app 估價這間</button></div>`;}
-function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;const pts=[];
-  LISTINGS.forEach((l,i)=>{if(!l.lat)return;pts.push([l.lat,l.lng]);const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.isNew?'<i>新</i>':''}${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
-    m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280}).addTo(saleLayer);});
-  if(fit&&pts.length)map.fitBounds(L.latLngBounds(pts).pad(.15),{maxZoom:15});}
+// 畫面內最多畫 SALE_MAX 間房子的價格標籤（新上架優先，再依開價相對估價／實價由低到高），其餘依畫面格子聚合成「N 間」圓點；點圓點放大，放大不了就列出那幾間
+const SALE_MAX=10,SALE_CELL=64;let salePop=false;
+function saleScore(l){const v=l.vsEst!=null?l.vsEst:l.vsReal;return [l.isNew?0:1,v==null?1e9:v,l.rank==null?1e9:l.rank,l.price==null?1e9:l.price];}
+function saleCmp(a,b){const x=saleScore(a.l),y=saleScore(b.l);for(let k=0;k<x.length;k++)if(x[k]!==y[k])return x[k]-y[k];return a.i-b.i;}
+function salePin(l,i){const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.isNew?'<i>新</i>':''}${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
+  m.saleIdx=i;m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280});m.on('popupopen',()=>salePop=true).on('popupclose',()=>salePop=false);return m.addTo(saleLayer);}
+function saleListHtml(g){return `<div class="sp"><div class="a">這裡有 ${g.length} 間</div><div class="sl">${g.sort(saleCmp).map(({l,i})=>`<a href="#" data-sopen="${i}">${l.isNew?'<span class="new">新</span>':''}${esc(l.addr)}<span>${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':''}${l.floor?`・${esc(l.floor)} 樓`:''}</span></a>`).join('')}</div></div>`;}
+function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;
+  const all=[];LISTINGS.forEach((l,i)=>{if(l.lat)all.push({l,i});});
+  let fb=null;if(fit&&all.length){fb=L.latLngBounds(all.map(o=>[o.l.lat,o.l.lng])).pad(.15);map.fitBounds(fb,{maxZoom:15});} // 移動中先以目標範圍畫，moveend 再依實際畫面重畫
+  const vb=(fb||map.getBounds()).pad(.05),vis=all.filter(o=>vb.contains([o.l.lat,o.l.lng]));
+  if(vis.length<=SALE_MAX){vis.forEach(o=>salePin(o.l,o.i));return;}
+  vis.sort(saleCmp);vis.slice(0,SALE_MAX).forEach(o=>salePin(o.l,o.i));
+  const cells=new Map();for(const o of vis.slice(SALE_MAX)){const p=map.latLngToLayerPoint([o.l.lat,o.l.lng]),k=Math.floor(p.x/SALE_CELL)+','+Math.floor(p.y/SALE_CELL);if(!cells.has(k))cells.set(k,[]);cells.get(k).push(o);}
+  for(const g of cells.values()){const lat=g.reduce((s,o)=>s+o.l.lat,0)/g.length,lng=g.reduce((s,o)=>s+o.l.lng,0)/g.length,nw=g.some(o=>o.l.isNew),sz=g.length<10?26:g.length<100?32:38;
+    const m=L.marker([lat,lng],{icon:L.divIcon({className:'sale-cl'+(nw?' nw':''),html:`<b style="width:${sz}px;height:${sz}px;line-height:${sz}px">${g.length}</b>`,iconSize:[0,0]}),zIndexOffset:500,bubblingMouseEvents:false,title:`${g.length} 間`});
+    m.saleGroup=g.map(o=>o.i);
+    m.on('click',()=>{const b=L.latLngBounds(g.map(o=>[o.l.lat,o.l.lng])),z=Math.min(map.getBoundsZoom(b.pad(.3)),map.getMaxZoom());
+      if(z>map.getZoom()&&b.getNorthEast().distanceTo(b.getSouthWest())>15)map.fitBounds(b.pad(.3));
+      else{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([lat,lng]).setContent(saleListHtml(g)).openOn(map).on('remove',()=>salePop=false);}});
+    m.addTo(saleLayer);}}
+map.on('moveend',()=>{if(!salePop)drawSale();}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
+map.on('popupopen',e=>{const el=e.popup.getElement();if(!el)return;el.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const i=+a.dataset.sopen,l=LISTINGS[i];if(!l)return;
+  setTimeout(()=>{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);},0);});});
 map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
   openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));};});
