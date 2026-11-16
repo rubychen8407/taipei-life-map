@@ -169,8 +169,8 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .fab{width:44px;height:44px;border-radius:22px;box-shadow:var(--shadow);color:var(--ink);border:0}
 .fab svg{width:19px;height:19px}
 .fab[aria-expanded=true]{color:var(--D);box-shadow:inset 0 0 0 1.5px var(--D),0 0 0 3px var(--A)}
-.pop{position:absolute;z-index:1150;right:66px;bottom:calc(var(--sheetvis,76px) + 14px);border-radius:20px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(0,0,0,.16);animation:pop .18s ease-out}
-.pop[hidden],#regionPop[hidden],#layersPop[hidden],#filterPop[hidden],#pressMenu[hidden],#scopeTag[hidden]{display:none!important}
+.pop{position:absolute;z-index:1150;right:12px;bottom:calc(var(--sheetvis,76px) + 70px);border-radius:20px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(0,0,0,.16);animation:pop .18s ease-out}
+.pop[hidden],#regionPop[hidden],#layersPop[hidden],#filterPop[hidden],#homesPop[hidden],#pressMenu[hidden],#scopeTag[hidden]{display:none!important}
 #regionPop{width:228px;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #regionPop button{height:34px;border-radius:17px;border:0;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08);font-size:13px;color:var(--ink);padding:0}
 #regionPop button[aria-pressed=true]{box-shadow:inset 0 0 0 1.5px var(--D);color:var(--D);font-weight:600}
@@ -181,7 +181,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 #layersPop h3{margin:0;font-size:18px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
 #layersPop h3 small{font-size:12px;color:#5F6368;font-weight:400}
 #filterPop{width:292px;max-height:calc(100dvh - var(--sheetvis,76px) - 120px);overflow-y:auto;overflow-x:hidden;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-#filterPop h3{margin:0;font-size:18px;font-weight:600}#filterPop h3.h2{margin-top:10px}
+#filterPop h3,#homesPop h3{margin:0;font-size:18px;font-weight:600}#filterPop h3.h2{margin-top:10px}#homesPop h3.h2{margin-top:0}
 .frow .fchk{flex:none;width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center}.frow .fchk i{width:20px;height:20px;border-radius:6px;border:1.5px solid #9aa0a6}.frow .fchk[aria-pressed=true] i{background:var(--D);border-color:var(--D);box-shadow:inset 0 0 0 3px #fff}
 .fcmp{height:42px;border-radius:12px;border:0;background:var(--D);color:#fff;font-weight:600;font-size:14px}.fcmp:disabled{background:#dadce0;color:#80868b}
 .vtop{display:flex;justify-content:space-between;align-items:center}.vsave{display:flex;align-items:center;gap:4px;border:0;background:none;color:var(--D);font-size:13px;font-weight:600;padding:6px 0}.vsave svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}.vsave[aria-pressed=true] svg{fill:var(--A);stroke:var(--A)}
@@ -204,9 +204,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .deal-pop .dp{max-height:min(46vh,380px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .dp-more,.dp-note{font-size:11.5px;color:#80868b;padding-top:6px}
 .home-pin span{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--A);box-shadow:0 1px 5px rgba(0,0,0,.3)}.home-pin svg{width:17px;height:17px;fill:var(--A);stroke:var(--A);stroke-width:1.4;stroke-linejoin:round}
-.ph-legend[hidden]{display:none}.ph-legend{position:absolute;left:12px;z-index:1000;bottom:calc(68px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;align-items:center;gap:6px;pointer-events:none}.ph-legend i{display:block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}#filterPop .hint{font-size:12px;color:#5F6368;margin-top:-4px}
+.ph-legend[hidden]{display:none}.ph-legend{position:absolute;left:12px;z-index:1000;bottom:calc(68px + env(safe-area-inset-bottom));padding:6px 10px;border-radius:12px;font-size:11px;color:#3c4043;display:flex;align-items:center;gap:6px;pointer-events:none}.ph-legend i{display:block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,hsl(222 78% 42%),hsl(127 78% 47%),hsl(32 78% 52%))}#filterPop .hint,#homesPop .hint{font-size:12px;color:#5F6368;margin-top:-4px}
 .frow{display:flex;align-items:center;gap:4px;border-radius:14px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}.frow[aria-current=true]{box-shadow:inset 0 0 0 1.5px var(--D)}
 .frow .fapply{flex:1;min-width:0;min-height:52px;border:0;background:none;text-align:left;padding:8px 4px 8px 12px;color:var(--ink)}.frow .fapply b{display:block;font-size:14px;font-weight:600}.frow .fapply span{display:block;font-size:11.5px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .fren{flex:none;width:36px;height:44px;border:0;background:none;color:#80868b;font-size:15px}.frow .fname{flex:1;min-width:0;height:36px;margin:4px 0 4px 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}.frow .fok{flex:none;height:36px;margin:4px;border:0;border-radius:10px;background:var(--D);color:#fff;font-weight:700;padding:0 12px}
 .frow .fdel{flex:none;width:44px;height:44px;border:0;background:none;color:#80868b;font-size:14px}
 .fsave{display:flex;gap:6px}.fsave input{flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font-size:16px;background:#fff}.fsave button{flex:none;height:40px;padding:0 14px;border-radius:12px;border:0;background:var(--A);color:#fff;font-weight:600;font-size:14px}
 .lgroup-h{display:flex;align-items:center;justify-content:space-between;margin:2px 2px -4px;font-size:12px;font-weight:600}
@@ -235,7 +236,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .rank,.zpin{background:var(--D)!important}
 .drow .b i{background:var(--A)}
 .dlabel{font-size:11px;font-weight:500;letter-spacing:.08em;color:rgba(29,29,31,.6);cursor:pointer}
-@media (min-width:700px){#top{width:390px;right:auto}#sheet{left:10px;top:150px;width:390px}.pop{bottom:24px}}
+@media (min-width:700px){#top{width:390px;right:auto}#sheet{left:10px;top:150px;width:390px}.pop{bottom:80px}}
 
 /* 類別列成為一個毛玻璃小組；地圖 POI 與上方圖示同款 */
 #chips{padding:7px 8px 5px;border-radius:26px;background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);box-shadow:var(--shadow);border:.5px solid rgba(255,255,255,.7)}
@@ -299,6 +300,16 @@ html,body{background:#e8eaed}
 .mk-ind .meta{display:flex;gap:6px;align-items:center;margin-top:3px;font-size:11.5px;color:var(--sub)}.mk-chip{border-radius:8px;padding:1px 7px;font-weight:600;font-size:11px}.s1{background:#E6F4EA;color:#137333}.s0{background:#F1F3F4;color:#5F6368}.s-1{background:#FEEFE3;color:#B06000}
 .mk-ind svg{display:block;width:100%;height:70px;margin-top:6px}.mk-ind .how{font-size:12px;color:#5f6368;line-height:1.5;margin-top:4px}
 
+.fab.res{background:var(--D);color:#fff}.fab.res svg{stroke:#fff}
+/* 操作按鈕（篩選、區域、圖層、定位）：一列往左展開，可收合 */
+#fabs,#fabs .fab-ops,#fabs .ops-items{pointer-events:none}#fabs .fab{pointer-events:auto}#fabs .fab-ops.closed .ops-items .fab{pointer-events:none}
+#homesPop{right:66px;width:min(292px,calc(100vw - 80px));max-height:calc(100dvh - var(--sheetvis,76px) - 120px);overflow-y:auto;overflow-x:hidden;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;box-sizing:border-box}
+.fab-ops{display:flex;align-items:center;gap:10px;margin-top:4px}.ops-items{display:flex;flex-direction:row;gap:10px}
+.ops-items .fab{transition:transform .28s cubic-bezier(.2,.9,.3,1.25),opacity .2s}
+.fab-ops.closed .ops-items .fab{opacity:0;transform:translateX(calc((4 - var(--i)) * 56px)) scale(.3);pointer-events:none}
+.ops-items .fab:nth-child(1){--i:0;transition-delay:.09s}.ops-items .fab:nth-child(2){--i:1;transition-delay:.06s}.ops-items .fab:nth-child(3){--i:2;transition-delay:.03s}.ops-items .fab:nth-child(4){--i:3;transition-delay:0s}
+.fab-ops.closed .ops-items .fab:nth-child(n){transition-delay:0s}
+#opsToggle svg{transition:transform .28s}.fab-ops.closed #opsToggle svg{transform:rotate(0)}.fab-ops:not(.closed) #opsToggle svg{transform:rotate(180deg)}
 .fab.fab-ex{width:auto;padding:0 14px;gap:5px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--D)}.fab.fab-ex svg{width:19px;height:19px;stroke:#fff}
 .exh{display:flex;align-items:center;gap:8px}.exbtn{margin-left:auto;display:flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:15px;border:0;background:var(--bluebg);color:var(--D);font-size:12.5px;font-weight:600}.exbtn svg{width:15px;height:15px}
 .vform .ex-geo{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink)}.ex-geo input{width:20px;height:20px;accent-color:var(--D);flex:none}
@@ -333,10 +344,11 @@ html,body{background:#e8eaed}
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="fabs"><button class="fab" id="listBtn" aria-label="分析結果清單" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button><button class="fab" id="marketBtn" aria-label="整體房市"></button><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button><button class="fab fab-ex" id="exportBtn" aria-label="匯出給 Claude 找房"></button></div>
+<div id="fabs"><button class="fab res" id="listBtn" aria-label="分析結果清單" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button><button class="fab res" id="marketBtn" aria-label="整體房市"></button><button class="fab res" id="homesBtn" aria-label="我的物件" aria-expanded="false"></button><button class="fab res" id="exportBtn" aria-label="找房：匯入房源、匯出範圍"></button><div class="fab-ops" id="fabOps"><div class="ops-items" id="opsItems"><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div><button class="fab" id="opsToggle" aria-label="操作按鈕" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
+<div id="homesPop" class="pop glass" hidden role="dialog" aria-label="我的物件"></div>
 <div id="phLegend" class="ph-legend glass" hidden></div><div id="landLegend" class="ph-legend glass" hidden></div>
 <div id="dealLegend" class="deal-legend glass" hidden></div>
 <div id="pressMenu" class="glass" hidden role="menu" aria-label="這個位置"></div>
@@ -367,6 +379,7 @@ function categoryIcon(id){const paths={
  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/>',
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
  star:'<path d="m12 4 2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
+ import:'<path d="M12 3.5v11M7.5 10 12 14.5 16.5 10"/><path d="M5 14.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-4.5"/>',
  share:'<path d="M12 3.5v11M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/>',
  trend:'<path d="M4 18.5h16M5.5 15l4-4.5 3.2 2.8L18.5 7"/><path d="M14.8 7h3.7v3.7"/>',
  compare:'<path d="M5 5h5v14H5zM14 9h5v10h-5z"/>',
@@ -882,10 +895,13 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 // 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
 ['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
-$('marketBtn').innerHTML=categoryIcon('trend');$('exportBtn').innerHTML=categoryIcon('share')+'<span>找房</span>';$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
-function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','filterBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
-function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();}
+$('marketBtn').innerHTML=categoryIcon('trend');$('exportBtn').innerHTML=categoryIcon('import');$('homesBtn').innerHTML=categoryIcon('star');$('homesBtn').onclick=()=>togglePop('homesPop','homesBtn');$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
+function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','filterBtn'],['homesPop','homesBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
+function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&p==='homesPop')renderHomesPop();}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
+// 操作按鈕收合：記住上次狀態
+function setOps(open,save){$('fabOps').classList.toggle('closed',!open);$('opsToggle').setAttribute('aria-expanded',String(open));$('opsToggle').setAttribute('aria-label',open?'收起操作按鈕':'展開操作按鈕');if(!open)closePops();if(save)try{localStorage.setItem('tlm.ops',open?'1':'0');}catch(e){}}
+setOps((()=>{try{return localStorage.getItem('tlm.ops')!=='0';}catch(e){return true;}})());$('opsToggle').onclick=()=>setOps($('fabOps').classList.contains('closed'),true);
 $('filterBtn').innerHTML=categoryIcon('filter');$('filterBtn').onclick=()=>togglePop('filterPop','filterBtn');
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');
 // 圖層開關：自動記住上次的設定（不另外提供儲存組合）
@@ -906,9 +922,12 @@ function setFilterState(f){if(!f||!Array.isArray(f.active))return false;state.ac
 function applyFilter(f,name){closeDetail(true);state.openDistanceLayer=null;state.modeMenu=false;if(!setFilterState(f))return;renderCategorySettings();fillScope();drawScope(true);if(isMob())setSheet('peek');run();if(!$('filterPop').hidden)renderFilterPop();if(name)toast('已套用「'+name+'」');}
 function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKey(filterSnap());
   el.innerHTML=`<h3>我的篩選</h3><div class="hint">重新整理會自動保留目前的條件；常用的組合可以存起來一鍵切換</div>`+
-    fs.map((f,i)=>`<div class="frow" aria-current="${filterKey(f)===cur}"><button type="button" class="fapply" data-filter="${i}"><b>${esc(f.name)}</b><span>${esc(filterSummary(f))}</span></button><button type="button" class="fdel" data-fdel="${i}" aria-label="刪除「${esc(f.name)}」">✕</button></div>`).join('')+
-    `<div class="fsave"><input id="filterName" maxlength="20" placeholder="名稱，例如：上班通勤" aria-label="篩選名稱"><button type="button" id="filterSave">${fs.some(f=>filterKey(f)===cur)?'已存':'儲存'}</button></div>`+homesHTML();
-  bindHomes(el);
+    fs.map((f,i)=>`<div class="frow" aria-current="${filterKey(f)===cur}"><button type="button" class="fapply" data-filter="${i}"><b>${esc(f.name)}</b><span>${esc(filterSummary(f))}</span></button><button type="button" class="fren" data-fren="${i}" aria-label="改名「${esc(f.name)}」">✎</button><button type="button" class="fdel" data-fdel="${i}" aria-label="刪除「${esc(f.name)}」">✕</button></div>`).join('')+
+    `<div class="fsave"><input id="filterName" maxlength="20" placeholder="名稱，例如：上班通勤" aria-label="篩選名稱"><button type="button" id="filterSave">${fs.some(f=>filterKey(f)===cur)?'已存':'儲存'}</button></div>`;
+  el.querySelectorAll('[data-fren]').forEach(b=>b.onclick=()=>{const i=+b.dataset.fren,row=b.closest('.frow'),old=loadFilters()[i].name;
+    row.innerHTML=`<input class="fname" maxlength="20" value="${esc(old)}" aria-label="新名稱"><button type="button" class="fok">完成</button>`;const inp=row.querySelector('input');inp.focus();inp.select();
+    let done=false;const fin=()=>{if(done)return;done=true;const v=inp.value.trim(),a=loadFilters();if(v&&a[i]&&v!==a[i].name){a[i].name=v;saveFilters(a);toast('已改名為「'+v+'」');}renderFilterPop();};
+    inp.onkeydown=e=>{if(e.key==='Enter')fin();if(e.key==='Escape'){done=true;renderFilterPop();}};row.querySelector('.fok').onclick=fin;inp.onblur=()=>setTimeout(fin,150);});
   el.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{const f=loadFilters()[+b.dataset.filter];closePops();applyFilter(f,f.name);});
   el.querySelectorAll('[data-fdel]').forEach(b=>b.onclick=()=>{const a=loadFilters(),[d]=a.splice(+b.dataset.fdel,1);saveFilters(a);renderFilterPop();toast('已刪除「'+d.name+'」');});
   $('filterSave').onclick=()=>{const a=loadFilters(),snap=filterSnap(),k=filterKey(snap),dup=a.find(f=>filterKey(f)===k);if(dup){toast('這組條件已存為「'+dup.name+'」');return;}
@@ -1083,7 +1102,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   $('valEdit').onclick=()=>{V.est=null;drawVal();render();fitSheet('full');};
   if($('valSave'))$('valSave').onclick=()=>{let a=loadHomes();const i=a.findIndex(x=>x.id===V.homeId);
     if(i>=0&&sameHome(a[i],V)){a.splice(i,1);saveHomes(a);toast('已從我的物件移除');}
-    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=10){toast('我的物件最多 10 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側漏斗按鈕裡可以比較');}saveHomes(a);}
+    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=10){toast('我的物件最多 10 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側星號「我的物件」按鈕裡可以比較');}saveHomes(a);}
     drawHomes();render();};
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
@@ -1373,13 +1392,14 @@ async function openHome(h){busy(true);try{await loadVal();}catch(e){busy(false);
 function drawHomes(){homeLayer.clearLayers();if(!state.layers.homes||state.transit||state.drawing||state.editing)return;
   loadHomes().forEach(h=>L.marker(h.pt,{icon:L.divIcon({className:'home-pin',html:'<span>'+categoryIcon('star')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:h.name,zIndexOffset:800,bubblingMouseEvents:false}).on('click',()=>{if(!state.drawing&&!state.editing)openHome(h);}).addTo(homeLayer));}
 let cmpSel=[];
+function renderHomesPop(){const el=$('homesPop');el.innerHTML=homesHTML();bindHomes(el);}
 function homesHTML(){const a=loadHomes();cmpSel=cmpSel.filter(id=>a.some(h=>h.id===id));
   return `<h3 class="h2">我的物件</h3><div class="hint">${a.length?'點名稱重新打開；勾 2～3 間可以並排比較':'估價後按「儲存物件」，就會出現在這裡'}</div>`+
     a.map(h=>`<div class="frow"><button type="button" class="fchk" data-hsel="${h.id}" aria-pressed="${cmpSel.includes(h.id)}" aria-label="選取「${esc(h.name)}」比較"><i></i></button><button type="button" class="fapply" data-home="${h.id}"><b>${esc(h.name)}</b><span>${h.form.ask?'開價 '+wan(+h.form.ask)+'・':''}${h.mid?'合理 '+wan(h.mid)+'・':''}存於 ${h.saved}</span></button><button type="button" class="fdel" data-hdel="${h.id}" aria-label="刪除「${esc(h.name)}」">✕</button></div>`).join('')+
     (a.length>=2?`<button type="button" class="fcmp" id="homeCmp" ${cmpSel.length>=2?'':'disabled'}>${cmpSel.length>=2?'並排比較 '+cmpSel.length+' 間':'勾選 2～3 間來比較'}</button>`:'');}
 function bindHomes(el){el.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{const h=loadHomes().find(x=>x.id===b.dataset.home);if(h)openHome(h);});
-  el.querySelectorAll('[data-hdel]').forEach(b=>b.onclick=()=>{const a=loadHomes(),i=a.findIndex(x=>x.id===b.dataset.hdel),[d]=a.splice(i,1);saveHomes(a);drawHomes();renderFilterPop();toast('已刪除「'+d.name+'」');});
-  el.querySelectorAll('[data-hsel]').forEach(b=>b.onclick=()=>{const id=b.dataset.hsel;if(cmpSel.includes(id))cmpSel=cmpSel.filter(x=>x!==id);else{if(cmpSel.length>=3){toast('一次最多比較 3 間');return;}cmpSel.push(id);}renderFilterPop();});
+  el.querySelectorAll('[data-hdel]').forEach(b=>b.onclick=()=>{const a=loadHomes(),i=a.findIndex(x=>x.id===b.dataset.hdel),[d]=a.splice(i,1);saveHomes(a);drawHomes();renderHomesPop();toast('已刪除「'+d.name+'」');});
+  el.querySelectorAll('[data-hsel]').forEach(b=>b.onclick=()=>{const id=b.dataset.hsel;if(cmpSel.includes(id))cmpSel=cmpSel.filter(x=>x!==id);else{if(cmpSel.length>=3){toast('一次最多比較 3 間');return;}cmpSel.push(id);}renderHomesPop();});
   const c=el.querySelector('#homeCmp');if(c)c.onclick=()=>openCmp(cmpSel.slice());}
 async function openCmp(ids){busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
   const hs=ids.map(id=>loadHomes().find(h=>h.id===id)).filter(Boolean);if(hs.length<2)return;closePops();closeDetail(true);
