@@ -337,6 +337,7 @@ html,body{background:#e8eaed}
 #homesPop h3.h2{margin-top:0}
 .sv-embed{margin:4px 0 8px;border-radius:14px;overflow:hidden;background:#e8eaed;aspect-ratio:16/10;position:relative}.sv-embed iframe{width:100%;height:100%;border:0;display:block}.sv-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5F6368;font-size:13px;padding:8px;text-align:center}
 .sp .sv-embed{width:240px;margin-top:8px}.gm-key{margin:6px 0 10px;font-size:13px;color:#5F6368}.gm-key summary{cursor:pointer;color:var(--D);font-weight:600}.gm-key input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}
+.sf-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.sf-row input{width:64px;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:15px;text-align:center}.sf-row .seg{display:flex;background:rgba(120,120,128,.12);border-radius:10px;padding:2px}.sf-row .seg button{border:0;background:none;height:32px;padding:0 10px;border-radius:8px;font-size:14px;color:var(--ink)}.sf-row .seg button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600;color:var(--D)}
 .svl{display:inline-flex;align-items:center;gap:4px;color:var(--D);font-weight:600;text-decoration:none}.svl svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.cell-sv{margin:2px 0 10px;font-size:14px;padding:6px 12px;border-radius:16px;background:var(--bluebg)}
 .fab.fab-ex{width:auto;padding:0 14px;gap:5px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--D)}.fab.fab-ex svg{width:19px;height:19px;stroke:#fff}
 .exh{display:flex;align-items:center;gap:8px}.exbtn{margin-left:auto;display:flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:15px;border:0;background:var(--bluebg);color:var(--D);font-size:12.5px;font-weight:600}.exbtn svg{width:15px;height:15px}
@@ -1256,8 +1257,23 @@ function saleCmp(a,b){const x=saleScore(a.l),y=saleScore(b.l);for(let k=0;k<x.le
 function salePin(l,i){const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.isNew?'<i>新</i>':''}${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
   m.saleIdx=i;m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280});m.on('popupopen',()=>salePop=true).on('popupclose',()=>salePop=false);return m.addTo(saleLayer);}
 function saleListHtml(g){return `<div class="sp"><div class="a">這裡有 ${g.length} 間</div><div class="sl">${g.sort(saleCmp).map(({l,i})=>`<a href="#" data-sopen="${i}">${l.isNew?'<span class="new">新</span>':''}${esc(l.addr)}<span>${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':''}${l.floor?`・${esc(l.floor)} 樓`:''}</span></a>`).join('')}</div></div>`;}
+// 房源依坪數篩選（建坪或室內），存在裝置；只影響地圖上顯示哪些房子
+let SALEF={by:'ping',min:null,max:null};try{SALEF=Object.assign(SALEF,JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
+const saleSize=l=>{const v=SALEF.by==='inner'?parseFloat(l.inner):+l.ping;return isFinite(v)&&v>0?v:null;};
+const saleFOn=()=>SALEF.min!=null||SALEF.max!=null;
+function saleOk(l){if(!saleFOn())return true;const v=saleSize(l);if(v==null)return false;return (SALEF.min==null||v>=SALEF.min)&&(SALEF.max==null||v<=SALEF.max);}
+function saleFilterBox(){const n=LISTINGS.filter(l=>l.lat).length,k=LISTINGS.filter(l=>l.lat&&saleOk(l)).length;
+  return `<div class="im-box sf-box"><h3>地圖上的房源</h3><div class="sf-row"><div class="seg" role="group" aria-label="依哪種坪數"><button type="button" data-sfby="ping" aria-pressed="${SALEF.by==='ping'}">建坪</button><button type="button" data-sfby="inner" aria-pressed="${SALEF.by==='inner'}">室內</button></div>
+  <input id="sfMin" type="number" inputmode="decimal" min="0" step="1" placeholder="不限" value="${SALEF.min??''}" aria-label="最小坪數"><span>–</span><input id="sfMax" type="number" inputmode="decimal" min="0" step="1" placeholder="不限" value="${SALEF.max??''}" aria-label="最大坪數"><span>坪</span></div>
+  <div class="im-st" id="sfSt">${n?`顯示 <b>${k}</b> / ${n} 間${saleFOn()?'（沒有'+(SALEF.by==='inner'?'室內':'建')+'坪資料的不顯示）':''}`:'還沒有房源'}</div>${saleFOn()?'<button type="button" class="s" id="sfClr">清除坪數篩選</button>':''}</div>`;}
+function bindSaleFilter(root){const upd=()=>{const f=v=>{const x=parseFloat(v);return isFinite(x)&&x>0?x:null;};SALEF.min=f(root.querySelector('#sfMin').value);SALEF.max=f(root.querySelector('#sfMax').value);
+    if(SALEF.min!=null&&SALEF.max!=null&&SALEF.min>SALEF.max){[SALEF.min,SALEF.max]=[SALEF.max,SALEF.min];root.querySelector('#sfMin').value=SALEF.min;root.querySelector('#sfMax').value=SALEF.max;}try{localStorage.setItem('tlm.salef',JSON.stringify(SALEF));}catch(e){}drawSale();
+    const n=LISTINGS.filter(l=>l.lat).length,k=LISTINGS.filter(l=>l.lat&&saleOk(l)).length;const st=root.querySelector('#sfSt');if(st)st.innerHTML=n?`顯示 <b>${k}</b> / ${n} 間${saleFOn()?'（沒有'+(SALEF.by==='inner'?'室內':'建')+'坪資料的不顯示）':''}`:'還沒有房源';};
+  const mn=root.querySelector('#sfMin');if(!mn)return;let t=0;[mn,root.querySelector('#sfMax')].forEach(i=>{i.oninput=()=>{clearTimeout(t);t=setTimeout(upd,250);};i.onchange=upd;});
+  root.querySelectorAll('[data-sfby]').forEach(b=>b.onclick=()=>{SALEF.by=b.dataset.sfby;root.querySelectorAll('[data-sfby]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));upd();});
+  const c=root.querySelector('#sfClr');if(c)c.onclick=()=>{SALEF.min=SALEF.max=null;try{localStorage.setItem('tlm.salef',JSON.stringify(SALEF));}catch(e){}drawSale();render();};}
 function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;
-  const all=[];LISTINGS.forEach((l,i)=>{if(l.lat)all.push({l,i});});
+  const all=[];LISTINGS.forEach((l,i)=>{if(l.lat&&saleOk(l))all.push({l,i});});
   let fb=null;if(fit&&all.length){fb=L.latLngBounds(all.map(o=>[o.l.lat,o.l.lng])).pad(.15);map.fitBounds(fb,{maxZoom:15});} // 移動中先以目標範圍畫，moveend 再依實際畫面重畫
   const vb=(fb||map.getBounds()).pad(.05),vis=all.filter(o=>vb.contains([o.l.lat,o.l.lng]));
   if(vis.length<=SALE_MAX){vis.forEach(o=>salePin(o.l,o.i));return;}
@@ -1378,14 +1394,14 @@ function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:
 function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export',prefs:exPrefs()};render();fitSheet('full');}
 function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('找房','匯入 Claude 找好的房源放到地圖上；或設定想要的房子，一次匯出全部符合條件的範圍給 Claude',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
   $('resultBtn').innerHTML=`<span>匯出找房條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  let h=syncBox()+importBox()+gmKeyBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
+  let h=saleFilterBox()+syncBox()+importBox()+gmKeyBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
     <label class="wide">備註（可不填）<input data-exp="note" placeholder="例如：3 房、2 樓以上、有電梯" value="${esc(p.note)}"></label></div>
     <div class="ex-sum" id="exSum">${S.n?`會一起匯出：地圖上符合條件的範圍 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），和你的生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離再匯出。'}</div>
     <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button><button type="button" class="s" id="exRange" ${S.n&&SYNC?'':'disabled'}>設為每週找房範圍</button></div>
     <details class="ex-det"><summary>預覽匯出內容</summary><div class="ex-pre" id="exPre"></div></details>
     <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。「設為每週找房範圍」會存進私人 repo，每週自動找房就用這個範圍。房子條件會記在這台裝置，下次沿用。</div>`;
-  $('body').innerHTML=h;bindImport();bindSync();bindGmKey($('body'));if($('exRange'))$('exRange').onclick=saveRange;
+  $('body').innerHTML=h;bindImport();bindSync();bindGmKey($('body'));bindSaleFilter($('body'));if($('exRange'))$('exRange').onclick=saveRange;
   const upd=()=>{exSave(v.prefs);};
   $('body').querySelector('.ex-det').ontoggle=e=>{if(e.target.open)$('exPre').textContent=exText().t;};
   $('body').querySelectorAll('[data-exp]').forEach(el=>el.oninput=()=>{v.prefs[el.dataset.exp]=el.value.trim();upd();});
