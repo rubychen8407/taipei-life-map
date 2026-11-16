@@ -1112,6 +1112,15 @@ async function readListingFile(file){if(/\.xlsx?$/i.test(file.name)){const X=awa
 async function importListings(list){if(!list.length){toast('找不到「地址」欄，請確認第一列是欄位名稱',true);return;}
   const n=mergeListings(list);saveListings();state.layers.sale=true;try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}
   toast(n?`匯入 ${n} 間${list.length>n?`（${list.length-n} 間重複略過）`:''}，正在依地址定位…`:`這 ${list.length} 間都已經匯入過了（重複略過）`);drawSale(true);geocodeAll(true);if(state.view.type==='export')renderImportStatus();}
+// 房源連結：#import=<base64url(deflate-raw(JSON 列陣列，第一列是欄位名稱))>，由找房 skill 產生
+async function importFromHash(){const m=location.hash.match(/[#&]import=([A-Za-z0-9_-]+)/);if(!m)return;
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  try{let b=m[1].replace(/-/g,'+').replace(/_/g,'/');b+='='.repeat((4-b.length%4)%4);
+    const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+    const txt=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    const rows=JSON.parse(txt);if(!Array.isArray(rows))throw new Error('format');await importListings(rowsToListings(rows));}
+  catch(e){console.warn(e);toast('房源連結讀不到，可能被截斷了；請改用「找房 › 匯入房源」匯入檔案',true);}}
+addEventListener('hashchange',()=>{if(/[#&]import=/.test(location.hash)&&!state.loading)importFromHash();});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function geocodeOne(q){if(GEOCACHE[q]!==undefined)return {hit:true,v:GEOCACHE[q]};
   const r=await fetch(`${NOMINATIM}?format=jsonv2&limit=1&countrycodes=tw&viewbox=121.45,25.22,121.67,24.96&bounded=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`);if(!r.ok)throw new Error('geo '+r.status);
@@ -1432,7 +1441,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();geocodeAll();})();
+  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();})();
 </script>
 </body>
 </html>
