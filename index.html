@@ -37,7 +37,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #bar::after{content:"";position:absolute;inset:0;width:40%;background:var(--blue);animation:bar 1s infinite linear}
 @keyframes bar{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
 #fabs{position:absolute;z-index:900;right:12px;bottom:calc(var(--sheetvis,300px) + 14px);display:flex;flex-direction:column;gap:10px;transition:bottom .25s}
-.fab{width:46px;height:46px;border-radius:50%;border:none;background:#fff;box-shadow:var(--shadow);font-size:20px;display:flex;align-items:center;justify-content:center}
+.fab[hidden]{display:none!important}.fab{width:46px;height:46px;border-radius:50%;border:none;background:#fff;box-shadow:var(--shadow);font-size:20px;display:flex;align-items:center;justify-content:center}
 #toast{position:absolute;z-index:1100;left:50%;transform:translateX(-50%);bottom:calc(max(var(--sheetvis,300px),68px) + 14px + env(safe-area-inset-bottom));max-width:80%;background:#323232;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;display:none;text-align:center}
 #toast.err{background:#b3261e}
 #sheet{position:absolute;z-index:1000;left:0;right:0;bottom:0;height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -1px 3px rgba(60,64,67,.3),0 -4px 8px 3px rgba(60,64,67,.12);transform:translateY(calc(100% - var(--vis,300px)));transition:transform .25s cubic-bezier(.2,.8,.2,1);will-change:transform}
@@ -333,7 +333,7 @@ html,body{background:#e8eaed}
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="fabs"><button class="fab" id="marketBtn" aria-label="整體房市"></button><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button><button class="fab fab-ex" id="exportBtn" aria-label="匯出給 Claude 找房"></button></div>
+<div id="fabs"><button class="fab" id="listBtn" aria-label="分析結果清單" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button><button class="fab" id="marketBtn" aria-label="整體房市"></button><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button><button class="fab fab-ex" id="exportBtn" aria-label="匯出給 Claude 找房"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
@@ -461,7 +461,8 @@ function setSheet(s,anim=true){snap=s;const v=Math.min(snapPx(s),Math.round(wind
   sheet.style.transition=anim?'':'none';sheet.style.setProperty('--vis',v+'px');document.documentElement.style.setProperty('--sheetvis',v+'px');
   $('body').style.maxHeight=isMob()?Math.max(0,v-$('grab').offsetHeight)+'px':'';
   sheet.classList.toggle('closed',isMob()&&v<=4);
-  const rb=$('resultBtn');if(rb)rb.hidden=!(isMob()&&v<=4&&!state.drawing&&!state.editing);}
+  const rb=$('resultBtn');if(rb)rb.hidden=!(isMob()&&v<=4&&!state.drawing&&!state.editing);syncListBtn();}
+function syncListBtn(){const b=$('listBtn');if(b)b.hidden=!(isMob()&&state.sheetVis<=4&&!state.drawing&&!state.editing&&state.view&&state.view.type==='list');}
 function fitSheet(max='half'){if(!isMob())return;$('body').style.maxHeight='none';const want=$('grab').offsetHeight+$('body').scrollHeight+8;setSheet(Math.max(PEEK,Math.min(want,snapPx(max))));}
 (()=>{let y0=0,v0=0,moved=0,on=false;const g=$('grab');
   g.addEventListener('pointerdown',e=>{if(!isMob()||e.target.closest('button,select,input'))return;on=true;y0=e.clientY;v0=state.sheetVis;moved=0;try{g.setPointerCapture(e.pointerId);}catch(_){}});
@@ -589,7 +590,29 @@ function computeLayer(feats,idxs){const pts=new Map(),pb=new Map(),put=(m,k,v)=>
       if(best<=r*B)break;}
     if(best<=MAXD)d[k]=best;else nf[k]=-1;}
   return{d,nf,nx,ny};}
-function layerDist(id){const key=srcKey()+'|'+id+(id==='life'?'|'+lifeSig():'');return DIST[key]||(DIST[key]=computeLayer(data(id),state.baked?ALL:scopeCells()));}
+// 距離計算放到背景執行緒（Web Worker），主畫面不卡；Worker 不能用時退回原本的同步計算
+const distKey=id=>srcKey()+'|'+id+(id==='life'?'|'+lifeSig():'');
+// 兩個 Worker：一個給「現在要用的」類別，一個在背景預先算其他類別，互不排隊
+const mkDW=()=>{try{if(typeof Worker==='undefined'||typeof Blob==='undefined')return null;
+  const src=`const CITY=${JSON.stringify(CITY)},KX=${KX},KY=${KY},B=${B},MAXD=${MAXD},RMAX=${RMAX},N=${N};const X=${X},Y=${Y},md=${md},bk=${bk};
+${ringContains}
+let CELLS=[];
+${computeLayer}
+onmessage=e=>{const m=e.data;if(m.cells){CELLS=m.cells;return;}const r=computeLayer(m.feats,m.idxs);postMessage({id:m.id,r},[r.d.buffer,r.nf.buffer,r.nx.buffer,r.ny.buffer]);};`;
+  const w=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));w.postMessage({cells:CELLS.map(c=>({x:c.x,y:c.y,la:c.la,lo:c.lo}))});return w;}catch(e){return null;}};
+const DCB={};let dSeq=0;
+function wireDW(w){if(!w)return null;w.onmessage=e=>{const cb=DCB[e.data.id];if(cb){delete DCB[e.data.id];cb.ok(e.data.r);}};w.onerror=e=>{for(const k in DCB)if(DCB[k].w===w){DCB[k].no(e);delete DCB[k];}};return w;}
+const DW=wireDW(mkDW()),DW2=DW?wireDW(mkDW()):null;
+const DPEND={};
+function distAsync(id,warm){const key=distKey(id);if(DIST[key])return Promise.resolve(DIST[key]);if(DPEND[key])return DPEND[key];const f=data(id);if(!f)return Promise.resolve(null);
+  const idxs=state.baked?ALL:scopeCells(),small=f.length<=8&&!f.some(x=>x.polys),w=warm?(DW2||DW):DW;
+  if(!w||small)return Promise.resolve(DIST[key]=computeLayer(f,idxs));   // 生活圈等只有幾個點的類別直接算，很快
+  const idn=++dSeq;
+  return DPEND[key]=new Promise((ok,no)=>{DCB[idn]={ok,no,w};w.postMessage({id:idn,feats:f,idxs});}).then(r=>{delete DPEND[key];return DIST[key]=r;},err=>{delete DPEND[key];return DIST[key]=computeLayer(f,idxs);});}
+function ensureDist(ids){return Promise.all(ids.map(id=>distAsync(id)));}
+function needDist(ids){return ids.some(id=>data(id)&&!DIST[distKey(id)]);}
+let warmT=0;function warmDist(){clearTimeout(warmT);warmT=setTimeout(()=>{const ids=CATS.map(l=>l.id).filter(id=>data(id)&&!DIST[distKey(id)]);(async()=>{for(const id of ids)await distAsync(id,true);})();},400);}
+function layerDist(id){const key=distKey(id);return DIST[key]||(DIST[key]=computeLayer(data(id),state.baked?ALL:scopeCells()));}
 const MRTN={};function mrtNear(){const key=srcKey();if(MRTN[key])return MRTN[key];const m=data('mrt')||[],a=new Int32Array(N).fill(-1);
   if(m.length)for(const k of (state.baked?ALL:scopeCells())){const c=CELLS[k];let b=-1,bd=Infinity;for(let i=0;i<m.length;i++){const dd=Math.hypot((m[i].center[0]-c.la)*KY,(m[i].center[1]-c.lo)*KX);if(dd<bd){bd=dd;b=i;}}a[k]=b;}
   return MRTN[key]=a;}
@@ -691,13 +714,16 @@ function renderCategorySettings(){const el=$('categorySettings');if(!el)return;e
   const tg=el.querySelector('[data-mode-toggle]');if(tg)tg.onclick=e=>{e.stopPropagation();state.modeMenu=!state.modeMenu;renderCategorySettings();};
   el.querySelectorAll('[data-mode]').forEach(btn=>btn.onclick=()=>{const id=state.openDistanceLayer;state.modeByLayer[id]=btn.dataset.mode;state.modeMenu=false;renderCategorySettings();if(state.res){analyze();drawHeat();drawPins();}render();});
   bindLifeCenters(el);const slider=el.querySelector('[data-distance]');
-  if(slider){slider.oninput=()=>{const m=+slider.value,id=slider.dataset.distance;state.minsByLayer[id]=m;slider.style.setProperty('--p',(m-1)/19*100+'%');slider.setAttribute('aria-valuetext',m+' 分鐘');el.querySelector('[data-distance-value]').textContent=m+' 分';const chip=$('chips').querySelector('[data-id="'+id+'"] [data-mins]');if(chip)chip.textContent=m+' 分';if(state.res){analyze();drawHeat();drawPins();}render();};}}
+  if(slider){slider.oninput=()=>{const m=+slider.value,id=slider.dataset.distance;state.minsByLayer[id]=m;slider.style.setProperty('--p',(m-1)/19*100+'%');slider.setAttribute('aria-valuetext',m+' 分鐘');el.querySelector('[data-distance-value]').textContent=m+' 分';const chip=$('chips').querySelector('[data-id="'+id+'"] [data-mins]');if(chip)chip.textContent=m+' 分';scheduleRecalc();};slider.onchange=()=>scheduleRecalc(true);}}
 function closeTune(){if(!state.openDistanceLayer&&!state.modeMenu)return false;state.openDistanceLayer=null;state.modeMenu=false;state.lifeMoving=-1;renderCategorySettings();return true;}
+// 拖滑桿時：每一畫面最多算一次，且只更新地圖色塊；放開才重畫圖釘與清單
+let recalcRaf=0;function scheduleRecalc(now){cancelAnimationFrame(recalcRaf);recalcRaf=0;if(now){if(state.res){analyze();drawHeat();drawPins();}render();return;}
+  recalcRaf=requestAnimationFrame(()=>{recalcRaf=0;if(state.res){analyze();drawHeat();}});}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();
+function render(){const v=state.view;syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();
   const H=$('head'),Bd=$('body'),R=state.res;
-  $('resultBtn').innerHTML=`<span>${state.loading||(!R&&state.active.size)?'載入中…':'結果'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+  $('resultBtn').innerHTML='';syncListBtn(); // 地圖主畫面不放左下角按鈕，清單改由右側「清單」按鈕打開
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
   if(!state.baked&&state.scope===''){H.innerHTML='<h1>先選一個行政區</h1><div class="sub">目前沒有預先下載的資料，選區後會即時下載（較慢）</div>';
     Bd.innerHTML='<div class="dgrid">'+DISTRICTS.map((d,i)=>`<button class="btn" data-d="${i}">${d.name}</button>`).join('')+'</div>';
@@ -706,7 +732,6 @@ function render(){const v=state.view;if(v.type==='cell')return renderCell();if(v
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
   const pct=R.total?R.good/R.total*100:0;
-  $('resultBtn').innerHTML=`<span class="dot"></span><b>${pct.toFixed(0)}%</b><span>符合</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span><b>${pct.toFixed(0)}%</b><span class="r">符合</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(!state.zones.length)h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
@@ -1488,10 +1513,11 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
       try{await ensureLive(need);}catch(e){busy(false);if(seq===state.seq){state.err=e;render();toast('下載失敗：'+e.message,true);}return;}
       busy(false);if(seq!==state.seq)return;}}
   if(state.baked&&state.active.has('sidewalk')&&!state.store.city.sidewalk){busy(true);await loadSidewalk();busy(false);if(seq!==state.seq)return;}
-  analyze();drawHeat();drawPins();drawFacilities();render();}
+  const act=[...state.active];if(needDist(act)){busy(true);await ensureDist(act);busy(false);if(seq!==state.seq)return;}
+  analyze();drawHeat();drawPins();drawFacilities();render();warmDist();}
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
-  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
+  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
   await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
 </script>
 </body>
