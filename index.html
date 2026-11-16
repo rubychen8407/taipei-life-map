@@ -169,7 +169,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .fab{width:44px;height:44px;border-radius:22px;box-shadow:var(--shadow);color:var(--ink);border:0}
 .fab svg{width:19px;height:19px}
 .fab[aria-expanded=true]{color:var(--D);box-shadow:inset 0 0 0 1.5px var(--D),0 0 0 3px var(--A)}
-.pop{position:absolute;z-index:1150;right:12px;bottom:calc(var(--sheetvis,76px) + 70px);border-radius:20px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(0,0,0,.16);animation:pop .18s ease-out}
+.pop{position:absolute;z-index:1150;right:66px;bottom:calc(var(--sheetvis,76px) + 14px);border-radius:20px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(0,0,0,.16);animation:pop .18s ease-out}
 .pop[hidden],#regionPop[hidden],#layersPop[hidden],#filterPop[hidden],#homesPop[hidden],#pressMenu[hidden],#scopeTag[hidden]{display:none!important}
 #regionPop{width:228px;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #regionPop button{height:34px;border-radius:17px;border:0;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08);font-size:13px;color:var(--ink);padding:0}
@@ -236,7 +236,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .rank,.zpin{background:var(--D)!important}
 .drow .b i{background:var(--A)}
 .dlabel{font-size:11px;font-weight:500;letter-spacing:.08em;color:rgba(29,29,31,.6);cursor:pointer}
-@media (min-width:700px){#top{width:390px;right:auto}#sheet{left:10px;top:150px;width:390px}.pop{bottom:80px}}
+@media (min-width:700px){#top{width:390px;right:auto}#sheet{left:10px;top:150px;width:390px}.pop{bottom:24px}}
 
 /* 類別列成為一個毛玻璃小組；地圖 POI 與上方圖示同款 */
 #chips{padding:7px 8px 5px;border-radius:26px;background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);box-shadow:var(--shadow);border:.5px solid rgba(255,255,255,.7)}
@@ -258,7 +258,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 /* iPhone Safari：大量毛玻璃（backdrop-filter）疊在會重繪的地圖上，會讓 Safari 漏畫圖層、畫面一直閃。
    觸控裝置改用不透明度較高的白色玻璃，不做即時模糊。 */
 @media (hover:none),(pointer:coarse){
-  .glass,.fab,#sheet,.chip .chip-icon,#scopeTag,.tune,.mode-menu,.life-card,#chips,#editbar,.pop,#pressMenu{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .glass,.fab,#sheet,.chip .chip-icon,#scopeTag,.tune,.mode-menu,.life-card,#chips,#filterCard,#editbar,.pop,#pressMenu{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
   :root{--glass:rgba(255,255,255,.93)}
   .chip .chip-icon{background:#F4F5F7}
 }
@@ -276,7 +276,7 @@ html,body{touch-action:pan-x pan-y}
 @supports (height:100lvh){#map{position:fixed;inset:0 0 auto 0;height:100lvh}#map .leaflet-bottom{bottom:calc(100lvh - 100dvh)}}
 
 /* 結果面板收成左下角的按鈕，點了才展開（不遮地圖） */
-#resultBtn{position:absolute;z-index:1100;left:12px;bottom:calc(16px + env(safe-area-inset-bottom));height:44px;padding:0 12px 0 14px;border-radius:22px;border:0;background:var(--glass);box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);max-width:calc(100% - 90px)}
+#resultBtn{position:absolute;z-index:1100;left:12px;bottom:calc(var(--navh) + 12px);height:44px;padding:0 12px 0 14px;border-radius:22px;border:0;background:var(--glass);box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);max-width:calc(100% - 90px)}
 #resultBtn[hidden]{display:none}
 /* iPhone Safari 底部工具列是半透明的，畫面在它後面還看得到：收起的面板要完全隱藏，網頁底色也和地圖一致 */
 #sheet.closed{transform:translateY(calc(100% + 24px));box-shadow:none;opacity:0;pointer-events:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .1s .2s}
@@ -286,7 +286,7 @@ html,body{background:#e8eaed}
 #resultBtn span:not(.dot){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#5F6368}
 #resultBtn svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #resultBtn:empty{display:none}
-@media (min-width:700px){#resultBtn{display:none}}
+@media (min-width:700px){#resultBtn{display:none}#fabs{bottom:calc(var(--navh) + 14px)!important}}
 
 /* 整體房市 */
 .mk-card{background:#F7F8FA;border-radius:16px;padding:14px 14px 12px;margin-top:12px}.mk-card h3{margin:0 0 8px;font-size:14px;color:var(--sub);font-weight:600}
@@ -301,25 +301,40 @@ html,body{background:#e8eaed}
 .mk-ind svg{display:block;width:100%;height:70px;margin-top:6px}.mk-ind .how{font-size:12px;color:#5f6368;line-height:1.5;margin-top:4px}
 
 .fab.on{background:var(--bluebg)!important;color:var(--D)}.fab.on svg{stroke:var(--D)}
-#top.chips-closed #chips,#top.chips-closed #categorySettings,#top.chips-closed #savedRow{display:none!important}
-@keyframes chipFly{from{transform:translate(var(--dx),var(--dy)) scale(.25);opacity:0}}
-@keyframes chipBack{to{transform:translate(var(--dx),var(--dy)) scale(.25);opacity:0}}
-@keyframes panelIn{from{opacity:0;transform:scale(.92);transform-origin:right top}}
-#top.chips-in #chips{animation:panelIn .25s ease-out}#top.chips-in #chips .chip{animation:chipFly .5s cubic-bezier(.2,.9,.3,1.15) backwards;animation-delay:calc(var(--k) * 35ms)}
-#top.chips-out #chips{transition:background .2s,box-shadow .2s;background:transparent!important;box-shadow:none!important;border-color:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}#top.chips-out #chips .chip{animation:chipBack .24s ease-in forwards;animation-delay:calc((7 - var(--k)) * 15ms)}#top.chips-out #savedRow,#top.chips-out #categorySettings{opacity:0;transition:opacity .15s}
-.saved-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px 0 0;pointer-events:auto}.saved-row::-webkit-scrollbar{display:none}
-.saved-row button{flex:none;height:32px;border:0;border-radius:16px;padding:0 12px;font-size:13px;font-weight:600;background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--shadow);color:var(--ink);display:inline-flex;align-items:center;gap:4px}
-.saved-row .sv-mgr{color:var(--D)}.saved-row .sv-mgr svg{width:15px;height:15px}.saved-row .sv[aria-current=true]{background:var(--D);color:#fff}
-.fab.res{background:var(--D);color:#fff}.fab.res svg{stroke:#fff}
-/* 操作按鈕（篩選、區域、圖層、定位）：一列往左展開，可收合 */
-#fabs,#fabs .fab-ops,#fabs .ops-items{pointer-events:none}#fabs .fab{pointer-events:auto}#fabs .fab-ops.closed .ops-items .fab{pointer-events:none}
-#homesPop{right:66px;width:min(292px,calc(100vw - 80px));max-height:calc(100dvh - var(--sheetvis,76px) - 120px);overflow-y:auto;overflow-x:hidden;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;box-sizing:border-box}
-.fab-ops{display:flex;align-items:center;gap:10px;margin-top:4px}.ops-items{display:flex;flex-direction:row;gap:10px}
-.ops-items .fab{transition:transform .28s cubic-bezier(.2,.9,.3,1.25),opacity .2s}
-.fab-ops.closed .ops-items .fab{opacity:0;transform:translateX(calc((4 - var(--i)) * 56px)) scale(.3);pointer-events:none}
-.ops-items .fab:nth-child(1){--i:0;transition-delay:.09s}.ops-items .fab:nth-child(2){--i:1;transition-delay:.06s}.ops-items .fab:nth-child(3){--i:2;transition-delay:.03s}.ops-items .fab:nth-child(4){--i:3;transition-delay:0s}
-.fab-ops.closed .ops-items .fab:nth-child(n){transition-delay:0s}
-#opsToggle svg{transition:transform .28s}.fab-ops.closed #opsToggle svg{transform:rotate(0)}.fab-ops:not(.closed) #opsToggle svg{transform:rotate(180deg)}
+/* ===== 版面：上方篩選卡（範圍＋類別）｜右側操作（圖層、定位）｜最下方滿版結果工具列 ===== */
+:root{--navh:calc(58px + env(safe-area-inset-bottom))}
+/* 上方篩選卡：第一列是「範圍」與「我的篩選」，第二列是類別 */
+#filterCard{border-radius:26px;background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);box-shadow:var(--shadow);border:.5px solid rgba(255,255,255,.7);padding:6px 6px 5px;pointer-events:auto}
+#filterCard #chips{padding:6px 0 0;border:0;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-top:.5px solid rgba(60,60,67,.12);margin-top:4px}
+.fc-row{display:flex;align-items:center;gap:6px;min-width:0}
+.rg-pill{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:5px;height:32px;padding:0 8px 0 10px;border:0;border-radius:16px;background:rgba(120,120,128,.10);color:var(--ink);font-size:14px;font-weight:600}
+.rg-pill #rgName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rg-pill svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rg-pill .rg-ic{display:flex;color:var(--D)}.rg-pill .rg-chev{color:#80868b;transition:transform .2s}.rg-pill[aria-expanded=true] .rg-chev{transform:rotate(180deg)}
+.rg-pill.set{background:var(--bluebg);color:var(--D)}
+#rgTools{display:flex;gap:4px}#rgTools[hidden]{display:none}
+#rgTools button{width:28px;height:28px;border-radius:14px;border:0;background:rgba(120,120,128,.12);color:#5F6368;font-size:12px;padding:0;display:flex;align-items:center;justify-content:center}#rgTools svg{width:14px;height:14px}
+.fc-saved{margin-left:auto;flex:none;display:flex;align-items:center;gap:4px;height:32px;padding:0 10px;border:0;border-radius:16px;background:none;color:var(--D);font-size:13px;font-weight:600}
+.fc-saved svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}.fc-saved[aria-expanded=true]{background:var(--bluebg)}
+#regionPop,#filterPop{left:12px;right:auto;bottom:auto;top:150px;transform-origin:top left}
+#regionPop{width:min(300px,calc(100vw - 24px));box-sizing:border-box}
+#filterPop{width:min(320px,calc(100vw - 24px));box-sizing:border-box}
+@keyframes drop{from{opacity:0;transform:translateY(-6px) scale(.98)}}#regionPop:not([hidden]),#filterPop:not([hidden]){animation:drop .18s ease-out}
+/* 最下方：滿版結果工具列（清單、房市、物件、找房） */
+#navbar{position:absolute;z-index:1200;left:0;right:0;bottom:0;height:var(--navh);box-sizing:border-box;padding:4px 8px env(safe-area-inset-bottom);display:flex;justify-content:space-around;align-items:stretch;background:var(--D);box-shadow:0 -1px 0 rgba(0,0,0,.06),0 -6px 18px rgba(18,59,138,.18)}
+#navbar .nb{flex:1;max-width:120px;border:0;background:none;color:rgba(255,255,255,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;padding:0;border-radius:14px;margin:2px;transition:color .15s,background .15s}
+#navbar .nb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#navbar .nb[aria-pressed=true],#navbar .nb[aria-expanded=true],#navbar .nb.on{color:#fff;background:rgba(255,255,255,.14)}
+/* 面板、按鈕、提示都放在工具列上方 */
+#sheet{bottom:calc(var(--navh) + 8px)!important;height:calc(88vh - var(--navh) - 8px)}
+#fabs{bottom:calc(var(--sheetvis,0px) + var(--navh) + 14px)}
+#toast{bottom:calc(var(--sheetvis,0px) + var(--navh) + 14px)!important}
+.pop{bottom:calc(var(--sheetvis,0px) + var(--navh) + 14px)}
+#layersPop{max-height:calc(100dvh - var(--sheetvis,0px) - var(--navh) - 160px)}
+#homesPop{left:12px;right:auto;bottom:calc(var(--navh) + 10px);width:min(320px,calc(100vw - 24px));max-height:calc(100dvh - var(--navh) - 180px);overflow-y:auto;overflow-x:hidden;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;box-sizing:border-box}
+#map .leaflet-bottom{margin-bottom:var(--navh)}
+.ph-legend,.deal-legend{margin-bottom:var(--navh)}
+#homesPop h3.h2{margin-top:0}
 .fab.fab-ex{width:auto;padding:0 14px;gap:5px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--D)}.fab.fab-ex svg{width:19px;height:19px;stroke:#fff}
 .exh{display:flex;align-items:center;gap:8px}.exbtn{margin-left:auto;display:flex;align-items:center;gap:4px;height:30px;padding:0 10px;border-radius:15px;border:0;background:var(--bluebg);color:var(--D);font-size:12.5px;font-weight:600}.exbtn svg{width:15px;height:15px}
 .vform .ex-geo{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink)}.ex-geo input{width:20px;height:20px;accent-color:var(--D);flex:none}
@@ -345,17 +360,17 @@ html,body{background:#e8eaed}
 <div id="map"></div>
 <div id="bar"></div>
 <div id="top">
-  <div class="search" hidden><span id="scopeName">全臺北市</span><select id="scope" aria-label="選擇範圍"></select></div>
-  <div id="chips" role="toolbar" aria-label="類別"></div>
-  <div id="savedRow" class="saved-row" aria-label="儲存的篩選"></div>
+  <div id="filterCard"><div class="fc-row"><button type="button" id="regionBtn" class="rg-pill" aria-expanded="false" aria-haspopup="dialog"><span class="rg-ic"></span><span id="rgName">全臺北市</span><svg class="rg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><span id="rgTools"></span><button type="button" id="savedBtn" class="fc-saved" aria-label="我的篩選" aria-expanded="false"></button></div><div id="chips" role="toolbar" aria-label="類別"></div></div>
   <div id="categorySettings" class="category-settings"></div>
+  <div class="search" hidden><span id="scopeName">全臺北市</span><select id="scope" aria-label="選擇範圍"></select></div>
   <div id="scopeTag" hidden></div>
   <div id="drawbar"><div>在地圖上點 <b>2 個點</b>拉出矩形，或點 <b>3 個點以上</b>圍成範圍。</div>
     <div class="btns"><button class="btn primary" id="fin">完成</button><button class="btn" id="undo">復原</button><button class="btn" id="cancel">取消</button></div></div>
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="fabs"><button class="fab res" id="listBtn" aria-label="分析結果清單" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button><button class="fab res" id="marketBtn" aria-label="整體房市"></button><button class="fab res" id="homesBtn" aria-label="我的物件" aria-expanded="false"></button><button class="fab res" id="exportBtn" aria-label="找房：匯入房源、匯出範圍"></button><div class="fab-ops" id="fabOps"><div class="ops-items" id="opsItems"><button class="fab" id="filterBtn" aria-label="我的篩選" aria-expanded="false"></button><button class="fab" id="regionBtn" aria-label="選區域" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div><button class="fab" id="opsToggle" aria-label="操作按鈕" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button></div></div>
+<div id="navbar" class="glass" role="toolbar" aria-label="結果"><button class="nb" id="listBtn" aria-label="分析結果清單"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>清單</span></button><button class="nb" id="marketBtn" aria-label="整體房市"></button><button class="nb" id="homesBtn" aria-label="我的物件" aria-expanded="false"></button><button class="nb" id="exportBtn" aria-label="找房：匯入房源、匯出範圍"></button></div>
+<div id="fabs"><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
@@ -481,12 +496,13 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 let toastT;function toast(t,err){const el=$('toast');el.textContent=t;el.className=err?'err':'';el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',err?6000:3000);}
 const sheet=$('sheet');let snap='half';
 function snapPx(s){const H=window.innerHeight;return typeof s==='number'?s:s==='peek'?PEEK:s==='full'?Math.round(H*.88):Math.round(H*.46);}
-function setSheet(s,anim=true){snap=s;const v=Math.min(snapPx(s),Math.round(window.innerHeight*.88));state.sheetVis=isMob()?v:0;
+function navH(){const n=$('navbar');return n?n.offsetHeight:0;}
+function setSheet(s,anim=true){snap=s;const v=Math.max(0,Math.min(snapPx(s),Math.round(window.innerHeight*.88)-navH()-8));state.sheetVis=isMob()?v:0;
   sheet.style.transition=anim?'':'none';sheet.style.setProperty('--vis',v+'px');document.documentElement.style.setProperty('--sheetvis',v+'px');
   $('body').style.maxHeight=isMob()?Math.max(0,v-$('grab').offsetHeight)+'px':'';
   sheet.classList.toggle('closed',isMob()&&v<=4);
   const rb=$('resultBtn');if(rb)rb.hidden=!(isMob()&&v<=4&&!state.drawing&&!state.editing);syncListBtn();}
-function syncListBtn(){const b=$('listBtn');if(b)b.hidden=!(isMob()&&state.sheetVis<=4&&!state.drawing&&!state.editing&&state.view&&state.view.type==='list');}
+function syncListBtn(){const b=$('listBtn');if(b)b.setAttribute('aria-pressed',String(isMob()&&state.sheetVis>4&&state.view&&state.view.type==='list'));}
 function fitSheet(max='half'){if(!isMob())return;$('body').style.maxHeight='none';const want=$('grab').offsetHeight+$('body').scrollHeight+8;setSheet(Math.max(PEEK,Math.min(want,snapPx(max))));}
 (()=>{let y0=0,v0=0,moved=0,on=false;const g=$('grab');
   g.addEventListener('pointerdown',e=>{if(!isMob()||e.target.closest('button,select,input'))return;on=true;y0=e.clientY;v0=state.sheetVis;moved=0;try{g.setPointerCapture(e.pointerId);}catch(_){}});
@@ -504,7 +520,7 @@ CATS.forEach(l=>{const b=document.createElement('button');b.className='chip';b.d
   b.title=l.name;b.setAttribute('aria-label',l.name+'，'+state.minsByLayer[l.id]+'分鐘');b.innerHTML=`<span class="chip-icon">${l.icon}<span class="badge" data-badge></span></span><span class="chip-name">${esc(l.name)}</span><span class="mins" data-mins>${state.minsByLayer[l.id]} 分</span>`;
   b.onclick=()=>{const selected=state.active.has(l.id),isOpen=state.openDistanceLayer===l.id;if(selected&&isOpen){state.active.delete(l.id);state.openDistanceLayer=null;}else{state.active.add(l.id);state.openDistanceLayer=l.id;if(l.id==='life'&&!state.lifeCenters.length)toast('長按地圖，或在設定開著時點地圖，加入住家、公司等地點');}if(state.distanceCloseTimer)clearTimeout(state.distanceCloseTimer);if(state.view.type!=='list')closeDetail(true);renderCategorySettings();closePops();run();};
   $('chips').appendChild(b);});
-function fillScope(){const tg=$('scopeTag');if(tg){tg.hidden=state.scope==='';tg.innerHTML=state.scope===''?'':`<span>${esc(scopeName())}</span><button type="button" id="scopeEdit" aria-label="調整範圍邊界" title="調整邊界">${categoryIcon('edit')}</button><button type="button" id="scopeClear" aria-label="回到全臺北市">✕</button>`;const ed=$('scopeEdit');if(ed)ed.onclick=startEdit;const c=$('scopeClear');if(c)c.onclick=()=>setScope('');}
+function fillScope(){const nm=$('rgName');if(nm){nm.textContent=scopeName();$('regionBtn').classList.toggle('set',state.scope!=='');}const tg=$('rgTools');if(tg){tg.hidden=state.scope==='';tg.innerHTML=state.scope===''?'':`<button type="button" id="scopeEdit" aria-label="調整範圍邊界" title="調整邊界">${categoryIcon('edit')}</button><button type="button" id="scopeClear" aria-label="回到全臺北市">✕</button>`;const ed=$('scopeEdit');if(ed)ed.onclick=startEdit;const c=$('scopeClear');if(c)c.onclick=()=>setScope('');}
   renderRegionPop();$('scope').innerHTML='<option value="">全臺北市</option>'+DISTRICTS.map((d,i)=>`<option value="${i}">${d.name}</option>`).join('')+(state.custom?'<option value="custom">自選範圍</option>':'')+'<option value="draw">✏️ 自己框選範圍…</option>';$('scope').value=state.scope;$('scopeName').textContent=scopeName();}
 function renderRegionPop(){const el=$('regionPop');if(!el)return;const sel=new Set(selDistricts());
   el.innerHTML=`<div class="wide rp-h">可複選</div><button type="button" class="wide" data-region="" aria-pressed="${state.scope===''}">全臺北市</button>`+DISTRICTS.map((d,i)=>`<button type="button" data-region="${i}" aria-pressed="${sel.has(i)}">${d.name.replace(/區$/,'')}</button>`).join('')+`<button type="button" class="wide draw" data-region="draw">${categoryIcon('region')}在地圖上框選</button>`;
@@ -524,8 +540,8 @@ function drawScope(doFit){scopeLayer.clearLayers();labelLayer.clearLayers();cons
 function syncLabels(){const show=state.scope!=='custom'&&map.getZoom()<=13.5&&!state.transit;if(show&&!map.hasLayer(labelLayer))labelLayer.addTo(map);if(!show&&map.hasLayer(labelLayer))map.removeLayer(labelLayer);}
 function setScope(v){closeTransit();state.scope=v;state.view={type:'list'};selLayer.clearLayers();fillScope();
   if(isMob())setSheet('peek');drawScope(true);run();}
-function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('chips').style.display='none';$('categorySettings').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
-function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('chips').style.display='';$('categorySettings').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('peek');}
+function startDraw(){closeDetail(true);render();state.drawing=true;state.drawPts=[];$('filterCard').style.display='none';$('categorySettings').style.display='none';$('drawbar').style.display='block';if(isMob())setSheet('peek');}
+function endDraw(){state.drawing=false;state.drawPts=[];drawLayer.clearLayers();$('filterCard').style.display='';$('categorySettings').style.display='';$('drawbar').style.display='none';if(isMob())setSheet('peek');}
 function drawRing(){const p=state.drawPts;if(p.length===2){const[a,b]=p;return[[a[0],a[1]],[a[0],b[1]],[b[0],b[1]],[b[0],a[1]]];}return p;}
 function previewDraw(){drawLayer.clearLayers();state.drawPts.forEach(p=>L.circleMarker(p,{radius:6,color:'#d81b60',fillColor:'#fff',fillOpacity:1,weight:3,interactive:false}).addTo(drawLayer));
   if(state.drawPts.length>=2)L.polygon(drawRing(),{color:'#d81b60',weight:2,dashArray:'6 6',fillOpacity:.1,interactive:false}).addTo(drawLayer);}
@@ -542,7 +558,7 @@ function simplifyRing(r,tol){const pts=r.slice();if(pts.length>1&&pts[0][0]===pt
   keep[0]=keep[far]=1;dp(0,far);dp(far,pts.length);return pts.filter((p,i)=>keep[i]);}
 function editRings(){const r=region();return polysOf(r).map(p=>{let tol=0.0004,out;do{out=simplifyRing(p[0],tol);tol*=1.3;}while(out.length>60);return out.map(([x,y])=>[y,x]);}).filter(r=>r.length>=3);}
 function startEdit(){if(!region())return;closePops();closeTune();closeDetail(true);render();
-  state.editing={rings:editRings(),base:scopeName()};$('chips').style.display='none';$('categorySettings').style.display='none';$('scopeTag').hidden=true;$('editbar').style.display='block';$('fabs').style.display='none';
+  state.editing={rings:editRings(),base:scopeName()};$('filterCard').style.display='none';$('categorySettings').style.display='none';$('editbar').style.display='block';$('fabs').style.display='none';$('navbar').style.display='none';
   if(isMob())setSheet('peek');scopeLayer.clearLayers();[pinLayer,facLayer,labelLayer].forEach(l=>map.removeLayer(l));outlineLayer.clearLayers();editLayer.addTo(map);drawEdit();fit(L.latLngBounds(state.editing.rings.flat()));}
 function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
   E.rings.forEach(ring=>{const pg=L.polygon(ring,{color:'#123B8A',weight:2.5,fillColor:'#F7931E',fillOpacity:.14,interactive:false}).addTo(editLayer);
@@ -552,7 +568,7 @@ function drawEdit(){editLayer.clearLayers();const E=state.editing;if(!E)return;
     ring.forEach((p,i)=>{const q=ring[(i+1)%ring.length],mid=[(p[0]+q[0])/2,(p[1]+q[1])/2];
       const m=L.marker(mid,{draggable:true,autoPan:true,icon:L.divIcon({className:'vh mid',iconSize:[12,12]}),zIndexOffset:1900,keyboard:false}).addTo(editLayer);
       m.on('dragstart',()=>ring.splice(i+1,0,mid.slice()));m.on('drag',e=>{const ll=e.target.getLatLng();ring[i+1]=[ll.lat,ll.lng];pg.setLatLngs(ring);});m.on('dragend',drawEdit);});});}
-function endEdit(){state.editing=null;$('fabs').style.display='';editLayer.clearLayers();map.removeLayer(editLayer);pinLayer.addTo(map);facLayer.addTo(map);syncLabels();drawOutline();$('chips').style.display='';$('categorySettings').style.display='';$('editbar').style.display='none';fillScope();}
+function endEdit(){state.editing=null;$('fabs').style.display='';$('navbar').style.display='';editLayer.clearLayers();map.removeLayer(editLayer);pinLayer.addTo(map);facLayer.addTo(map);syncLabels();drawOutline();$('filterCard').style.display='';$('categorySettings').style.display='';$('editbar').style.display='none';fillScope();}
 $('editCancel').onclick=()=>{endEdit();drawScope(false);};
 $('editReset').onclick=()=>{state.editing.rings=editRings();drawEdit();};
 $('editDone').onclick=()=>{const E=state.editing,rs=E.rings.map(r=>{const c=r.map(([la,lo])=>[lo,la]);c.push(c[0]);return [c];});
@@ -906,28 +922,11 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 // 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
 ['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
-$('marketBtn').innerHTML=categoryIcon('trend');$('exportBtn').innerHTML=categoryIcon('import');$('homesBtn').innerHTML=categoryIcon('star');$('homesBtn').onclick=()=>togglePop('homesPop','homesBtn');$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('regionBtn').innerHTML=categoryIcon('region');$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
+$('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('exportBtn').innerHTML=categoryIcon('import')+'<span>找房</span>';$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('savedBtn').innerHTML=categoryIcon('star')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('homesBtn').onclick=()=>togglePop('homesPop','homesBtn');$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','savedBtn'],['homesPop','homesBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;if($(b))$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
-function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop'){renderFilterPop();const r=$('savedRow').getBoundingClientRect(),el=$('filterPop');if(r.height){el.style.top=(r.bottom+8)+'px';el.style.bottom='auto';el.style.maxHeight=(innerHeight-r.bottom-24)+'px';}else{el.style.top='';el.style.bottom='';el.style.maxHeight='';}}if(open&&p==='homesPop')renderHomesPop();}
+function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}if(open&&p==='homesPop')renderHomesPop();}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
-// 操作按鈕收合：記住上次狀態
-function setOps(open,save){$('fabOps').classList.toggle('closed',!open);$('opsToggle').setAttribute('aria-expanded',String(open));$('opsToggle').setAttribute('aria-label',open?'收起操作按鈕':'展開操作按鈕');if(!open)closePops();if(save)try{localStorage.setItem('tlm.ops',open?'1':'0');}catch(e){}}
-setOps((()=>{try{return localStorage.getItem('tlm.ops')!=='0';}catch(e){return true;}})());
-setChips((()=>{try{return localStorage.getItem('tlm.chips')!=='0';}catch(e){return true;}})(),false,false);$('opsToggle').onclick=()=>setOps($('fabOps').classList.contains('closed'),true);
-$('filterBtn').innerHTML=categoryIcon('filter');$('filterBtn').onclick=()=>setChips($('top').classList.contains('chips-closed'),true,true);
-// 類別篩選收在右側「篩選」按鈕：點了圓形類別按鈕從按鈕飛出（動畫），再點一次收起；記住開合狀態
-function setChips(open,anim,save){const top=$('top'),ch=$('chips');clearTimeout(setChips.t);closePops();
-  $('filterBtn').setAttribute('aria-expanded',String(open));if(save)try{localStorage.setItem('tlm.chips',open?'1':'0');}catch(e){}
-  const fb=$('filterBtn').getBoundingClientRect(),fx=fb.left+fb.width/2,fy=fb.top+fb.height/2;
-  const aim=()=>[...ch.querySelectorAll('.chip')].forEach((c,k)=>{const r=c.getBoundingClientRect();c.style.setProperty('--dx',(fx-r.left-r.width/2)+'px');c.style.setProperty('--dy',(fy-r.top-r.height/2)+'px');c.style.setProperty('--k',k);});
-  if(open){top.classList.remove('chips-closed','chips-out');renderSavedRow();if(anim&&!matchMedia('(prefers-reduced-motion: reduce)').matches){aim();top.classList.add('chips-in');setChips.t=setTimeout(()=>top.classList.remove('chips-in'),700);}}
-  else if(anim&&!top.classList.contains('chips-closed')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){aim();top.classList.remove('chips-in');top.classList.add('chips-out');setChips.t=setTimeout(()=>{top.classList.add('chips-closed');top.classList.remove('chips-out');},260);}
-  else{top.classList.remove('chips-in','chips-out');top.classList.add('chips-closed');}
-  $('filterBtn').classList.toggle('on',open);}
-function renderSavedRow(){const el=$('savedRow');if(!el)return;const fs=loadFilters(),cur=filterKey(filterSnap());
-  el.innerHTML=`<button type="button" class="sv-mgr" id="savedBtn" aria-expanded="${!$('filterPop').hidden}">${categoryIcon('star')}我的篩選</button>`+fs.map((f,i)=>`<button type="button" class="sv" data-sv="${i}" aria-current="${filterKey(f)===cur}">${esc(f.name)}</button>`).join('');
-  $('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');
-  el.querySelectorAll('[data-sv]').forEach(b=>b.onclick=()=>{const f=loadFilters()[+b.dataset.sv];applyFilter(f,f.name);});}
+function renderSavedRow(){}
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');
 // 圖層開關：自動記住上次的設定（不另外提供儲存組合）
 try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
@@ -938,7 +937,7 @@ function filterSummary(f){const sc=f.scope===''?'全臺北市':f.scope==='custom
   return sc+'｜'+(f.active.map(id=>LAYER[id]?LAYER[id].name+(f.mins[id]||10)+'分':'').filter(Boolean).join('・')||'沒有選類別');}
 function loadFilters(){try{return JSON.parse(localStorage.getItem('tlm.filters')||'[]');}catch(e){return [];}}
 function saveFilters(a){try{localStorage.setItem('tlm.filters',JSON.stringify(a));}catch(e){}}
-function saveLast(){if(state.restoring)return;if(!$('top').classList.contains('chips-closed'))renderSavedRow();try{localStorage.setItem('tlm.last',JSON.stringify(filterSnap()));}catch(e){}}
+function saveLast(){if(state.restoring)return;try{localStorage.setItem('tlm.last',JSON.stringify(filterSnap()));}catch(e){}}
 function setFilterState(f){if(!f||!Array.isArray(f.active))return false;state.active=new Set(f.active.filter(id=>LAYER[id]));
   Object.keys(state.minsByLayer).forEach(id=>{const m=f.mins&&+f.mins[id];if(m>=1&&m<=60)state.minsByLayer[id]=m;});
   Object.keys(state.modeByLayer).forEach(id=>{const m=f.modes&&f.modes[id];if(MODE_INFO[m])state.modeByLayer[id]=m;});
@@ -1562,7 +1561,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
   analyze();drawHeat();drawPins();drawFacilities();render();warmDist();}
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
-  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
+  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
   await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
 </script>
 </body>
