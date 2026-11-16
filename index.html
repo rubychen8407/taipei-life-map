@@ -308,6 +308,15 @@ html,body{background:#e8eaed}
 .ex-list label{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.ex-list input{width:20px;height:20px;margin-top:1px;accent-color:var(--D)}.ex-list small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
 .ex-pre{white-space:pre-wrap;background:#F7F8FA;border-radius:12px;padding:12px;font-size:12.5px;line-height:1.55;max-height:260px;overflow:auto;margin-top:8px;user-select:text;-webkit-user-select:text}
 .ex-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.ex-btns button{height:46px;border-radius:14px;border:0;font-size:15px;font-weight:600}.ex-btns .p{background:var(--D);color:#fff}.ex-btns .s{background:var(--bluebg);color:var(--D)}
+
+.sale-pin{background:none;border:0}.sale-pin b{display:inline-block;transform:translate(-50%,-100%);white-space:nowrap;padding:3px 7px;border-radius:10px;color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.25);position:relative}
+.sale-pin b:after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:inherit}
+.sale-pin.approx b{outline:2px dashed #fff;outline-offset:-4px;opacity:.88}
+.sp{font-size:13px;line-height:1.5;min-width:220px}.sp .a{font-weight:700;font-size:14px}.sp .p{font-size:15px;font-weight:700;margin:2px 0}.sp small{color:#5f6368;display:block}
+.sp .lk{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sp .lk a{background:var(--bluebg);color:var(--D);border-radius:12px;padding:3px 10px;font-weight:700;text-decoration:none}
+.sp button{margin-top:6px;border:0;background:var(--D);color:#fff;border-radius:12px;padding:6px 10px;font-weight:700;width:100%}
+.im-box{background:#F7F8FA;border-radius:14px;padding:12px;margin-bottom:14px}.im-box h3{margin:0 0 6px;font-size:14px}.im-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.im-row label,.im-row button{flex:1;min-width:120px;height:42px;border-radius:12px;border:0;background:var(--D);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}.im-row .s{background:var(--bluebg);color:var(--D)}
+.im-row input[type=file]{display:none}.im-paste{width:100%;min-height:90px;margin-top:8px;border-radius:10px;border:1px solid var(--line);padding:8px;font-size:12px;box-sizing:border-box}.im-st{font-size:12.5px;color:#3c4043;margin-top:8px}
 </style>
 </head>
 <body>
@@ -401,7 +410,7 @@ let heat=null;
 
 const state={active:new Set(['park','school','mrt']),minsByLayer:{sidewalk:3,park:10,school:10,sport:10,market:10,bus:10,mrt:10,life:20},modeByLayer:{sidewalk:'walk',park:'walk',school:'walk',sport:'walk',market:'walk',bus:'walk',mrt:'walk',life:'transit'},scope:'',custom:null,baked:false,built:null,store:{},res:null,zones:[],view:{type:'list'},openDistanceLayer:null,distanceCloseTimer:null,
   drawing:false,drawPts:[],transit:null,seq:0,sheetVis:300,loading:true,err:null,
-  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true,trees:false,land:false},val:null};
+  lifeCenters:[],lifeMoving:-1,modeMenu:false,layers:{heat:true,outline:true,fac:true,labels:true,transit:true,deal:false,priceheat:false,homes:true,future:true,trees:false,land:false,sale:true},val:null};
 
 // ---------- geometry ----------
 function ringContains(ring,x,y){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
@@ -785,7 +794,7 @@ function selectTransit(i){const T=state.transit;if(!T||!T.items)return;T.sel=T.s
   T.items.forEach((it,j)=>{const show=T.sel<0||T.sel===j;if(show&&!transitLayer.hasLayer(it.group))transitLayer.addLayer(it.group);if(!show&&transitLayer.hasLayer(it.group))transitLayer.removeLayer(it.group);});
   const it=T.items[T.sel];if(it&&it.bounds){if(isMob())setSheet('half');fit(L.latLngBounds(T.f.center,T.f.center).extend(it.bounds),{maxZoom:16});}
   document.querySelectorAll('#body [data-tr]').forEach(el=>el.classList.toggle('sel',+el.dataset.tr===T.sel));}
-function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();drawTrees();drawLand();}
+function closeTransit(){if(!state.transit)return;state.transit=null;transitLayer.clearLayers();drawHeat();drawPins();drawFacilities();syncLabels();drawHomes();drawPriceHeat();drawFuture();drawTrees();drawLand();drawSale();}
 function renderPlace(){const v=state.view,l=v.l,T=state.transit,rail=l.id==='mrt',items=T&&T.items||[];
   const sub=!T||T.loading?'正在找經過這一站的路線…':!T.n?'':rail?[...new Set(items.map(it=>it.line))].join('、'):`${T.n} 條公車路線可從這一站上車`;
   headDetail(v.f.name||l.name,sub,{name:l.name,color:l.color,icon:l.icon});
@@ -880,7 +889,7 @@ function renderFilterPop(){const el=$('filterPop'),fs=loadFilters(),cur=filterKe
     const name=$('filterName').value.trim()||'篩選 '+(a.length+1);a.push(Object.assign({name},snap));saveFilters(a);renderFilterPop();toast('已儲存「'+name+'」');};}
 addEventListener('pagehide',saveLast);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveLast();});
 const FILLS={heat:'生活機能熱圖',priceheat:'單價熱圖',land:'土地價值'}; // 會把地圖塗滿顏色的圖層，一次只開一種
-const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['land','土地價值（公告現值）','land'],['homes','我的物件','star']]},{name:'環境',items:[['trees','行道樹','tree']]},{name:'房市',soon:true,items:[['sale','房屋出售','house']]}];
+const LAYER_GROUPS=[{name:'分析結果',items:[['heat','熱圖','heat'],['outline','符合條件的邊界','region'],['fac','設施圖示','dots'],['labels','設施名稱','tag']]},{name:'交通',items:[['transit','大眾運輸路線','route'],['future','未來捷運（興建中／規劃中）','mrt']]},{name:'房市',items:[['deal','實價登錄成交','doc'],['priceheat','單價熱圖','heat'],['land','土地價值（公告現值）','land'],['sale','房屋出售（匯入）','house'],['homes','我的物件','star']]},{name:'環境',items:[['trees','行道樹','tree']]}];
 function layerKeys(){return LAYER_GROUPS.filter(g=>!g.soon).flatMap(g=>g.items.map(x=>x[0]));}
 function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k=>state.layers[k]).length;
   let h=`<h3>圖層<small>已開 ${on} 項</small></h3>`;
@@ -890,7 +899,7 @@ function renderLayersPop(){const el=$('layersPop');const on=layerKeys().filter(k
   el.querySelectorAll('[data-layer]').forEach(b=>b.onclick=()=>{const k=b.dataset.layer;state.layers[k]=!state.layers[k];
     if(state.layers[k]&&FILLS[k]){const off=Object.keys(FILLS).filter(o=>o!==k&&state.layers[o]);off.forEach(o=>state.layers[o]=false);if(off.length)toast('已關閉'+off.map(o=>FILLS[o]).join('、')+'（色塊圖層一次只顯示一種）');}applyLayers();});
   el.querySelectorAll('[data-group]').forEach(b=>b.onclick=()=>{const g=LAYER_GROUPS[+b.dataset.group],all=g.items.every(x=>state.layers[x[0]]);g.items.forEach(x=>state.layers[x[0]]=!all);{const on=Object.keys(FILLS).filter(o=>state.layers[o]);if(on.length>1){const keep=on.find(o=>g.items.some(x=>x[0]===o))||on[0];on.forEach(o=>{if(o!==keep)state.layers[o]=false;});}}applyLayers();});}
-function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();drawTrees();drawLand();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
+function applyLayers(){try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}drawHeat();drawPins();drawFacilities();drawDeals();drawPriceHeat();drawHomes();drawFuture();drawTrees();drawLand();drawSale();if(state.layers.transit){if(!map.hasLayer(transitLayer))transitLayer.addTo(map);}else if(map.hasLayer(transitLayer))map.removeLayer(transitLayer);if(!$('layersPop').hidden)renderLayersPop();}
 // ---------- 長按地圖：圖示工具選單 ----------
 let pressLL=null,pressT=null,pressAt=0;const pressLayer=L.layerGroup().addTo(map);
 function closePress(){if($('pressMenu').hidden)return false;$('pressMenu').hidden=true;pressLayer.clearLayers();pressLL=null;return true;}
@@ -1070,6 +1079,79 @@ async function drawLand(){const seq=++landSeq,lg=$('landLegend');if(!state.layer
   LAND.sections.forEach(s=>L.polygon(s.r,{renderer:rend,color:'#fff',weight:.7,opacity:.8,fillColor:landColor(s.v),fillOpacity:.45,bubblingMouseEvents:false,className:'land-sect'}).on('click',e=>{if(state.drawing||state.editing)return;L.popup({closeButton:false}).setLatLng(e.latlng).setContent(landInfo(s)).openOn(map);}).addTo(landLayer));
   landLayer.addTo(map);lg.innerHTML=`<span>${fmtWan(wanPing(LAND.lo))}</span><i></i><span>${fmtWan(wanPing(LAND.hi))} 萬／坪・公告現值</span>`;lg.hidden=false;}
 // ---------- 匯出想找房的地區：整理成一段文字，分享或複製給 Claude，請它去各房仲網站找在賣的物件 ----------
+// ---------- 匯入房源：Claude 找好的房源表（CSV／Excel／貼上），依地址定位放到地圖，點按連到各房仲網站 ----------
+// 有「緯度／經度」欄就直接用；沒有就用 OpenStreetMap Nominatim 依地址定位（每秒 1 次、結果記在裝置上）。只有路段的，標成約略位置。
+const NOMINATIM='https://nominatim.openstreetmap.org/search',XLSX_URL='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.mini.min.js';
+let LISTINGS=[],GEOCACHE={},geoRunning=false;try{LISTINGS=JSON.parse(localStorage.getItem('tlm.listings')||'[]');GEOCACHE=JSON.parse(localStorage.getItem('tlm.geocache')||'{}');}catch(e){}
+const saleLayer=L.layerGroup().addTo(map);
+function saveListings(){try{localStorage.setItem('tlm.listings',JSON.stringify(LISTINGS));localStorage.setItem('tlm.geocache',JSON.stringify(GEOCACHE));}catch(e){toast('手機儲存空間不足，部分房源沒存到',true);}}
+function platformOf(u){return /591\.com/.test(u)?'591':/sinyi/.test(u)?'信義':/yungching/.test(u)?'永慶':/rakuya/.test(u)?'樂屋':/hbhousing/.test(u)?'住商':'網站';}
+function parseDelim(text){const d=(text.split('\n')[0].match(/\t/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?'\t':',',rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else if(c==='"'&&f==='')q=true;else if(c===d){row.push(f);f='';}else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f='';}else f+=c;}
+  if(f!==''||row.length){row.push(f);rows.push(row);}return rows.filter(r=>r.some(x=>String(x).trim()!==''));}
+const LCOL={addr:/地址|路段|門牌|address/i,lat:/^(緯度|lat|latitude)$/i,lng:/^(經度|lng|lon|long|longitude)$/i,type:/型態|類型/,price:/開價\(萬\)|開價（萬）|^開價$|總價/,ping:/^建坪|^坪數/,inner:/室內/,unit:/單價/,floor:/樓層/,age:/屋齡/,park:/車位/,vsReal:/開價\s*vs\s*實價/i,vsEst:/開價\s*vs\s*估價/i,rank:/排名/,conf:/可信度/,pos:/位置判定/,comm:/社區/,note:/備註/,block:/區塊/,title:/標題|名稱/};
+function cellStr(v){return v==null?'':String(v).replace(/^'/,'').trim();}
+function rowsToListings(rows){const hi=rows.findIndex(r=>r.some(c=>LCOL.addr.test(cellStr(c))));if(hi<0)return [];const H=rows[hi].map(cellStr),col={};
+  for(const k in LCOL){const i=H.findIndex(h=>LCOL[k].test(h)&&!(k==='price'&&/單價|vs/i.test(h))&&!(k==='unit'&&/實價|估價/.test(h)));if(i>=0)col[k]=i;}
+  const num=v=>{const x=parseFloat(cellStr(v).replace(/[,%萬]/g,''));return isFinite(x)?x:null;};const out=[];
+  for(const r of rows.slice(hi+1)){const g=k=>col[k]!=null?r[col[k]]:null,addr=cellStr(g('addr'));if(!addr)continue;
+    const links=[];r.forEach(c=>{const u=cellStr(c);if(/^https?:\/\//.test(u)&&!links.some(x=>x.u===u))links.push({p:platformOf(u),u});});
+    const lat=num(g('lat')),lng=num(g('lng'));
+    out.push({addr,comm:cellStr(g('comm')),type:cellStr(g('type')),price:num(g('price')),ping:num(g('ping')),inner:cellStr(g('inner')),unit:num(g('unit')),floor:cellStr(g('floor')),age:num(g('age')),park:cellStr(g('park')),
+      vsReal:num(g('vsReal')),vsEst:num(g('vsEst')),rank:num(g('rank')),conf:cellStr(g('conf')),pos:cellStr(g('pos')),note:cellStr(g('note')),block:cellStr(g('block')),title:cellStr(g('title')),links,
+      lat:lat&&lat>20&&lat<30?lat:null,lng:lng&&lng>118&&lng<125?lng:null,prec:lat&&lng?'given':null});}
+  return out;}
+const listingKey=l=>(l.links[0]&&l.links[0].u)||`${l.addr}|${l.price}|${l.floor}`;
+function mergeListings(add){const seen=new Map(LISTINGS.map((l,i)=>[listingKey(l),i]));let n=0;
+  for(const l of add){const k=listingKey(l);if(seen.has(k)){const o=LISTINGS[seen.get(k)];if(l.lat&&!o.lat){o.lat=l.lat;o.lng=l.lng;o.prec='given';}continue;}seen.set(k,LISTINGS.length);LISTINGS.push(l);n++;}return n;}
+function loadXLSX(){return window.XLSX?Promise.resolve(window.XLSX):new Promise((ok,no)=>{const sc=document.createElement('script');sc.src=XLSX_URL;sc.onload=()=>ok(window.XLSX);sc.onerror=()=>no(new Error('xlsx'));document.head.appendChild(sc);});}
+async function readListingFile(file){if(/\.xlsx?$/i.test(file.name)){const X=await loadXLSX(),wb=X.read(await file.arrayBuffer(),{type:'array'});let all=[];
+    for(const name of wb.SheetNames){if(/說明|已排除|排除/.test(name))continue;all=all.concat(rowsToListings(X.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null})));}return all;}
+  return rowsToListings(parseDelim((await file.text()).replace(/^﻿/,'')));}
+async function importListings(list){if(!list.length){toast('找不到「地址」欄，請確認第一列是欄位名稱',true);return;}
+  const n=mergeListings(list);saveListings();state.layers.sale=true;try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}
+  toast(n?`匯入 ${n} 間${list.length>n?`（${list.length-n} 間重複略過）`:''}，正在依地址定位…`:`這 ${list.length} 間都已經匯入過了（重複略過）`);drawSale(true);geocodeAll(true);if(state.view.type==='export')renderImportStatus();}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function geocodeOne(q){if(GEOCACHE[q]!==undefined)return {hit:true,v:GEOCACHE[q]};
+  const r=await fetch(`${NOMINATIM}?format=jsonv2&limit=1&countrycodes=tw&viewbox=121.45,25.22,121.67,24.96&bounded=1&accept-language=zh-TW&q=${encodeURIComponent(q)}`);if(!r.ok)throw new Error('geo '+r.status);
+  const j=await r.json(),v=j[0]?{lat:+j[0].lat,lng:+j[0].lon,house:/house|building|residential|apartments/.test((j[0].addresstype||'')+(j[0].type||''))}:0;GEOCACHE[q]=v;return {hit:false,v};}
+const roadOf=a=>a.replace(/^(台北市|臺北市)?(\S{2}區)?/,'').replace(/(\d+巷|\d+弄|\d+號|\d+樓).*$/,'');
+async function geocodeAll(fitAfter){if(geoRunning)return;geoRunning=true;let found=0;try{
+  for(const l of LISTINGS){if(l.lat||l.prec==='none')continue;const full=/^(台北市|臺北市)/.test(l.addr)?l.addr:'臺北市'+l.addr;let res=null;
+    try{let g=await geocodeOne(full);if(!g.hit)await sleep(1100);
+      if(g.v&&(g.v.house||!/\d+號/.test(l.addr)))res={...g.v,prec:g.v.house?'addr':'road'};
+      else{const road=roadOf(l.addr);if(road&&road!==l.addr){g=await geocodeOne('臺北市'+road);if(!g.hit)await sleep(1100);if(g.v)res={...g.v,prec:'road'};}if(!res&&g.v)res={...g.v,prec:'road'};}
+    }catch(e){toast('定位服務暫時連不上，稍後重新打開 app 會繼續',true);break;}
+    if(res){l.lat=res.lat;l.lng=res.lng;l.prec=res.prec;found++;}else l.prec='none';saveListings();drawSale();if(state.view.type==='export')renderImportStatus();}
+  if(found&&fitAfter)drawSale(true);}finally{geoRunning=false;}}
+function saleColor(l){const v=l.vsEst!=null?l.vsEst:l.vsReal;return v==null?'#5F6368':v<=-5?'#188038':v>=5?'#B06000':'#1A56DB';}
+function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$/,''),pc=v=>v==null?'':`${v>0?'+':''}${f(v)}%`;
+  return `<div class="sp"><div class="a">${esc(l.addr)}${l.comm?`・${esc(l.comm)}`:''}</div>
+    <div>${[l.type,l.ping!=null?`建坪 ${(+l.ping).toFixed(2).replace(/\.?0+$/,'')} 坪`:'',l.inner?`室內 ${esc(l.inner)} 坪`:'',l.floor?`${esc(l.floor)} 樓`:'',l.age!=null?`屋齡 ${f(l.age)} 年`:'',l.park?'有車位':''].filter(Boolean).map(esc).join('・')}</div>
+    <div class="p">開價 ${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':'—'}${l.unit!=null?`・${f(l.unit)} 萬／坪`:''}</div>
+    <div>${[l.vsReal!=null?`開價 vs 實價 ${pc(l.vsReal)}`:'',l.vsEst!=null?`vs 估價 ${pc(l.vsEst)}`:'',l.rank!=null?`CP 第 ${l.rank} 名`:'',l.conf?`可信度 ${esc(l.conf)}`:''].filter(Boolean).join('・')}</div>
+    ${l.prec==='road'?'<small>只定位到路段，位置是約略的</small>':''}${l.note?`<small>${esc(l.note)}</small>`:''}
+    <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}</div>
+    <button type="button" data-sval="${i}">用 app 估價這間</button></div>`;}
+function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;const pts=[];
+  LISTINGS.forEach((l,i)=>{if(!l.lat)return;pts.push([l.lat,l.lng]);const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:'sale-pin'+(l.prec==='road'?' approx':''),html:`<b style="background:${saleColor(l)};border-top-color:${saleColor(l)}">${l.price!=null?Math.round(l.price).toLocaleString()+'萬':'房'}</b>`,iconSize:[0,0]}),zIndexOffset:600,bubblingMouseEvents:false});
+    m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280}).addTo(saleLayer);});
+  if(fit&&pts.length)map.fitBounds(L.latLngBounds(pts).pad(.15),{maxZoom:15});}
+map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
+  try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
+  openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));};});
+function importStatus(){const n=LISTINGS.length,ok=LISTINGS.filter(l=>l.lat).length,road=LISTINGS.filter(l=>l.prec==='road').length,no=LISTINGS.filter(l=>l.prec==='none').length,wait=n-ok-no;
+  return n?`已匯入 <b>${n}</b> 間：地圖上 ${ok} 間${road?`（其中 ${road} 間只定位到路段）`:''}${wait?`，定位中 ${wait} 間…`:''}${no?`，${no} 間找不到位置`:''}`:'還沒有匯入的房源。';}
+function renderImportStatus(){const e=$('imSt');if(e)e.innerHTML=importStatus();const c=$('imClear');if(c)c.hidden=!LISTINGS.length;}
+function importBox(){return `<div class="im-box"><h3>匯入房源</h3><div class="note" style="margin:0">把 Claude 找好的房源表匯入（CSV、Excel，或直接貼上表格），會依地址放到地圖上，點房子可以連到各房仲網站。</div>
+  <div class="im-row"><label>${categoryIcon('share')}選擇檔案<input type="file" id="imFile" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv"></label><button type="button" class="s" id="imPasteBtn">貼上表格</button></div>
+  <div id="imPasteBox" hidden><textarea class="im-paste" id="imPaste" placeholder="從試算表複製（含第一列欄位名稱）後貼在這裡"></textarea><div class="im-row"><button type="button" id="imPasteGo">匯入貼上的內容</button></div></div>
+  <div class="im-st" id="imSt">${importStatus()}</div><div class="im-row"><button type="button" class="s" id="imClear" ${LISTINGS.length?'':'hidden'}>清除匯入的房源</button></div></div>`;}
+function bindImport(){$('imFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;busy(true);try{await importListings(await readListingFile(f));}catch(err){toast(/xlsx/.test(err.message)?'讀不到 Excel 檔，請改用 CSV':'檔案讀取失敗',true);}finally{busy(false);e.target.value='';}};
+  $('imPasteBtn').onclick=()=>{$('imPasteBox').hidden=!$('imPasteBox').hidden;if(!$('imPasteBox').hidden)$('imPaste').focus();};
+  $('imPasteGo').onclick=()=>{const t=$('imPaste').value.trim();if(!t)return;importListings(rowsToListings(parseDelim(t)));$('imPaste').value='';$('imPasteBox').hidden=true;};
+  $('imClear').onclick=()=>{LISTINGS=[];saveListings();drawSale();renderImportStatus();toast('已清除匯入的房源');};}
 function exPrefs(){let p={};try{p=JSON.parse(localStorage.getItem('tlm.export')||'{}');}catch(e){}return Object.assign({lo:2000,hi:3000,types:[0,1,2],note:'',geo:true},p);}
 function exSave(p){try{localStorage.setItem('tlm.export',JSON.stringify(p));}catch(e){}}
 const EX_TYPES=['公寓','華廈','電梯大樓'];
@@ -1108,16 +1190,16 @@ function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:
   t+=`\n範圍（GeoJSON）：\n${JSON.stringify(exGeoAll())}\n`;
   t+=`\n（從臺北生活圈地圖匯出・${new Date().toLocaleDateString('sv')}）`;return {t,n:S.n};}
 function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export',prefs:exPrefs()};render();fitSheet('full');}
-function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('匯出給 Claude 找房','設定想要的房子，按「分享」或「複製」一次匯出地圖上全部符合條件的範圍',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
+function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('找房','匯入 Claude 找好的房源放到地圖上；或設定想要的房子，一次匯出全部符合條件的範圍給 Claude',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
   $('resultBtn').innerHTML=`<span>匯出找房條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  let h=`<div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
+  let h=importBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
     <label class="wide">備註（可不填）<input data-exp="note" placeholder="例如：3 房、2 樓以上、有電梯" value="${esc(p.note)}"></label></div>
     <div class="ex-sum" id="exSum">${S.n?`會一起匯出：地圖上符合條件的範圍 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），和你的生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離再匯出。'}</div>
     <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button></div>
     <details class="ex-det"><summary>預覽匯出內容</summary><div class="ex-pre" id="exPre"></div></details>
     <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。房子條件會記在這台裝置，下次沿用。</div>`;
-  $('body').innerHTML=h;
+  $('body').innerHTML=h;bindImport();
   const upd=()=>{exSave(v.prefs);};
   $('body').querySelector('.ex-det').ontoggle=e=>{if(e.target.open)$('exPre').textContent=exText().t;};
   $('body').querySelectorAll('[data-exp]').forEach(el=>el.oninput=()=>{v.prefs[el.dataset.exp]=el.value.trim();upd();});
@@ -1350,7 +1432,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();})();
+  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawSale();geocodeAll();})();
 </script>
 </body>
 </html>

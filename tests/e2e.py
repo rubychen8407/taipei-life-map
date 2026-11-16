@@ -4,7 +4,7 @@
   A 組：沒有預建資料 — 即時查 Overpass 的備援流程
 設 REAL_DATA=1 時，改用 repo 內真實的 data/ 跑一遍並截圖。
 """
-import json, asyncio, urllib.parse, base64, sys, os, re, shutil, math, time, io, contextlib
+import json, asyncio, subprocess, urllib.parse, base64, sys, os, re, shutil, math, time, io, contextlib
 from playwright.async_api import async_playwright
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, '..')
@@ -13,6 +13,11 @@ _M = json.load(open(os.path.join(HERE, 'mock.json')))
 MOCK, ROUTES = _M['layers'], _M['routes']
 LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
 PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
+XL = os.path.join(HERE, 'node_modules', 'xlsx', 'dist', 'xlsx.mini.min.js')
+geo_calls = []
+GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon': '121.5705', 'addresstype': 'house', 'type': 'house'}],
+       '台北市松山區八德路三段': [{'lat': '25.0480', 'lon': '121.5560', 'addresstype': 'road', 'type': 'secondary'}],
+       '臺北市南京東路五段100號': [{'lat': '25.0510', 'lon': '121.5600', 'addresstype': 'house', 'type': 'house'}]}
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
 SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'market': 'supermarket', 'bus': 'bus_stop', 'mrt': 'subway'}
@@ -83,6 +88,12 @@ async def route(r):
         return await r.fulfill(path=LF + 'leaflet.css', content_type='text/css')
     if 'leaflet-polylinedecorator' in u:
         return await r.fulfill(path=PD, content_type='application/javascript')
+    if 'xlsx.mini.min.js' in u:
+        return await r.fulfill(path=XL, content_type='application/javascript')
+    if 'nominatim.openstreetmap.org' in u:
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query).get('q', [''])[0]
+        geo_calls.append(q)
+        return await r.fulfill(body=json.dumps(GEO.get(q, [])), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
     if 'leaflet.js' in u:
         return await r.fulfill(path=LF + 'leaflet.js', content_type='application/javascript')
     if 'tile.openstreetmap.org' in u or 'cartocdn.com' in u:
@@ -527,8 +538,8 @@ async def baked_suite(b, errs):
     await ev(f"(()=>{{const o={lc};state.active=new Set(o.a);state.scope=o.s;run();}})()"); await page.wait_for_timeout(800)
     # 10c. 圖層：分組、開關、全選、儲存組合
     await page.click('#layersBtn')
-    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===5 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市、環境')
-    check(await ev("document.querySelector('#layersPop [data-layer=sale]').disabled&&!document.querySelector('#layersPop [data-layer=land]').disabled&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal&&!state.layers.land"), '房市：實價登錄成交、土地價值可以開（預設關），房屋出售先預留')
+    check(await ev("!document.getElementById('layersPop').hidden && document.querySelectorAll('#layersPop .lgroup-h').length===4 && [...document.querySelectorAll('#layersPop .lgroup-h')].map(e=>e.innerText).join('|').includes('房市')"), '圖層面板分成分析結果、交通、房市、環境')
+    check(await ev("!document.querySelector('#layersPop [data-layer=sale]').disabled&&state.layers.sale&&!document.querySelector('#layersPop .lgroup-h').innerText.includes('之後加入')&&!document.querySelector('#layersPop [data-layer=land]').disabled&&!document.querySelector('#layersPop [data-layer=deal]').disabled&&!state.layers.deal&&!state.layers.land"), '房市：實價登錄成交、土地價值可以開（預設關），房屋出售（匯入）預設開')
     await shot(page, '8_layers')
     await page.click('#layersPop [data-layer=heat]')
     check(await ev("!state.layers.heat && (!heat || heat._flags==='o')"), '關掉熱圖：彩色色塊消失（只留不符合處的反灰）')
@@ -799,6 +810,63 @@ async def baked_suite(b, errs):
     await shot(page, '6_desktop')
     await page.close()
 
+    # 11b. 匯入房源（Claude 找好的房源表）→ 依地址定位到地圖 → 點按連到房仲網站
+    page = await new_page(b, errs, **PHONE); ev = page.evaluate
+    await page.goto(URL); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(300)
+    HDR = 'CP 排名,可信度,模型估價(萬/坪),開價 vs 估價(%),區塊,位置判定,地址／路段,社區,型態,開價(萬),建坪,室內坪數,開價單價(萬/坪),樓層,屋齡,車位,實價比較基準,實價筆數,實價中位(萬/坪),P25～P75,開價 vs 實價(%),刊登數,\'591,信義,永慶,樂屋,住商,備註,緯度,經度'
+    rows = [
+        '4,高,82,-21.3,1 主塊,範圍內,忠孝東路五段790巷59弄37號,,公寓,1998,31,31,64.5,\'4/4,49,,同巷,4,70.2,56.9～85.2,-8.1,3,https://sale.591.com.tw/home/house/detail/2/20726738.html,,https://buy.yungching.com.tw/house/7521145,,,,,',
+        '9,中,95,6.2,1 主塊,範圍內,台北市松山區八德路三段,,華廈,1900,52.76,32.18（估）,36,\'1/7,46.8,,同路段,12,91,88～119.6,8.5,1,,https://www.sinyi.com.tw/buy/house/3647BM,,,,"單價偏低,請確認",,',
+        '12,低,80,1.0,1 主塊,範圍內,不存在路999號,,大樓,2500,30,20,83.3,\'5/12,10,有,同路段,3,80,70～90,0.5,1,https://sale.591.com.tw/home/house/detail/2/1.html,,,,,,,',
+        '4,高,82,-21.3,1 主塊,範圍內,忠孝東路五段790巷59弄37號,,公寓,1998,31,31,64.5,\'4/4,49,,同巷,4,70.2,56.9～85.2,-8.1,3,https://sale.591.com.tw/home/house/detail/2/20726738.html,,,,,,,',
+        '20,中,70,-3,1 主塊,範圍內,林森北路67巷132號,,華廈,1880,74.61,68.22,25.2,\'3/6,49.2,,同巷,2,68,65.3～70.6,-2,4,https://sale.591.com.tw/home/house/detail/2/21041037.html,,,https://www.rakuya.com.tw/sell_item/info?ehid=0743ba35907661a,https://www.hbhousing.com.tw/detail/?sn=WS86869,,25.0505,121.5245']
+    csvp = os.path.join(OUT, 'listings_test.csv')
+    with open(csvp, 'w', encoding='utf-8-sig') as f: f.write(HDR + '\n' + '\n'.join(rows) + '\n')
+    await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    check(await ev("!!document.getElementById('imFile')&&document.getElementById('body').innerText.includes('匯入房源')&&document.getElementById('body').innerText.includes('匯出範圍給 Claude 找房')"), '右下「找房」裡有「匯入房源」（檔案或貼上）與「匯出範圍」')
+    g0 = len(geo_calls)
+    await page.set_input_files('#imFile', csvp)
+    await page.wait_for_function("LISTINGS.length===4&&!geoRunning&&LISTINGS.every(l=>l.prec)", timeout=20000)
+    im = await ev("({prec:LISTINGS.map(l=>l.prec),n:saleLayer.getLayers().length,st:document.getElementById('imSt').innerText,cls:saleLayer.getLayers().map(m=>m.getElement().className),bg:saleLayer.getLayers().map(m=>m.getElement().querySelector('b').style.background),txt:saleLayer.getLayers().map(m=>m.getElement().innerText),links:LISTINGS[0].links.map(x=>x.p),floor:LISTINGS[0].floor,on:state.layers.sale,inv:map.getBounds().contains([25.0412,121.5705])})")
+    print('  import', im, geo_calls[g0:])
+    check(im['prec'] == ['addr', 'road', 'none', 'given'], f"CSV 匯入 4 間（重複的略過）：完整地址定位到門牌、只有路段的定位到路段、找不到的標出來、有經緯度欄的直接用 {im['prec']}")
+    check(geo_calls[g0:] == ['臺北市忠孝東路五段790巷59弄37號', '台北市松山區八德路三段', '臺北市不存在路999號', '臺北市不存在路'], f'依地址定位：沒有「臺北市」會補上，找不到門牌改找路段，有經緯度的不查 {geo_calls[g0:]}')
+    check(im['n'] == 3 and im['on'] and im['inv'] and '1,998萬' in im['txt'] and 'approx' in im['cls'][1] and 'approx' not in im['cls'][0], f"地圖上 3 間房子標開價，只定位到路段的用虛線框，地圖移到房源 {im['txt']}")
+    check(im['bg'][0] in ('rgb(24, 128, 56)', '#188038') and im['bg'][1] in ('rgb(176, 96, 0)', '#B06000'), '顏色：開價比估價低 5% 以上綠色、高 5% 以上橘色')
+    check(im['links'] == ['591', '永慶'] and im['floor'] == '4/4' and '已匯入 4 間' in im['st'] and '1 間找不到位置' in im['st'] and '只定位到路段' in im['st'], f"讀出各平台連結、樓層去掉 ' 開頭，狀態列說明定位結果（{im['st']}）")
+    g1 = len(geo_calls)
+    await page.set_input_files('#imFile', csvp); await page.wait_for_timeout(500)
+    check(len(geo_calls) == g1 and await ev("LISTINGS.length===4") and '重複略過' in await ev("document.getElementById('toast').innerText"), '再匯入同一個檔：全部略過，不重新定位')
+    await page.click('#close'); await page.wait_for_timeout(200)
+    await ev("void saleLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(300)
+    pop = await ev("(()=>{const e=document.querySelector('.leaflet-popup-content .sp');return e?{t:e.innerText,href:[...e.querySelectorAll('.lk a')].map(a=>[a.innerText,a.href,a.target])}:null})()")
+    check(pop and '忠孝東路五段790巷59弄37號' in pop['t'] and '開價 1,998 萬' in pop['t'] and '開價 vs 實價 -8.1%' in pop['t'] and 'CP 第 4 名' in pop['t'] and pop['href'] == [['591', 'https://sale.591.com.tw/home/house/detail/2/20726738.html', '_blank'], ['永慶', 'https://buy.yungching.com.tw/house/7521145', '_blank']], f'點房子：地址、開價、和實價比較，各房仲網站連結在新分頁開啟 {pop}')
+    await shot(page, '8r_sale_pop')
+    await page.click('.leaflet-popup-content [data-sval]'); await page.wait_for_function("state.view.type==='val'", timeout=10000)
+    vf = await ev("({t:VALDATA.types[state.val.form.t],ping:state.val.form.ping,fl:state.val.form.fl,tot:state.val.form.tot,age:state.val.form.age,ask:state.val.form.ask,pt:state.val.pt})")
+    check(vf['t'] == '公寓' and vf['ping'] == 31 and vf['fl'] == 4 and vf['tot'] == 4 and vf['age'] == 49 and vf['ask'] == 1998 and abs(vf['pt'][0] - 25.0412) < 1e-6, f'「用 app 估價這間」：帶入型態、坪數、樓層、屋齡、開價與位置 {vf}')
+    await page.click('#close'); await page.wait_for_timeout(200)
+    # Excel（多個分頁，略過「說明」）與貼上
+    xp = os.path.join(OUT, 'listings_test.xlsx')
+    subprocess.run(['node', '-e', f"""const X=require('xlsx');const wb=X.utils.book_new();
+X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['區塊','地址／路段','型態','開價(萬)','建坪','樓層','屋齡','開價 vs 實價(%)','591'],['1 主塊','南京東路五段100號','大樓',2600,32.5,'7/12',20,-6.5,'https://sale.591.com.tw/home/house/detail/2/555.html'],['1 主塊','忠孝東路五段790巷59弄37號','公寓',1998,31,'4/4',49,-8.1,'https://sale.591.com.tw/home/house/detail/2/20726738.html']]),'範圍內');
+X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],['說明','這列不是房源']]),'說明');X.writeFile(wb,{json.dumps(xp)});"""], check=True, cwd=HERE)
+    await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
+    await page.set_input_files('#imFile', xp)
+    await page.wait_for_function("LISTINGS.length===5&&!geoRunning&&LISTINGS.every(l=>l.prec)", timeout=20000)
+    check(await ev("LISTINGS[4].addr==='南京東路五段100號'&&LISTINGS[4].prec==='addr'&&LISTINGS[4].price===2600&&saleLayer.getLayers().length===4&&!LISTINGS.some(l=>l.addr==='這列不是房源')"), 'Excel 匯入：讀所有房源分頁、略過「說明」分頁與重複的房子，新的一間定位到地圖')
+    await page.click('#imPasteBtn')
+    await page.fill('#imPaste', '地址／路段\t開價(萬)\t型態\t緯度\t經度\t信義\n民生東路五段36巷8號\t2688\t公寓\t25.0598\t121.5628\thttps://www.sinyi.com.tw/buy/house/ABC123')
+    gp = len(geo_calls); await page.click('#imPasteGo'); await page.wait_for_timeout(400)
+    check(await ev("LISTINGS.length===6&&LISTINGS[5].prec==='given'&&LISTINGS[5].links[0].p==='信義'&&saleLayer.getLayers().length===5") and len(geo_calls) == gp, '貼上試算表內容（Tab 分隔）也能匯入；有經緯度直接放到地圖')
+    await page.click('#close'); await page.click('#layersBtn'); await page.click('#layersPop [data-layer=sale]')
+    check(await ev("!state.layers.sale&&saleLayer.getLayers().length===0"), '圖層「房屋出售（匯入）」可以關掉')
+    await page.click('#layersPop [data-layer=sale]'); await page.click('#layersBtn')
+    await page.reload(); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(500)
+    check(await ev("LISTINGS.length===6&&saleLayer.getLayers().length===5"), '重新整理後，匯入的房源還在地圖上（存在這台裝置）')
+    await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000); await page.click('#imClear')
+    check(await ev("LISTINGS.length===0&&saleLayer.getLayers().length===0&&JSON.parse(localStorage.getItem('tlm.listings')).length===0"), '「清除匯入的房源」：地圖與裝置上的房源都清掉')
+    await page.click('#close'); await page.wait_for_timeout(200); await page.close()
     # 12. 沒有 city.json → 改用即時查詢備援，不再去讀已移除的 12 區檔
     MODE['missing'] = {'city.json'}; d0 = len(data_hits); c0 = len(calls)
     page = await new_page(b, errs, **PHONE)
