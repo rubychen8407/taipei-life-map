@@ -921,13 +921,15 @@ async def baked_suite(b, errs):
     await page.set_input_files('#imFile', csvp); await page.wait_for_timeout(500)
     check(len(geo_calls) == g1 and await ev("LISTINGS.length===4") and '重複略過' in await ev("document.getElementById('toast').innerText"), '再匯入同一個檔：全部略過，不重新定位')
     await page.click('#close'); await page.wait_for_timeout(200)
-    await ev("void saleLayer.getLayers()[0].fire('click')"); await page.wait_for_timeout(300)
+    await ev("GMKEY='AIzaTEST_key_1234567890abcdefXYZ'")   # 有金鑰：資訊卡會嵌入街景並重新排版
+    await ev("void saleLayer.getLayers()[0].fire('click')"); await page.wait_for_selector('.leaflet-popup-content .sv-embed iframe', timeout=8000)
     pop = await ev("(()=>{const e=document.querySelector('.leaflet-popup-content .sp');return e?{t:e.innerText,href:[...e.querySelectorAll('.lk a:not(.svl)')].map(a=>[a.innerText,a.href,a.target])}:null})()")
     check(pop and '忠孝東路五段790巷59弄37號' in pop['t'] and '開價 1,998 萬' in pop['t'] and '開價 vs 實價 -8.1%' in pop['t'] and 'CP 第 4 名' in pop['t'] and pop['href'] == [['591', 'https://sale.591.com.tw/home/house/detail/2/20726738.html', '_blank'], ['永慶', 'https://buy.yungching.com.tw/house/7521145', '_blank']], f'點房子：地址、開價、和實價比較，各房仲網站連結在新分頁開啟 {pop}')
     await shot(page, '8r_sale_pop')
+    check(await ev("document.querySelector('.leaflet-popup-content [data-sval]').innerText==='估價'"), '房子資訊卡的估價按鈕只寫「估價」')
     await page.click('.leaflet-popup-content [data-sval]'); await page.wait_for_function("state.view.type==='val'", timeout=10000)
     vf = await ev("({t:VALDATA.types[state.val.form.t],ping:state.val.form.ping,fl:state.val.form.fl,tot:state.val.form.tot,age:state.val.form.age,ask:state.val.form.ask,pt:state.val.pt})")
-    check(vf['t'] == '公寓' and vf['ping'] == 31 and vf['fl'] == 4 and vf['tot'] == 4 and vf['age'] == 49 and vf['ask'] == 1998 and abs(vf['pt'][0] - 25.0412) < 1e-6, f'「用 app 估價這間」：帶入型態、坪數、樓層、屋齡、開價與位置 {vf}')
+    check(vf['t'] == '公寓' and vf['ping'] == 31 and vf['fl'] == 4 and vf['tot'] == 4 and vf['age'] == 49 and vf['ask'] == 1998 and abs(vf['pt'][0] - 25.0412) < 1e-6, f'按「估價」（資訊卡已嵌入街景、重新排版後仍可用）：帶入型態、坪數、樓層、屋齡、開價與位置 {vf}')
     await page.click('#close'); await page.wait_for_timeout(200)
     # Excel（多個分頁，略過「說明」）與貼上
     xp = os.path.join(OUT, 'listings_test.xlsx')
@@ -995,7 +997,7 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     check(lp is not None and len(lp) == 4 and '同棟路10號' in lp[0], f'已經放到最大：點圓點列出那幾間 {lp}')
     await ev("void document.querySelector('.leaflet-popup .sl a').click()"); await page.wait_for_timeout(400)
     pt = await ev("(document.querySelector('.leaflet-popup .sp')||{}).innerText||''")
-    check('同棟路10號' in pt and '開價 1,510 萬' in pt and '用 app 估價這間' in pt, '點清單中的一間：顯示那間的資訊與連結')
+    check('同棟路10號' in pt and '開價 1,510 萬' in pt and '估價' in pt, '點清單中的一間：顯示那間的資訊與連結')
     await shot(page, '8t_sale_cluster_list')
     await page.close()
     # 11c. 私人房源：每週找房寫進私人 repo，app 用 token 自動讀取、標新上架／已下架，並可把範圍存回 repo

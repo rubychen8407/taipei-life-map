@@ -1257,7 +1257,7 @@ function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$
     <div>${[l.vsReal!=null?`開價 vs 實價 ${pc(l.vsReal)}`:'',l.vsEst!=null?`vs 估價 ${pc(l.vsEst)}`:'',l.rank!=null?`CP 第 ${l.rank} 名`:'',l.conf?`可信度 ${esc(l.conf)}`:''].filter(Boolean).join('・')}</div>
     ${l.prec==='road'?'<small>只定位到路段，位置是約略的</small>':''}${l.note?`<small>${esc(l.note)}</small>`:''}
     <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}${l.lat!=null&&l.prec!=='none'?svLink(l.lat,l.lng,'svl'):''}</div>${l.lat!=null&&l.prec!=='none'?svEmbedHTML(l.lat,l.lng):''}
-    <button type="button" data-sval="${i}">用 app 估價這間</button></div>`;}
+    <button type="button" data-sval="${i}">估價</button></div>`;}
 // 畫面內最多畫 SALE_MAX 間房子的價格標籤（新上架優先，再依開價相對估價／實價由低到高），其餘依畫面格子聚合成「N 間」圓點；點圓點放大，放大不了就列出那幾間
 const SALE_MAX=10,SALE_CELL=64;let salePop=false;
 function saleScore(l){const v=l.vsEst!=null?l.vsEst:l.vsReal;return [l.isNew?0:1,v==null?1e9:v,l.rank==null?1e9:l.rank,l.price==null?1e9:l.price];}
@@ -1309,10 +1309,11 @@ function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.tran
 map.on('moveend',()=>{if(!salePop)drawSale();}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
 map.on('popupopen',e=>{const el=e.popup.getElement();if(!el)return;el.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const i=+a.dataset.sopen,l=LISTINGS[i];if(!l)return;
   setTimeout(()=>{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);},0);});});
-map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>e.popup.update());else if(pe)snapLinks(pe);});
-map.on('popupopen',e=>{const b=e.popup.getElement()&&e.popup.getElement().querySelector('[data-sval]');if(!b)return;b.onclick=async()=>{const l=LISTINGS[+b.dataset.sval];map.closePopup();
+map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>{if(e.popup.isOpen()){e.popup._updateLayout();e.popup._updatePosition();}});else if(pe)snapLinks(pe);});
+// 用事件委派：資訊卡內容重畫（例如街景載入）後按鈕仍然有效
+document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('.leaflet-popup [data-sval]');if(!b)return;ev.preventDefault();{const l=LISTINGS[+b.dataset.sval];if(!l)return;map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
-  openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));};});
+  openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));}});
 function importStatus(){const n=LISTINGS.length,ok=LISTINGS.filter(l=>l.lat).length,road=LISTINGS.filter(l=>l.prec==='road').length,no=LISTINGS.filter(l=>l.prec==='none').length,wait=n-ok-no;
   return n?`已匯入 <b>${n}</b> 間：地圖上 ${ok} 間${road?`（其中 ${road} 間只定位到路段）`:''}${wait?`，定位中 ${wait} 間…`:''}${no?`，${no} 間找不到位置`:''}`:'還沒有匯入的房源。';}
 function renderImportStatus(){const e=$('imSt');if(e)e.innerHTML=importStatus();const c=$('imClear');if(c)c.hidden=!LISTINGS.length;}
