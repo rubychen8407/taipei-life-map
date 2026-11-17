@@ -78,6 +78,7 @@ h2{font-size:14px;margin:16px 0 6px;color:var(--sub);font-weight:600}
 .vdot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px}.vdot.buy{background:#137333}.vdot.even{background:#f9a825}.vdot.sell{background:#d93025}
 .vtabs{margin-top:14px}.vrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}.vrow .r{margin-left:auto;font-weight:600;white-space:nowrap}.vrow.tap{cursor:pointer}
 .vrow>div:first-child{flex:1;min-width:0}.vrow small{display:block;color:#5F6368;font-size:12px}.vchart{display:block;width:100%}.vedit{border:0;background:none;color:var(--D);font-size:13px;font-weight:600;padding:6px 0}
+.vmode,.vfam{margin-top:6px}.vfam button{line-height:1.2;height:auto;min-height:38px;padding:3px 0}.vfam button small{display:block;font-size:11px;font-weight:400;opacity:.75}.vsched{border-left:3px solid #E8EEF9;margin:0 0 4px 4px}.vsched .vrow{padding-left:10px;font-size:13px}
 .vfin{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:8px}.vfin label{display:grid;gap:3px;font-size:12px;color:#5F6368}.vfin input{height:40px;border-radius:10px;border:1px solid var(--line);padding:0 8px;font-size:16px;min-width:0;width:100%;box-sizing:border-box}
 .vburden{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:700}.vburden.g{background:#e6f4ea;color:#137333}.vburden.y{background:#fef7e0;color:#b06000}.vburden.r{background:#fce8e6;color:#c5221f}
 .val-pin span{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--A);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)}.val-pin svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -1091,9 +1092,18 @@ function marketH(dist,t){const {v,fin}=VALDATA,T=VALDATA.types,seg=t!=null?v.mar
 function valOffers(V){const {v,fin}=VALDATA,f=V.form,e=V.est,o=v.offer,cl=q=>Math.max(.05,Math.min(.95,q)),qf=.5+o.shift*V.mk.H,alpha=[0,.3,.6][f.cond]||0;
   const val=q=>e.q(cl(q))*(1+e.poi)*f.ping-alpha*(f.reno||0),r=fin.bargain_rate.value*(1-.5*V.mk.H),cap=f.ask?+f.ask:Infinity,expect=f.ask?f.ask*(1-r):null,raw=[val(qf-o.band),val(qf),val(qf+o.band)];
   return{raw,cap,r,expect,out:raw.map(x=>Math.min(x,cap)),band:[e.q(.25)*(1+e.poi)*f.ping,e.q(.75)*(1+e.poi)*f.ping],mid:e.q(.5)*(1+e.poi)*f.ping};}
-function valLoan(V,price){const {fin}=VALDATA,F=V.fin,ltv=fin.ltv.value,down=F.down!=null&&F.down!==''?+F.down:price*(1-ltv),L=Math.max(0,Math.min(ltv*price,price-down));
-  const pay=rate=>{const i=rate/100/12,n=F.years*12;return i?L*1e4*i/(1-Math.pow(1+i,-n)):L*1e4/n;};
-  return{L,down:price-L,pay:pay(+F.rate),stress:pay(+F.rate+1),cash:price-L+price*fin.closing_cost.value+(V.form.reno||0)};}
+function finPrefs(){try{return Object.assign({mode:'std',fam:0,grace:0},JSON.parse(localStorage.getItem('tlm.finMode')||'{}'));}catch(e){return {mode:'std',fam:0,grace:0};}}
+function finSave(F){try{localStorage.setItem('tlm.finMode',JSON.stringify({mode:F.mode,fam:F.fam,grace:F.grace}));}catch(e){}}
+function finInit(){const p=finPrefs(),Y=VALDATA.fin.youth_loan,yo=!!Y&&p.mode==='youth';return {down:'',years:yo?Y.max_years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:'',mode:yo?'youth':'std',fam:+p.fam||0,grace:yo?Math.max(0,Math.min(Y.max_grace,+p.grace||0)):0};}
+// 每月攤還表：寬限期只繳息；之後每月依剩餘本金、剩餘期數、當年利率重算本息平均攤還（利率每年調整時銀行的算法）
+function amort(P,n,g,rateOf){const out=new Array(n);let b=P;for(let m=0;m<n;m++){const r=rateOf(Math.floor(m/12))/1200,it=b*r;let p;if(m<g)p=it;else{const k=n-m;p=r?b*r/(1-Math.pow(1+r,-k)):b/k;}out[m]=p;b-=p-it;}return out;}
+function valLoan(V,price){const {fin}=VALDATA,F=V.fin,Y=fin.youth_loan,ltv=fin.ltv.value,down=F.down!=null&&F.down!==''?+F.down:price*(1-ltv),L=Math.max(0,Math.min(ltv*price,price-down));
+  const n=Math.max(12,Math.round(F.years*12)),yo=F.mode==='youth'&&!!Y,ok=yo&&price<=Y.price_cap+1e-9,cap=ok?Y.caps[Math.min(+F.fam||0,Y.caps.length-1)][1]:0,LY=ok?Math.min(L,cap):0,LG=L-LY,g=ok?Math.min(+F.grace||0,Y.max_grace)*12:0;
+  const sched=add=>{const a=LY?amort(LY*1e4,n,g,y=>Y.rates[Math.min(y,Y.rates.length-1)]+add):null,b=LG?amort(LG*1e4,n,0,()=>+F.rate+add):null;return Array.from({length:n},(_,m)=>(a?a[m]:0)+(b?b[m]:0));};
+  const s=sched(0),st=sched(1);
+  return{L,LY,LG,youth:yo,ok,cap,grace:g/12,down:price-L,pay:s[0],peak:Math.max(...s),stress:Math.max(...st),sched:s,interest:s.reduce((x,y)=>x+y,0)-L*1e4,cash:price-L+price*fin.closing_cost.value+(V.form.reno||0)};}
+function paySegs(s){const out=[];for(let y=0;y*12<s.length;y++){const v=Math.round(s[y*12]),l=out[out.length-1];if(l&&Math.abs(l.v-v)<=1)l.to=y;else out.push({from:y,to:y,v});}
+  const last=Math.ceil(s.length/12)-1;return out.map(x=>({...x,label:x.to===last&&x.from<last?`第 ${x.from+1} 年起`:x.from===x.to?`第 ${x.from+1} 年`:`第 ${x.from+1}～${x.to+1} 年`}));}
 function valRent(V){const f=V.form,R=Math.max(600,V.est.radius),xs=VALDATA.rents.filter(r=>Math.abs(r[3]-f.ping)<=f.ping*.3&&distM(V.pt,[r[0],r[1]])<=R).map(r=>r[4]/r[3]);return xs.length>=5?{n:xs.length,rent:quantile(xs,.5)*f.ping,R}:null;}
 const wan=x=>Math.round(x).toLocaleString('en-US')+' 萬',ymTxt=n=>Math.floor(n/12)+'/'+String(n%12+1).padStart(2,'0');
 function valDefaults(){let f={};try{f=JSON.parse(localStorage.getItem('tlm.valForm')||'{}');}catch(e){}return Object.assign({t:0,ping:30,age:20,fl:5,tot:12,ask:'',cond:0,reno:''},f);}
@@ -1101,7 +1111,7 @@ async function openVal(pt,prefill){const k=cellAtLatLng(pt[0],pt[1]);if(k<0){toa
   if(!state.baked){toast('估價需要預先下載的資料，目前無法使用',true);return;}
   busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
   closeDetail(true);state.openDistanceLayer=null;renderCategorySettings();
-  state.val={pt,dist:DISTRICTS[CELLS[k].d].name,form:Object.assign(valDefaults(),prefill||{}),fin:{down:'',years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:''},est:null,tab:'price'};
+  state.val={pt,dist:DISTRICTS[CELLS[k].d].name,form:Object.assign(valDefaults(),prefill||{}),fin:finInit(),est:null,tab:'price'};
   state.view={type:'val'};drawPins();drawVal();render();fitSheet('full');fit(L.latLngBounds(pt,pt),{maxZoom:16});}
 function runVal(){const V=state.val,f=V.form;try{localStorage.setItem('tlm.valForm',JSON.stringify({t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,cond:f.cond}));}catch(e){}
   V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;
@@ -1126,15 +1136,23 @@ function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
     return `<svg class="vchart" viewBox="0 0 320 50" role="img" aria-label="市場燈號"><defs><linearGradient id="vg" x1="0" x2="1"><stop offset="0" stop-color="#137333"/><stop offset=".5" stop-color="#f9a825"/><stop offset="1" stop-color="#d93025"/></linearGradient></defs><rect x="20" y="18" width="280" height="8" rx="4" fill="url(#vg)"/><circle cx="${x}" cy="22" r="8" fill="#fff" stroke="#1D1D1F" stroke-width="2"/><text x="20" y="44" font-size="10.5" fill="#5F6368">買方市場</text><text x="160" y="44" text-anchor="middle" font-size="10.5" fill="#5F6368">平衡</text><text x="300" y="44" text-anchor="end" font-size="10.5" fill="#5F6368">賣方市場</text></svg>
       ${M.parts.map(p=>`<div class="vrow"><div>${p.name}・${p.h<=-.15?'偏買方':p.h>=.15?'偏賣方':'中性'}<small>${esc(p.txt)}</small></div><span class="r">${p.spark?spark(p.spark,72,24,'#5F6368'):''} ${p.val}</span></div>`).join('')}
       <div class="note">燈號用公開資料估算大方向：成交量、品質調整後的單價變化、全市議價率。分區議價率、銷售天數與在售庫存目前沒有公開資料。</div>`;}
-  if(V.tab==='fin'){const price=V.off.out[1],L=valLoan(V,price),R=valRent(V),F=V.fin,mg=+F.mgmt||0,inc=+F.income||0,bur=inc?(L.pay+mg)/inc:null,bc=bur==null?'':bur<=.3?'g':bur<=.4?'y':'r',mx=Math.max(L.pay+mg,R?R.rent:0,L.stress+mg),W=v=>Math.max(2,v/mx*100);
-    return `<div class="vfin"><label>自備款（萬）<input data-fin="down" inputmode="decimal" placeholder="${Math.round(L.down)}" value="${esc(F.down)}"></label><label>貸款年限<input data-fin="years" inputmode="numeric" value="${esc(F.years)}"></label><label>利率（%）<input data-fin="rate" inputmode="decimal" value="${esc(F.rate)}"></label><label>家庭月收入（元）<input data-fin="income" inputmode="numeric" placeholder="不會儲存" value="${esc(F.income)}"></label><label>管理費（元／月）<input data-fin="mgmt" inputmode="numeric" placeholder="0" value="${esc(F.mgmt)}"></label></div>
-      <div class="vrow"><div>以合理出價 ${wan(price)} 試算<small>貸款 ${wan(L.L)}（${Math.round(L.L/price*100)}%）・${F.years} 年本息平均攤還</small></div></div>
-      <div class="vrow"><div>每月房貸${mg?'＋管理費':''}<small><i style="display:block;height:8px;width:${W(L.pay+mg)}%;background:#123B8A;border-radius:4px;margin-top:4px"></i></small></div><span class="r">${Math.round(L.pay+mg).toLocaleString('en-US')} 元</span></div>
-      ${R?`<div class="vrow"><div>附近同坪數月租金中位數<small><i style="display:block;height:8px;width:${W(R.rent)}%;background:#F7931E;border-radius:4px;margin-top:4px"></i>${R.R} 公尺內 ${R.n} 筆實價登錄租約</small></div><span class="r">${Math.round(R.rent).toLocaleString('en-US')} 元</span></div>`:''}
-      <div class="vrow"><div>利率再升 1 個百分點<small>壓力測試</small></div><span class="r">${Math.round(L.stress+mg).toLocaleString('en-US')} 元</span></div>
-      <div class="vrow"><div>負擔率<small>（房貸＋管理費）÷ 家庭月收入；30% 以內較安全</small></div><span class="r">${bur==null?'輸入月收入':`<span class="vburden ${bc}">${Math.round(bur*100)}%</span>`}</span></div>
+  if(V.tab==='fin'){const price=V.off.out[1],L=valLoan(V,price),R=valRent(V),F=V.fin,Y=D.fin.youth_loan,mg=+F.mgmt||0,inc=+F.income||0,bur=inc?(L.peak+mg)/inc:null,bc=bur==null?'':bur<=.3?'g':bur<=.4?'y':'r',mx=Math.max(L.peak+mg,R?R.rent:0,L.stress+mg),W=v=>Math.max(2,v/mx*100),num=v=>Math.round(v).toLocaleString('en-US');
+    const yo=L.youth,segs=yo&&L.ok?paySegs(L.sched):[];
+    return `${Y?`<div class="seg vmode" role="group" aria-label="貸款方案"><button type="button" data-fmode="std" aria-pressed="${!yo}">一般房貸</button><button type="button" data-fmode="youth" aria-pressed="${yo}">青安 3.0</button></div>`:''}
+      ${yo?`<div class="seg vfam" role="group" aria-label="青安身分">${Y.caps.map((c,i)=>`<button type="button" data-ffam="${i}" aria-pressed="${(+F.fam||0)===i}">${c[0]}<small>${num(c[1])} 萬</small></button>`).join('')}</div>`:''}
+      <div class="vfin"><label>自備款（萬）<input data-fin="down" inputmode="decimal" placeholder="${Math.round(L.down)}" value="${esc(F.down)}"></label><label>貸款年限<input data-fin="years" inputmode="numeric" value="${esc(F.years)}"></label>${yo?`<label>寬限期（年）<input data-fin="grace" inputmode="numeric" placeholder="0～${Y.max_grace}" value="${esc(F.grace)}"></label>`:''}<label>${yo?'一般房貸利率（%）':'利率（%）'}<input data-fin="rate" inputmode="decimal" value="${esc(F.rate)}"></label><label>家庭月收入（元）<input data-fin="income" inputmode="numeric" placeholder="不會儲存" value="${esc(F.income)}"></label><label>管理費（元／月）<input data-fin="mgmt" inputmode="numeric" placeholder="0" value="${esc(F.mgmt)}"></label></div>
+      ${yo&&!L.ok?`<div class="vline" id="youthNo"><span class="vdot" style="background:#d93025"></span><div>合理出價 ${wan(price)} 超過臺北市青安房價上限 <b>${num(Y.price_cap)} 萬</b>（銀行鑑價和買賣總價都不能超過），不適用青安；以下用一般房貸試算。</div></div>`:''}
+      <div class="vrow"><div>以合理出價 ${wan(price)} 試算<small>貸款 ${wan(L.L)}（${Math.round(L.L/price*100)}%）${L.LY?`＝青安 ${wan(L.LY)}${L.LG?'＋一般房貸 '+wan(L.LG):''}`:''}・${F.years} 年${L.grace?'・寬限期 '+L.grace+' 年':''}・本息平均攤還</small></div></div>
+      <div class="vrow"><div>${segs.length>1?'第 1 年每月房貸':'每月房貸'}${mg?'＋管理費':''}<small><i style="display:block;height:8px;width:${W(L.pay+mg)}%;background:#123B8A;border-radius:4px;margin-top:4px"></i>${L.grace?'寬限期只繳利息':''}</small></div><span class="r">${num(L.pay+mg)} 元</span></div>
+      ${segs.length>1?`<div class="vsched" id="youthSched">${segs.map(x=>`<div class="vrow"><div>${x.label}${x.from<L.grace?'<small>寬限期・只繳利息</small>':`<small>青安利率 ${Y.rates[Math.min(x.from,Y.rates.length-1)]}%${L.LG?'；一般房貸 '+F.rate+'%':''}</small>`}</div><span class="r">${num(x.v+mg)} 元</span></div>`).join('')}</div>`:''}
+      ${L.peak>L.pay+1?`<div class="vrow"><div>最高月付${mg?'＋管理費':''}<small>${L.grace?'寬限期結束後本金開始攤還，月付會跳升':'利率補貼退場後'}</small></div><span class="r">${num(L.peak+mg)} 元</span></div>`:''}
+      ${R?`<div class="vrow"><div>附近同坪數月租金中位數<small><i style="display:block;height:8px;width:${W(R.rent)}%;background:#F7931E;border-radius:4px;margin-top:4px"></i>${R.R} 公尺內 ${R.n} 筆實價登錄租約</small></div><span class="r">${num(R.rent)} 元</span></div>`:''}
+      <div class="vrow"><div>利率再升 1 個百分點<small>壓力測試${L.peak>L.pay+1?'（以最高月付計）':''}</small></div><span class="r">${num(L.stress+mg)} 元</span></div>
+      <div class="vrow"><div>負擔率<small>（房貸＋管理費）÷ 家庭月收入${L.peak>L.pay+1?'，以最高月付計':''}；30% 以內較安全</small></div><span class="r">${bur==null?'輸入月收入':`<span class="vburden ${bc}">${Math.round(bur*100)}%</span>`}</span></div>
+      ${yo?`<div class="vrow"><div>全期總利息<small>${F.years} 年合計，利率照目前方案不變</small></div><span class="r">${wan(L.interest/1e4)}</span></div>`:''}
       <div class="vrow"><div>一開始要準備的現金<small>自備款＋稅費等約 ${(D.fin.closing_cost.value*100).toFixed(0)}%${f.reno?'＋裝潢 '+wan(+f.reno):''}</small></div><span class="r">${wan(L.cash)}</span></div>
-      <div class="note">利率預設為${esc(D.fin.mortgage_rate.label)}（${esc(D.fin.mortgage_rate.as_of)}，${D.fin.mortgage_rate.value}%）；${esc(D.fin.ltv.label)}。實際條件以銀行核定為準。</div>`;}
+      ${yo?`<div class="note" id="youthNote">${esc(Y.label)}：${esc(Y.as_of)} 起，申請到 ${esc(Y.apply_until)}。${esc(Y.rates_note)}。額度：${esc(Y.caps_note)}，最高 ${Math.round(Y.ltv*10)} 成、${Y.max_years} 年、寬限期最長 ${Y.max_grace} 年；超過額度的部分用一般房貸利率計算。${esc(Y.price_cap_note)}。資格：${esc(Y.eligibility)}。實際以銀行核定為準。</div>`
+        :`<div class="note">利率預設為${esc(D.fin.mortgage_rate.label)}（${esc(D.fin.mortgage_rate.as_of)}，${D.fin.mortgage_rate.value}%）；${esc(D.fin.ltv.label)}。實際條件以銀行核定為準。</div>`}`;}
   const rows=D.v.poi_layers.map(id=>{const n=poiNear(id,V.pt),l=LAYER[id],t=Math.max(1,Math.ceil(n.d*1.25/80));return `<div class="row"><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${esc(n.f&&n.f.name||'最近的'+l.name)}</div><div class="m">${l.name}</div></div><span class="time ${t<=10?'ok':'no'}">步行 ${t} 分</span></div>`;}).join('');
   return futureRow(V.pt)+landRow(V.pt)+`<div class="vrow"><div>位置加減分<small>這個位置的生活機能分數 ${(V.s*100).toFixed(0)}，和附近成交的平均相比；上下限 ±8%</small></div><span class="r">${e.poi>=0?'+':'−'}${Math.abs(e.poi*100).toFixed(1)}%</span></div>${rows}`;}
 function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
@@ -1161,11 +1179,11 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   let h=`<div class="vtop"><button type="button" class="vedit" id="valEdit">‹ 修改房屋條件</button>${e.ok?`<button type="button" class="vsave" id="valSave" aria-pressed="${saved}">${categoryIcon('star')}${saved?'已儲存':'儲存物件'}</button>`:''}</div>`;
   if(!e.ok){$('resultBtn').innerHTML=`<span>附近成交太少，無法估價</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
     h+=`<div class="note" id="valNo">附近 1.2 公里內只有 ${e.n} 筆同型態、屋齡與坪數相近的成交，資料不足，不提供出價建議。可以改選其他型態或屋齡再試。</div>${light}`;V.tab='place';}
-  else{const o=V.off,L=valLoan(V,o.out[1]),inc=+V.fin.income||0,bur=inc?(L.pay+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
+  else{const o=V.off,L=valLoan(V,o.out[1]),inc=+V.fin.income||0,bur=inc?(L.peak+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
     $('resultBtn').innerHTML=`<span class="dot"></span><b>合理 ${wan(o.out[1])}</b><span>${M.label.slice(0,2)}${bur!=null?'・負擔 '+Math.round(bur*100)+'%':''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
     h+=`<div class="vsum" id="valSum"><div><small>保守</small><b>${wan(o.out[0])}</b></div><div class="mid"><small>合理出價</small><b>${wan(o.out[1])}</b></div><div><small>積極</small><b>${wan(o.out[2])}</b></div></div>${offerBar(V)}
       ${over!=null?`<div class="vline"><span class="vdot" style="background:#F7931E"></span><div>開價比行情中間值${over>=0?'高':'低'} <b>${Math.abs(over*100).toFixed(0)}%</b>；依全市平均議價率推算，這個開價的預期成交價約 <b>${wan(o.expect)}</b>${o.out[2]>=o.cap-1e-6?'（出價不會超過開價）':''}</div></div>`:''}
-      ${light}<div class="vline"><span class="vdot" style="background:#123B8A"></span><div>以合理出價貸款 ${Math.round(L.L/o.out[1]*100)}%：每月約 <b>${Math.round(L.pay).toLocaleString('en-US')} 元</b>${bur!=null?`，負擔率 <span class="vburden ${bur<=.3?'g':bur<=.4?'y':'r'}">${Math.round(bur*100)}%</span>`:''}</div></div>`;}
+      ${light}<div class="vline"><span class="vdot" style="background:#123B8A"></span><div>以合理出價貸款 ${Math.round(L.L/o.out[1]*100)}%${L.youth&&L.ok?'（青安）':''}：${L.peak>L.pay+1?'第 1 年':''}每月約 <b>${Math.round(L.pay).toLocaleString('en-US')} 元</b>${bur!=null?`，負擔率 <span class="vburden ${bur<=.3?'g':bur<=.4?'y':'r'}">${Math.round(bur*100)}%</span>`:''}</div></div>`;}
   h+=`<div class="seg vtabs" role="tablist">${[['price','價格'],['market','市場'],['fin','財務'],['place','位置']].filter(t=>e.ok||t[0]==='market'||t[0]==='place').map(([k,n])=>`<button type="button" role="tab" data-vtab="${k}" aria-pressed="${V.tab===k}">${n}</button>`).join('')}</div><div id="valTab">${valTab(V)}</div>
     <div class="note">依公開資料的統計估算（實價登錄至 ${esc(VALDATA.through)}；回測中位數誤差 ${(VALDATA.v.backtest.mdape*100).toFixed(0)}%、約 ${(VALDATA.v.backtest.hit_10_90*100).toFixed(0)}% 的實際成交落在保守～積極之間）。不含車位，不是不動產估價師鑑價，也不是投資或貸款建議。</div>`;
   Bd.innerHTML=h+foot();
@@ -1176,7 +1194,12 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
     drawHomes();render();};
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
-  Bd.querySelectorAll('[data-fin]').forEach(i=>i.onchange=()=>{V.fin[i.dataset.fin]=i.value.trim();if(!(+V.fin.years>=1))V.fin.years=VALDATA.fin.years;if(!(+V.fin.rate>=0)||V.fin.rate==='')V.fin.rate=VALDATA.fin.mortgage_rate.value;const y=Bd.scrollTop;render();Bd.scrollTop=y;});}
+  const keep=()=>{const y=Bd.scrollTop;render();Bd.scrollTop=y;},Y=VALDATA.fin.youth_loan;
+  Bd.querySelectorAll('[data-fin]').forEach(i=>i.onchange=()=>{const F=V.fin;F[i.dataset.fin]=i.value.trim();if(!(+F.years>=1))F.years=F.mode==='youth'?Y.max_years:VALDATA.fin.years;if(!(+F.rate>=0)||F.rate==='')F.rate=VALDATA.fin.mortgage_rate.value;
+    if(F.mode==='youth'){if(+F.years>Y.max_years){F.years=Y.max_years;toast('青安貸款年限最長 '+Y.max_years+' 年');}F.grace=Math.max(0,Math.min(Y.max_grace,Math.round(+F.grace||0)));if(i.dataset.fin==='grace'&&+i.value>Y.max_grace)toast('青安寬限期最長 '+Y.max_grace+' 年');finSave(F);}keep();});
+  Bd.querySelectorAll('[data-fmode]').forEach(b=>b.onclick=()=>{const F=V.fin,m=b.dataset.fmode;if(F.mode===m)return;
+    if(m==='youth'&&+F.years===+VALDATA.fin.years)F.years=Y.max_years;if(m==='std'&&+F.years===+Y.max_years)F.years=VALDATA.fin.years;if(m==='std')F.grace=0;F.mode=m;finSave(F);keep();});
+  Bd.querySelectorAll('[data-ffam]').forEach(b=>b.onclick=()=>{V.fin.fam=+b.dataset.ffam;finSave(V.fin);keep();});}
 // ---------- 土地價值：各地段（小段）的公告土地現值（data/land.json，build-land 每月更新）；勾選才下載 ----------
 // 公告土地現值是政府每年 1/1 公告、課土地增值稅用的參考價，通常低於市價；這裡取小段內地號的中位數
 const PING_M2=3.305785;let LAND=null,LANDLOAD=null,landLayer=null,landSeq=0;
@@ -1504,7 +1527,7 @@ function saveHomes(a){try{localStorage.setItem('tlm.homes',JSON.stringify(a));}c
 function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno};}
 function sameHome(h,V){return JSON.stringify(h.form)===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
 function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null};}
-function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:{down:'',years:VALDATA.fin.years,rate:VALDATA.fin.mortgage_rate.value,income:'',mgmt:''}};
+function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:finInit()};
   V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:V.form.t,ping:V.form.ping,age:V.form.age,fl:V.form.fl,tot:V.form.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;return V;}
 async function openHome(h){busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
   closePops();closeDetail(true);state.val=Object.assign(homeVal(h),{homeId:h.id,tab:'price'});state.view={type:'val'};drawPins();runVal();}
@@ -1525,7 +1548,7 @@ async function openCmp(ids){busy(true);try{await loadVal();}catch(e){busy(false)
   state.view={type:'cmp',items:hs.map(h=>({h,V:homeVal(h)}))};drawPins();selLayer.clearLayers();const b=L.latLngBounds(hs[0].pt,hs[0].pt);
   state.view.items.forEach((x,i)=>{b.extend(x.h.pt);L.marker(x.h.pt,{icon:L.divIcon({className:'val-pin',html:`<span style="font-weight:700;color:#fff;font-size:16px">${i+1}</span>`,iconSize:[38,38],iconAnchor:[19,19]}),interactive:false,zIndexOffset:1000}).addTo(selLayer);});
   render();fitSheet('full');fit(b,{maxZoom:16});}
-function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length;headDetail(`比較 ${n} 間物件`,'同一套資料與假設（貸 8 成、30 年、目前利率）；綠字是該列最好的',{name:'我的物件',color:'#B06000',icon:categoryIcon('compare')});
+function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=its[0].V.fin,Y=VALDATA.fin.youth_loan;headDetail(`比較 ${n} 間物件`,`同一套資料與假設（貸 8 成、${F0.mode==='youth'?`青安 3.0 ${Y.caps[F0.fam][0]}戶、${F0.years} 年${F0.grace?'、寬限 '+F0.grace+' 年':''}`:F0.years+' 年、目前利率'}）；綠字是該列最好的`,{name:'我的物件',color:'#B06000',icon:categoryIcon('compare')});
   $('resultBtn').innerHTML=`<span>比較 ${n} 間物件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   const val=(fn)=>its.map(x=>{try{return fn(x.V,x.h);}catch(e){return null;}});
   const row=(label,vals,fmt,better)=>{const ok=vals.filter(v=>v!=null&&isFinite(v));const best=better&&ok.length>1?(better==='low'?Math.min(...ok):Math.max(...ok)):null;
@@ -1540,7 +1563,7 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length;hea
     row('估計單價',val(V=>V.est.ok?V.est.q(.5)*(1+V.est.poi):null),v=>v.toFixed(1)+' 萬／坪')+
     row('開價 vs 行情',val((V,hh)=>V.off&&hh.form.ask?+hh.form.ask/V.off.mid-1:null),v=>(v>=0?'+':'−')+Math.abs(v*100).toFixed(0)+'%','low')+
     txt('市場燈號',its.map(x=>`<span class="vdot ${x.V.mk.cls}" style="display:inline-block;margin:0 4px -1px 0"></span>${x.V.mk.label.slice(0,2)}`))+
-    row('每月房貸',val(pay),v=>Math.round(v).toLocaleString('en-US')+' 元','low')+
+    row(F0.mode==='youth'?'每月房貸（第 1 年）':'每月房貸',val(pay),v=>Math.round(v).toLocaleString('en-US')+' 元','low')+
     row('附近月租金',val(rent),v=>Math.round(v).toLocaleString('en-US')+' 元')+
     row('公告土地現值（萬／坪）',val(V=>{const s=landAt(V.pt);return s?wanPing(s.v):null;}),v=>fmtWan(v),null)+
     row('步行到未來捷運站',val(V=>{const f=nearestFuture(V.pt);return f&&f.d<=2500?f.min:null;}),v=>v+' 分','low')+
