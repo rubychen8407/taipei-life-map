@@ -1051,7 +1051,9 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await page.locator('#sfMax').fill('20'); await page.wait_for_timeout(300)
     check(await ev("+document.getElementById('sfMax').value>=+document.getElementById('sfMin').value"), '兩個滑桿不會交叉')
     await page.locator('#sfMax').fill('80'); await page.click('[data-sfby=inner]'); await page.wait_for_timeout(300)
-    check(await ev("saleLayer.getLayers().length===0&&document.getElementById('sfN').innerText==='0/2'"), '改用室內坪數：沒有室內坪資料的房子不顯示')
+    await page.locator('#sfMin').fill('20'); await page.wait_for_timeout(300)
+    inn = await ev("({pins:saleLayer.getLayers().map(m=>m.getElement().innerText),n:document.getElementById('sfN').innerText,est:innerEst(LISTINGS.find(l=>l.price===2688))})")
+    check(len(inn['pins']) == 1 and '2,688' in inn['pins'][0] and inn['n'] == '1/2' and inn['est']['est'] and abs(inn['est']['v'] - 27.76) < 0.01, f"房源表沒有室內坪數時依型態用建坪估算（公寓 30.5 坪→約 27.8 坪），改用室內 20 坪以上仍篩得出來 {inn}")
     await page.locator('#sfMin').fill('0'); await page.click('[data-sfby=ping]'); await page.wait_for_timeout(300)
     check(await ev("!SALEF.min&&!SALEF.max&&saleLayer.getLayers().length===2&&document.getElementById('sfLab').innerText==='不限'"), '滑桿拉回兩端＝不限，全部顯示')
     # 看過／沒看過
