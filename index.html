@@ -341,7 +341,8 @@ html,body{background:#e8eaed}
 .ph-legend,.deal-legend{margin-bottom:var(--navh)}
 #homesPop h3.h2{margin-top:0}
 .sv-embed{margin:4px 0 8px;border-radius:14px;overflow:hidden;background:#e8eaed;aspect-ratio:16/10;position:relative}.sv-embed iframe{width:100%;height:100%;border:0;display:block}.sv-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5F6368;font-size:13px;padding:8px;text-align:center}
-.sp .sv-embed{width:240px;margin-top:8px}.to-set{display:block;width:100%;margin:6px 0 10px;padding:10px 12px;border:0;border-radius:12px;background:var(--bluebg,#E8EEF9);color:var(--D);font-size:13px;font-weight:600;text-align:left}.gm-key{margin:6px 0 10px;font-size:13px;color:#5F6368}.gm-key summary{cursor:pointer;color:var(--D);font-weight:600}.gm-key input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}
+.sp .sv-embed{width:240px;margin-top:8px}.im-line{margin:2px 0}.im-un{margin-top:4px;font-size:12.5px;color:#5F6368}.im-un summary{cursor:pointer;color:var(--D)}.im-un div{padding:2px 0 2px 12px}.im-hunt{margin:6px 0;padding:8px 10px;border-radius:10px;background:#FEF0E1;color:#B06000;font-size:13px}.im-hunt .lnk{border:0;background:none;color:var(--D);font-size:13px;padding:0 0 0 4px;text-decoration:underline}
+.to-set{display:block;width:100%;margin:6px 0 10px;padding:10px 12px;border:0;border-radius:12px;background:var(--bluebg,#E8EEF9);color:var(--D);font-size:13px;font-weight:600;text-align:left}.gm-key{margin:6px 0 10px;font-size:13px;color:#5F6368}.gm-key summary{cursor:pointer;color:var(--D);font-weight:600}.gm-key input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}.hunt-set{margin:6px 0 10px;font-size:13px;color:#5F6368}.hunt-set summary{cursor:pointer;color:var(--D);font-weight:600}.hunt-set input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}
 .sale-sub{margin:0 0 8px;padding:6px 10px;border-radius:12px;background:rgba(120,120,128,.08);display:grid;gap:4px}
 .ss-row{display:flex;align-items:center;gap:8px;justify-content:space-between}.ss-row b{font-size:13px;color:var(--D)}.ss-n{font-size:12px;color:#5F6368;font-variant-numeric:tabular-nums}
 .seg.sm{display:flex;background:rgba(120,120,128,.14);border-radius:9px;padding:2px}.seg.sm button{border:0;background:none;height:24px;padding:0 8px;white-space:nowrap;border-radius:7px;font-size:12.5px;color:var(--ink)}.seg.sm button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600;color:var(--D)}
@@ -1260,7 +1261,7 @@ async function readListingFile(file){if(/\.xlsx?$/i.test(file.name)){const X=awa
     for(const name of wb.SheetNames){if(/說明|已排除|排除/.test(name))continue;all=all.concat(rowsToListings(X.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null})));}return all;}
   return rowsToListings(parseDelim((await file.text()).replace(/^﻿/,'')));}
 async function importListings(list){if(!list.length){toast('找不到「地址」欄，請確認第一列是欄位名稱',true);return;}
-  const n=mergeListings(list);saveListings();state.layers.sale=true;try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}
+  const n=mergeListings(list);LASTIMP={at:Date.now(),add:n,dup:list.length-n};try{localStorage.setItem('tlm.lastimp',JSON.stringify(LASTIMP));}catch(e){}saveListings();state.layers.sale=true;try{localStorage.setItem('tlm.layers',JSON.stringify(state.layers));}catch(e){}
   toast(n?`匯入 ${n} 間${list.length>n?`（${list.length-n} 間重複略過）`:''}，正在依地址定位…`:`這 ${list.length} 間都已經匯入過了（重複略過）`);drawSale(true);geocodeAll(true);if(state.view.type==='export')renderImportStatus();}
 // 房源連結：#import=<base64url(deflate-raw(JSON 列陣列，第一列是欄位名稱))>，由找房 skill 產生
 async function importFromHash(){const m=location.hash.match(/[#&]import=([A-Za-z0-9_-]+)/);if(!m)return;
@@ -1349,11 +1350,16 @@ map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.s
 document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('.leaflet-popup [data-sval]');if(!b)return;ev.preventDefault();{const l=LISTINGS[+b.dataset.sval];if(!l)return;map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
   openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));}});
-function importStatus(){const n=LISTINGS.length,ok=LISTINGS.filter(l=>l.lat).length,road=LISTINGS.filter(l=>l.prec==='road').length,no=LISTINGS.filter(l=>l.prec==='none').length,wait=n-ok-no;
-  return n?`已匯入 <b>${n}</b> 間：地圖上 ${ok} 間${road?`（其中 ${road} 間只定位到路段）`:''}${wait?`，定位中 ${wait} 間…`:''}${no?`，${no} 間找不到位置`:''}`:'還沒有匯入的房源。';}
+let LASTIMP=null;try{LASTIMP=JSON.parse(localStorage.getItem('tlm.lastimp')||'null');}catch(e){}
+function importStatus(){const n=LISTINGS.length;if(!n)return '還沒有匯入的房源。';
+  const ok=LISTINGS.filter(l=>l.lat).length,road=LISTINGS.filter(l=>l.prec==='road').length,no=LISTINGS.filter(l=>l.prec==='none'),wait=n-ok-no.length,li=LASTIMP;
+  return `${li?`<div class="im-line"><b>上次匯入</b>　新增 <b>${li.add}</b> 間${li.dup?`・重複略過 ${li.dup} 間`:''}</div>`:''}`+
+    `<div class="im-line">目前共 <b>${n}</b> 間：地圖上 <b>${ok}</b> 間${road?`（${road} 間只到路段）`:''}${wait?`・定位中 ${wait} 間…`:''}${no.length?`・<span class="bad">找不到位置 ${no.length} 間</span>`:''}</div>`+
+    (no.length?`<details class="im-un"><summary>看找不到位置的 ${no.length} 間</summary>${no.slice(0,30).map(l=>`<div>${esc(l.addr||l.title||'（沒有地址）')}</div>`).join('')}${no.length>30?`<div>…還有 ${no.length-30} 間</div>`:''}</details>`:'');}
 function renderImportStatus(){const e=$('imSt');if(e)e.innerHTML=importStatus();const c=$('imClear');if(c)c.hidden=!LISTINGS.length;}
-function importBox(){return `<div class="im-box"><h3>匯入房源</h3><div class="note" style="margin:0">把 Claude 找好的房源表匯入（CSV、Excel，或直接貼上表格），會依地址放到地圖上，點房子可以連到各房仲網站。</div>
+function importBox(){return `<div class="im-box"><h3>手動匯入</h3>
   <div class="im-row"><label>${categoryIcon('share')}選擇檔案<input type="file" id="imFile" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv"></label><button type="button" class="s" id="imPasteBtn">貼上表格</button></div>
+  <div class="hint" style="margin:6px 0 0">CSV、Excel 或貼上表格；第一列要有「地址」欄</div>
   <div id="imPasteBox" hidden><textarea class="im-paste" id="imPaste" placeholder="從試算表複製（含第一列欄位名稱）後貼在這裡"></textarea><div class="im-row"><button type="button" id="imPasteGo">匯入貼上的內容</button></div></div>
   <div class="im-st" id="imSt">${importStatus()}</div><div class="im-row"><button type="button" class="s" id="imClear" ${LISTINGS.length?'':'hidden'}>清除匯入的房源</button></div></div>`;}
 function bindImport(){$('imFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;busy(true);try{await importListings(await readListingFile(f));}catch(err){toast(/xlsx/.test(err.message)?'讀不到 Excel 檔，請改用 CSV':'檔案讀取失敗',true);}finally{busy(false);e.target.value='';}};
@@ -1401,20 +1407,39 @@ function syncStatus(){if(!SYNC)return '還沒設定。';const m=SYNCMETA,d=t=>ne
   if(!m.n)return '讀取中…';
   return `${esc(SYNC.repo)}：<b>${m.n}</b> 間${m.updated?`（${d(m.updated)} 找的）`:''}${m.nNew?`，新上架 <b>${m.nNew}</b> 間`:''}${m.gone&&m.gone.length?`，已下架 ${m.gone.length} 間：${m.gone.slice(0,3).map(g=>esc(g.addr)).join('、')}${m.gone.length>3?' 等':''}`:''}${m.range?`<br>每週找房範圍：${d(m.range)} 設定`:''}`;}
 function renderSyncStatus(){const e=$('syncSt');if(e)e.innerHTML=syncStatus();const b=$('exRange');if(b)b.disabled=!SYNC||!exSummary().n;}
-function syncBox(){return `<div class="im-box"><h3>私人房源（自動更新）</h3><div class="note" style="margin:0">每週找房的結果存在你的私人 GitHub repo。設定一次 token，之後打開 app 就會自動更新、標出新上架。token 只存在這台裝置。</div>
+function syncBox(){return `<div class="im-box"><h3>私人房源連線</h3><div class="hint" style="margin:0">找房結果存在你的私人 GitHub repo；token 只存在這台裝置。</div>
   ${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div class="im-row"><button type="button" class="s" id="syncNow">立即更新</button><button type="button" class="s" id="syncOff">移除 token</button></div>`
   :`<div class="vform"><label class="wide">Repo<input id="syncRepo" value="rubychen8407/tlm-listings" autocapitalize="off" spellcheck="false"></label><label class="wide">GitHub token<input id="syncTok" type="password" autocomplete="off" placeholder="github_pat_…" spellcheck="false"></label></div>
   <div class="im-row"><button type="button" id="syncGo">儲存並讀取</button></div><div class="im-st" id="syncSt"></div>`}</div>`;}
-function syncMini(){return `<div class="im-box"><h3>私人房源（自動更新）</h3>${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div class="im-row"><button type="button" class="s" id="syncNow">立即更新</button><button type="button" class="s" data-open-settings>連線設定</button></div>`
-  :`<div class="note" style="margin:0">還沒連結私人 repo。到「設定」填 GitHub token 後，每週找房的結果會自動出現在地圖上。</div><div class="im-row"><button type="button" id="toSettings" data-open-settings>到設定連結</button></div><div class="im-st" id="syncSt"></div>`}</div>`;}
-function openSettings(){closePops();if(state.view.type==='settings')return;if(state.view.type!=='list')pushBack();state.view={type:'settings'};drawPins();render();fitSheet('full');}
+let HUNT=null,HWAIT=null,HTIMER=null;try{HUNT=JSON.parse(localStorage.getItem('tlm.hunt')||'null');HWAIT=JSON.parse(localStorage.getItem('tlm.huntwait')||'null');}catch(e){}
+const HUNT_MAX=45*60e3,HUNT_EVERY=30e3;
+function saveHunt(){try{HUNT?localStorage.setItem('tlm.hunt',JSON.stringify(HUNT)):localStorage.removeItem('tlm.hunt');HWAIT?localStorage.setItem('tlm.huntwait',JSON.stringify(HWAIT)):localStorage.removeItem('tlm.huntwait');}catch(e){}}
+function huntStatus(){if(!HWAIT)return '';const m=Math.max(0,Math.round((Date.now()-HWAIT.t)/60000));return `<div class="im-hunt">Claude 找房中…已 ${m} 分鐘，找好會自動放到地圖${HWAIT.url?`　<a href="${esc(HWAIT.url)}" target="_blank" rel="noopener">看進度</a>`:''}　<button type="button" class="lnk" id="huntStop">取消</button></div>`;}
+function renderHunt(){const e=$('huntSt');if(e){e.innerHTML=huntStatus();const b=$('huntStop');if(b)b.onclick=huntStop;}const g=$('huntGo');if(g)g.disabled=!!HWAIT;}
+function huntStop(){HWAIT=null;clearInterval(HTIMER);HTIMER=null;saveHunt();renderHunt();}
+async function huntTick(){if(!HWAIT)return;if(Date.now()-HWAIT.t>HUNT_MAX){huntStop();toast('等了 45 分鐘還沒有新結果，可以稍後按「立即更新」看看',true);return;}
+  await syncListings(false);if(SYNCMETA.updated&&SYNCMETA.updated!==HWAIT.upd){const n=SYNCMETA.n||0,nw=SYNCMETA.nNew||0;huntStop();toast(`找房完成：共 ${n} 間${nw?`，新上架 ${nw} 間`:''}`);}else renderHunt();}
+function huntWatch(){clearInterval(HTIMER);if(!HWAIT)return;HTIMER=setInterval(huntTick,HUNT_EVERY);}
+async function huntNow(){if(!SYNC){toast('先到設定連結私人房源',true);return;}if(HWAIT)return;
+  let url='',ok=false;
+  if(HUNT&&HUNT.url&&HUNT.token){busy(true);try{const r=await fetch(HUNT.url,{method:'POST',headers:{Authorization:'Bearer '+HUNT.token,'anthropic-version':'2023-06-01','anthropic-beta':'experimental-cc-routine-2026-04-01','Content-Type':'application/json'},body:JSON.stringify({text:'手動觸發：現在就找房，找好後更新私人 repo 的 listings.json'})});
+      if(r.ok){ok=true;try{const j=await r.json();url=j.claude_code_session_url||j.session_url||'';}catch(e){}}else toast(r.status===401||r.status===403?'觸發 token 無效或已過期，請到設定重新填':'觸發失敗（'+r.status+'）',true);}
+    catch(e){toast('瀏覽器連不上觸發網址',true);}finally{busy(false);}}
+  if(!ok){try{await navigator.clipboard.writeText('找房');toast('已複製「找房」，貼到和 Claude 的對話，找好會自動放到地圖');}catch(e){toast('到和 Claude 的對話輸入「找房」，找好會自動放到地圖');}}
+  HWAIT={t:Date.now(),upd:SYNCMETA.updated||'',url,via:ok?'api':'chat'};saveHunt();huntWatch();renderHunt();}
+if(HWAIT&&Date.now()-HWAIT.t<HUNT_MAX)huntWatch();else if(HWAIT){HWAIT=null;saveHunt();}
+function syncMini(){return `<div class="im-box"><h3>私人房源</h3>${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div id="huntSt">${huntStatus()}</div><div class="im-row"><button type="button" id="huntGo" ${HWAIT?'disabled':''}>現在找房</button><button type="button" class="s" id="syncNow">立即更新</button></div>`
+  :`<div class="note" style="margin:0">還沒連結私人 repo。</div><div class="im-row"><button type="button" id="toSettings" data-open-settings>到設定連結</button></div><div class="im-st" id="syncSt"></div>`}</div>`;}
+function openSettings(){closePops();if(state.view.type==='settings')return;if(state.view.type!=='list')pushBack();state.view={type:'settings',prefs:exPrefs()};drawPins();render();fitSheet('full');}
 function renderSettings(){headDetail('設定','金鑰和連線只存在這台裝置，不會上傳',{name:'設定',color:'#5F6368',icon:categoryIcon('gear')});
   $('resultBtn').innerHTML=`<span>設定</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  $('body').innerHTML=syncBox()+`<div class="im-box"><h3>Google 街景</h3>${gmKeyBox(true)}</div>`+foot();bindSync();bindGmKey($('body'));}
+  $('body').innerHTML=exSection(state.view)+syncBox()+huntBox()+`<div class="im-box"><h3>Google 街景</h3>${gmKeyBox(true)}</div>`+foot();bindExport(state.view);bindSync();bindGmKey($('body'));}
+function huntBox(){return `<details class="im-box hunt-set"${HUNT?'':''}><summary>手動找房的連線（選用）${HUNT?'：已設定':''}</summary><div class="hint">到 claude.ai/code/routines 開「每日找房」→ 新增 API 觸發 → 產生 token，把網址和 token 貼在這裡，找房頁的「現在找房」就能直接叫 Claude 開始。沒設定時，按「現在找房」會複製「找房」，貼到和 Claude 的對話即可。</div><div class="vform"><label class="wide">觸發網址<input id="huntUrl" value="${esc(HUNT?HUNT.url:'')}" placeholder="https://api.anthropic.com/v1/claude_code/routines/…/fire" autocapitalize="off" spellcheck="false"></label><label class="wide">Token<input id="huntTok" type="password" autocomplete="off" value="${esc(HUNT?HUNT.token:'')}" placeholder="sk-ant-oat01-…" spellcheck="false"></label></div><div class="im-row"><button type="button" id="huntSave">儲存</button>${HUNT?'<button type="button" class="s" id="huntDel">移除</button>':''}</div></details>`;}
 function bindSync(){const go=$('syncGo');if(go)go.onclick=async()=>{const repo=$('syncRepo').value.trim().replace(/^https:\/\/github\.com\//,'').replace(/\/$/,''),token=$('syncTok').value.trim();
     if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||!token){$('syncSt').innerHTML='<span class="bad">請填 repo（帳號/名稱）和 token</span>';return;}
     SYNC={repo,token};SYNCMETA={};saveSync();render();await syncListings(true);};
-  const now=$('syncNow');if(now)now.onclick=()=>syncListings(true);
+  const now=$('syncNow');if(now)now.onclick=()=>syncListings(true);const hg=$('huntGo');if(hg)hg.onclick=huntNow;const hs=$('huntStop');if(hs)hs.onclick=huntStop;
+  const hd=$('huntDel');if(hd)hd.onclick=()=>{HUNT=null;saveHunt();render();toast('已移除手動觸發設定');};const hv=$('huntSave');if(hv)hv.onclick=()=>{const url=$('huntUrl').value.trim(),token=$('huntTok').value.trim();if(!url&&!token){HUNT=null;saveHunt();render();toast('已移除手動觸發設定');return;}if(!/^https:\/\/api\.anthropic\.com\/v1\/claude_code\/routines\/[\w-]+\/fire$/.test(url)||!/^sk-ant-/.test(token)){toast('網址或 token 格式不對',true);return;}HUNT={url,token};saveHunt();render();toast('已存，之後「現在找房」會直接呼叫 Claude');};
   const off=$('syncOff');if(off)off.onclick=()=>{SYNC=null;SYNCMETA={};LISTINGS=LISTINGS.filter(l=>!l.sync);saveListings();saveSync();drawSale();render();toast('已移除 token 和私人房源');};}
 function exPrefs(){let p={};try{p=JSON.parse(localStorage.getItem('tlm.export')||'{}');}catch(e){}return Object.assign({lo:2000,hi:3000,types:[0,1,2],note:'',geo:true},p);}
 function exSave(p){try{localStorage.setItem('tlm.export',JSON.stringify(p));}catch(e){}}
@@ -1446,24 +1471,25 @@ function exGeoAll(){const polys=[];for(const z of state.zones||[]){const r=zoneR
   return {type:'Feature',properties:{name:'符合條件的範圍'},geometry:{type:'MultiPolygon',coordinates:polys}};}
 function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:0};
   const types=p.types.map(i=>EX_TYPES[i]).join('、')||'不限';
-  let t=`請幫我找下面範圍內現在在賣的中古屋（591、信義、永慶、樂屋、住商），列出開價、坪數、單價、樓層、屋齡與連結，並和附近實價登錄比較。範圍在最後的 GeoJSON（經度,緯度），請只列出地址落在範圍內的物件，範圍外但很接近的另外標註。\n`;
+  let t=`請幫我找下面範圍內現在在賣的中古屋（信義、永慶、樂屋、住商、中信、台灣房屋），列出開價、坪數、單價、樓層、屋齡與連結，並和附近實價登錄比較。範圍在最後的 GeoJSON（經度,緯度），請只列出地址落在範圍內的物件，範圍外但很接近的另外標註。\n`;
   t+=`\n房子條件：總價 ${(+p.lo).toLocaleString()}～${(+p.hi).toLocaleString()} 萬；型態：${types}${p.note?`；備註：${p.note}`:''}\n`;
   t+=`生活機能條件：${exCriteria()}\n`;
   t+=`範圍：${S.n} 塊，共約 ${Math.round(S.ha)} 公頃，涵蓋 ${S.dists.join('、')}\n`;
   if(S.st.length)t+=`範圍內／旁的捷運站：${S.st.join('、')}\n`;
   t+=`\n範圍（GeoJSON）：\n${JSON.stringify(exGeoAll())}\n`;
   t+=`\n（從臺北生活圈地圖匯出・${new Date().toLocaleDateString('sv')}）`;return {t,n:S.n};}
-function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export',prefs:exPrefs()};render();fitSheet('full');}
-function renderExport(){const v=state.view,p=v.prefs,S=exSummary();headDetail('找房','匯入 Claude 找好的房源放到地圖上；或設定想要的房子，一次匯出全部符合條件的範圍給 Claude',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
-  $('resultBtn').innerHTML=`<span>匯出找房條件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  let h=syncMini()+importBox()+`<h3 style="margin:4px 0 8px;font-size:14px">匯出範圍給 Claude 找房</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
+function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export'};render();fitSheet('full');}
+function renderExport(){headDetail('找房','把房源放到地圖上',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
+  $('resultBtn').innerHTML=`<span>找房</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+  $('body').innerHTML=syncMini()+importBox()+`<button type="button" class="to-set" data-open-settings>找房條件、範圍與連線：到「設定」 ›</button>`+foot();bindImport();bindSync();renderHunt();}
+function exSection(v){const p=v.prefs,S=exSummary();
+  return `<div class="im-box"><h3>找房條件</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
     <label class="wide">備註（可不填）<input data-exp="note" placeholder="例如：3 房、2 樓以上、有電梯" value="${esc(p.note)}"></label></div>
-    <div class="ex-sum" id="exSum">${S.n?`會一起匯出：地圖上符合條件的範圍 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），和你的生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離再匯出。'}</div>
-    <div class="ex-btns"><button type="button" class="p" id="exShare" ${S.n?'':'disabled'}>分享</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button><button type="button" class="s" id="exRange" ${S.n&&SYNC?'':'disabled'}>設為每週找房範圍</button></div>
-    <details class="ex-det"><summary>預覽匯出內容</summary><div class="ex-pre" id="exPre"></div></details>
-    <div class="note">分享時選 Claude App，或複製後貼到和 Claude 的對話。「設為每週找房範圍」會存進私人 repo，每週自動找房就用這個範圍。房子條件會記在這台裝置，下次沿用。</div>`;
-  $('body').innerHTML=h;bindImport();bindSync();if($('exRange'))$('exRange').onclick=saveRange;
+    <div class="ex-sum" id="exSum">${S.n?`範圍：地圖上符合條件的 <b>${S.n} 塊、約 ${Math.round(S.ha)} 公頃</b>（${esc(S.dists.slice(0,4).join('、'))}${S.dists.length>4?' 等':''}），連同生活機能條件`:'目前地圖上沒有符合所有條件的範圍。先調整類別與距離。'}</div>
+    <div class="ex-btns"><button type="button" class="s" id="exRange" ${S.n&&SYNC?'':'disabled'}>設為每週找房範圍</button><button type="button" class="s" id="exCopy" ${S.n?'':'disabled'}>複製</button><button type="button" class="s" id="exShare" ${S.n?'':'disabled'}>分享</button></div>
+    <details class="ex-det"><summary>預覽給 Claude 的內容</summary><div class="ex-pre" id="exPre"></div></details></div>`;}
+function bindExport(v){if($('exRange'))$('exRange').onclick=saveRange;
   const upd=()=>{exSave(v.prefs);};
   $('body').querySelector('.ex-det').ontoggle=e=>{if(e.target.open)$('exPre').textContent=exText().t;};
   $('body').querySelectorAll('[data-exp]').forEach(el=>el.oninput=()=>{v.prefs[el.dataset.exp]=el.value.trim();upd();});
