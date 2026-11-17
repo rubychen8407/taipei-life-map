@@ -681,6 +681,18 @@ async def baked_suite(b, errs):
     await shot(page, '8m_land_pop'); await ev("void map.closePopup()")
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=heat]')
     check(await ev("state.layers.heat&&!state.layers.land&&!landLayer&&document.getElementById('landLegend').hidden"), '再開生活機能熱圖：土地價值自動關閉、圖例隱藏')
+    # 都市更新地區：勾選才下載、依類型上色、點範圍看說明
+    check('urban.json' not in data_hits and await ev("!state.layers.urban&&!!document.querySelector('#layersPop [data-layer=urban]')"), '圖層「房市」有「都市更新地區」，預設關閉、還沒下載')
+    await page.click('#layersPop [data-layer=urban]'); await page.wait_for_function("!!urbanLayer&&urbanLayer.getLayers().length>0", timeout=5000)
+    ur = await ev("({n:urbanLayer.getLayers().length,cols:[...new Set(urbanLayer.getLayers().map(l=>l.options.color))].length,heat:state.layers.heat})")
+    check('urban.json' in data_hits and ur['n'] == 6 and ur['cols'] == 4, f"打開都市更新地區：這時才下載，6 處依政府劃定／自行劃定／海砂屋／其他用不同顏色 {ur}")
+    await page.click('#layersBtn'); await ev("void map.setView([25.0405,121.5435],16,{animate:false})"); await page.wait_for_timeout(300)
+    await ev("(()=>{const l=urbanLayer.getLayers()[0];l.fire('click',{latlng:l.getBounds().getCenter()})})()"); await page.wait_for_timeout(250)
+    pop = await ev("document.querySelector('.leaflet-popup-content')?.innerText||''")
+    check('政府劃定更新地區' in pop and '89年' in pop and '公頃' in pop and '不代表已有都更案' in pop, f"點範圍：類型、公告、面積，並說明劃定不等於已有都更案（{pop[:60]}）")
+    await shot(page, '8m2_urban'); await ev("void map.closePopup()")
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=urban]')
+    check(await ev("!state.layers.urban&&!urbanLayer"), '再點一次關閉都市更新地區')
     await page.click('#layersPop [data-layer=heat]')
     await page.click('#layersPop [data-group="0"]')
     await page.click('#layersBtn')
@@ -1350,6 +1362,8 @@ async def main():
                 import build_land as BL, land_mock as LM
                 _shp, _dbf = LM.shp_dbf()
                 MODE['land'] = BL.build(BL.read_shp(_shp, _dbf), BL.read_values(LM.values_csv()), 113, BL.read_rates(LM.rates_csv()), BL.read_public(LM.public_csv()), DATA_DIR, built='2026-11-16', min_sections=3, log=lambda *a: None)
+                import build_urban as BU, urban_mock as UM
+                MODE['urban'] = BU.build(UM.mock(), DATA_DIR, built='2026-11-17', min_areas=3, log=lambda *a: None)
                 import build_market as BMK, market_mock as MKM
                 from datetime import date as _date
                 MODE['market'] = BMK.build(MKM.src(), DATA_DIR, built='2026-11-16', today=_date(*MKM.TODAY), log=lambda *a: None)
