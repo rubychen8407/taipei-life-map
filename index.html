@@ -209,6 +209,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .frow{display:flex;align-items:center;gap:4px;border-radius:14px;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1)}.frow[aria-current=true]{box-shadow:inset 0 0 0 1.5px var(--D)}
 .frow .fapply{flex:1;min-width:0;min-height:52px;border:0;background:none;text-align:left;padding:8px 4px 8px 12px;color:var(--ink)}.frow .fapply b{display:block;font-size:14px;font-weight:600}.frow .fapply span{display:block;font-size:11.5px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .frow .fren{flex:none;width:36px;height:44px;border:0;background:none;color:#80868b;font-size:15px}.frow .fname{flex:1;min-width:0;height:36px;margin:4px 0 4px 8px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}.frow .fok{flex:none;height:36px;margin:4px;border:0;border-radius:10px;background:var(--D);color:#fff;font-weight:700;padding:0 12px}
+.hst-tabs{display:flex;gap:4px;background:#f1f3f4;border-radius:12px;padding:3px}.hst-tabs button{flex:1;height:34px;border:0;border-radius:9px;background:none;font-size:12.5px;font-weight:500;color:var(--sub);white-space:nowrap}.hst-tabs button small{margin-left:3px;font-size:11px;opacity:.7}.hst-tabs button[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.frow.hrow .fchk{width:36px}.frow.hrow .fdel{width:32px}.hmain{flex:1;min-width:0;padding:8px 2px}.hmain .hname{display:block;font-size:14px;font-weight:600;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px dashed transparent}.hmain .hname:hover{border-bottom-color:#9aa0a6}.hmain span{display:block;font-size:11.5px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.hname-in{width:100%;box-sizing:border-box;height:32px;border:1px solid var(--D);border-radius:8px;padding:0 8px;font-size:15px;font-weight:600}
+.hst{flex:none;height:28px;border-radius:14px;border:0;padding:0 6px;font-size:12px;font-weight:600;-webkit-appearance:none;appearance:none;text-align:center}.hst.st-todo{background:#f1f3f4;color:#5F6368}.hst.st-seen{background:#E8EEF9;color:#123B8A}.hst.st-nego{background:#FEF0E1;color:#B06000}.hrow .hopen{flex:none;width:30px;height:44px;border:0;background:none;color:#5F6368;font-size:20px}
+.home-pin.st-seen span{border-color:#123B8A}.home-pin.st-seen svg{fill:#123B8A;stroke:#123B8A}.home-pin.st-nego span{border-color:#F7931E}.home-pin.st-nego svg{fill:#F7931E;stroke:#F7931E}
 .frow .fdel{flex:none;width:44px;height:44px;border:0;background:none;color:#80868b;font-size:14px}
 .fsave{display:flex;gap:6px}.fsave input{flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid var(--line);padding:0 10px;font-size:16px;background:#fff}.fsave button{flex:none;height:40px;padding:0 14px;border-radius:12px;border:0;background:var(--A);color:#fff;font-weight:600;font-size:14px}
 .lgroup-h{display:flex;align-items:center;justify-content:space-between;margin:2px 2px -4px;font-size:12px;font-weight:600}
@@ -1201,7 +1205,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   $('valEdit').onclick=()=>{V.est=null;drawVal();render();fitSheet('full');};
   if($('valSave'))$('valSave').onclick=()=>{let a=loadHomes();const i=a.findIndex(x=>x.id===V.homeId);
     if(i>=0&&sameHome(a[i],V)){a.splice(i,1);saveHomes(a);toast('已從我的物件移除');}
-    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=10){toast('我的物件最多 10 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側星號「我的物件」按鈕裡可以比較');}saveHomes(a);}
+    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;rec.st=a[i].st||'todo';a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=10){toast('我的物件最多 10 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側星號「我的物件」按鈕裡可以比較');}saveHomes(a);}
     drawHomes();render();};
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
@@ -1543,20 +1547,31 @@ function loadHomes(){try{return JSON.parse(localStorage.getItem('tlm.homes')||'[
 function saveHomes(a){try{localStorage.setItem('tlm.homes',JSON.stringify(a));}catch(e){}}
 function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno};}
 function sameHome(h,V){return JSON.stringify(h.form)===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
-function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null};}
+function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),st:'todo',saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null};}
 function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:finInit()};
   V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:V.form.t,ping:V.form.ping,age:V.form.age,fl:V.form.fl,tot:V.form.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;return V;}
 async function openHome(h){busy(true);try{await loadVal();}catch(e){busy(false);toast('估價資料還沒建好，暫時無法使用',true);return;}busy(false);
   closePops();closeDetail(true);state.val=Object.assign(homeVal(h),{homeId:h.id,tab:'price'});state.view={type:'val'};drawPins();runVal();}
 function drawHomes(){homeLayer.clearLayers();if(!state.layers.homes||state.transit||state.drawing||state.editing)return;
-  loadHomes().forEach(h=>L.marker(h.pt,{icon:L.divIcon({className:'home-pin',html:'<span>'+categoryIcon('star')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:h.name,zIndexOffset:800,bubblingMouseEvents:false}).on('click',()=>{if(!state.drawing&&!state.editing)openHome(h);}).addTo(homeLayer));}
+  loadHomes().forEach(h=>L.marker(h.pt,{icon:L.divIcon({className:'home-pin st-'+(h.st||'todo'),html:'<span>'+categoryIcon('star')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:h.name,zIndexOffset:800,bubblingMouseEvents:false}).on('click',()=>{if(!state.drawing&&!state.editing)openHome(h);}).addTo(homeLayer));}
 let cmpSel=[];
 function renderHomesPop(){const el=$('homesPop');el.innerHTML=homesHTML();bindHomes(el);}
-function homesHTML(){const a=loadHomes();cmpSel=cmpSel.filter(id=>a.some(h=>h.id===id));
-  return `<h3 class="h2">我的物件</h3><div class="hint">${a.length?'點名稱重新打開；勾 2～3 間可以並排比較':'估價後按「儲存物件」，就會出現在這裡'}</div>`+
-    a.map(h=>`<div class="frow"><button type="button" class="fchk" data-hsel="${h.id}" aria-pressed="${cmpSel.includes(h.id)}" aria-label="選取「${esc(h.name)}」比較"><i></i></button><button type="button" class="fapply" data-home="${h.id}"><b>${esc(h.name)}</b><span>${h.form.ask?'開價 '+wan(+h.form.ask)+'・':''}${h.mid?'合理 '+wan(h.mid)+'・':''}存於 ${h.saved}</span></button><button type="button" class="fdel" data-hdel="${h.id}" aria-label="刪除「${esc(h.name)}」">✕</button></div>`).join('')+
+const HOME_ST=[['todo','未看房'],['seen','已看房'],['nego','議價中']],stName=k=>(HOME_ST.find(x=>x[0]===k)||HOME_ST[0])[1];let homeFil='all';
+function homesHTML(){const a=loadHomes();cmpSel=cmpSel.filter(id=>a.some(h=>h.id===id));const cnt=k=>a.filter(h=>(h.st||'todo')===k).length,shown=a.filter(h=>homeFil==='all'||(h.st||'todo')===homeFil);
+  return `<h3 class="h2">我的物件</h3><div class="hint">${a.length?'點名稱可以改名，點 › 打開；勾 2～3 間可以並排比較':'估價後按「儲存物件」，就會出現在這裡'}</div>`+
+    (a.length?`<div class="hst-tabs" role="group" aria-label="依狀態篩選">${[['all','全部',a.length],...HOME_ST.map(([k,n])=>[k,n,cnt(k)])].map(([k,n,c])=>`<button type="button" data-hfil="${k}" aria-pressed="${homeFil===k}">${n}<small>${c}</small></button>`).join('')}</div>`:'')+
+    shown.map(h=>{const st=h.st||'todo';return `<div class="frow hrow" data-st="${st}"><button type="button" class="fchk" data-hsel="${h.id}" aria-pressed="${cmpSel.includes(h.id)}" aria-label="選取「${esc(h.name)}」比較"><i></i></button><div class="hmain"><b class="hname" role="button" tabindex="0" data-hren="${h.id}" title="點一下改名">${esc(h.name)}</b><span data-hmeta="${h.id}">${h.form.ask?'開價 '+wan(+h.form.ask)+'・':''}${h.mid?'合理 '+wan(h.mid)+'・':''}存於 ${h.saved}</span></div><select class="hst st-${st}" data-hst="${h.id}" aria-label="「${esc(h.name)}」的狀態">${HOME_ST.map(([k,n])=>`<option value="${k}"${k===st?' selected':''}>${n}</option>`).join('')}</select><button type="button" class="hopen" data-home="${h.id}" aria-label="打開「${esc(h.name)}」">›</button><button type="button" class="fdel" data-hdel="${h.id}" aria-label="刪除「${esc(h.name)}」">✕</button></div>`;}).join('')+
+    (a.length&&!shown.length?`<div class="hint" id="homesEmpty">沒有「${stName(homeFil)}」的物件</div>`:'')+
     (a.length>=2?`<button type="button" class="fcmp" id="homeCmp" ${cmpSel.length>=2?'':'disabled'}>${cmpSel.length>=2?'並排比較 '+cmpSel.length+' 間':'勾選 2～3 間來比較'}</button>`:'');}
-function bindHomes(el){el.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>{const h=loadHomes().find(x=>x.id===b.dataset.home);if(h)openHome(h);});
+function setHome(id,fn){const a=loadHomes(),h=a.find(x=>x.id===id);if(!h)return null;fn(h);saveHomes(a);return h;}
+function bindHomes(el){const open=id=>{const h=loadHomes().find(x=>x.id===id);if(h)openHome(h);};
+  el.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>open(b.dataset.home));el.querySelectorAll('[data-hmeta]').forEach(b=>b.onclick=()=>open(b.dataset.hmeta));
+  el.querySelectorAll('[data-hfil]').forEach(b=>b.onclick=()=>{homeFil=b.dataset.hfil;renderHomesPop();});
+  el.querySelectorAll('[data-hst]').forEach(sel=>sel.onchange=()=>{const h=setHome(sel.dataset.hst,h=>h.st=sel.value);drawHomes();renderHomesPop();if(h)toast('「'+h.name+'」改為'+stName(h.st));});
+  el.querySelectorAll('[data-hren]').forEach(b=>{const go=()=>{const id=b.dataset.hren,old=b.textContent;b.outerHTML=`<input class="hname-in" maxlength="20" value="${esc(old)}" aria-label="新名稱">`;const inp=el.querySelector('.hname-in');inp.focus();inp.select();
+      let done=false;const fin=save=>{if(done)return;done=true;const v=inp.value.trim();if(save&&v&&v!==old){setHome(id,h=>h.name=v);drawHomes();toast('已改名為「'+v+'」');}renderHomesPop();};
+      inp.onkeydown=e=>{if(e.key==='Enter')fin(true);if(e.key==='Escape')fin(false);};inp.onblur=()=>fin(true);};
+    b.onclick=go;b.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}};});
   el.querySelectorAll('[data-hdel]').forEach(b=>b.onclick=()=>{const a=loadHomes(),i=a.findIndex(x=>x.id===b.dataset.hdel),[d]=a.splice(i,1);saveHomes(a);drawHomes();renderHomesPop();toast('已刪除「'+d.name+'」');});
   el.querySelectorAll('[data-hsel]').forEach(b=>b.onclick=()=>{const id=b.dataset.hsel;if(cmpSel.includes(id))cmpSel=cmpSel.filter(x=>x!==id);else{if(cmpSel.length>=3){toast('一次最多比較 3 間');return;}cmpSel.push(id);}renderHomesPop();});
   const c=el.querySelector('#homeCmp');if(c)c.onclick=()=>openCmp(cmpSel.slice());}
@@ -1573,6 +1588,7 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=
   const txt=(label,vals)=>`<tr><td>${label}</td>${vals.map(v=>`<td>${v}</td>`).join('')}</tr>`;
   const pay=V=>V.off?valLoan(V,V.off.out[1]).pay:null,rent=V=>{const r=V.est.ok?valRent(V):null;return r?r.rent:null;};
   let h=`<table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
+    txt('狀態',its.map(x=>stName(x.h.st||'todo')))+
     txt('條件',its.map(x=>`${T[x.h.form.t]}<small>屋齡 ${x.h.form.age} 年・${x.h.form.fl}/${x.h.form.tot} 樓</small>`))+
     row('開價',val((V,hh)=>hh.form.ask?+hh.form.ask:null),wan)+
     row('合理出價',val(V=>V.off?V.off.out[1]:null),wan)+
