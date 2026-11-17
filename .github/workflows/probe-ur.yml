@@ -7,16 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          S=https://www.historygis.udd.gov.taipei/arcgis/rest/services/UrbanPlan2/PlanTheme/MapServer
-          curl -sS -m 60 "$S?f=json" | python3 -c "import sys,json;d=json.load(sys.stdin);print([(l['id'],l['name']) for l in d['layers']])"
-          curl -sS -m 60 "$S/0?f=json" | python3 -c "import sys,json;d=json.load(sys.stdin);print('fields',[(f['name'],f.get('alias')) for f in d.get('fields',[])]);print('maxRecord',d.get('maxRecordCount'),'geom',d.get('geometryType'),'desc',(d.get('description') or '')[:300])"
-          curl -sS -m 60 "$S/0/query?where=1%3D1&returnCountOnly=true&f=json"; echo
-          curl -sS -m 120 "$S/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson" -o ur.geojson; ls -la ur.geojson
-          python3 - <<'PY'
-          import json,collections
-          d=json.load(open('ur.geojson')); fs=d.get('features',[]); print('features',len(fs), d.get('exceededTransferLimit'))
-          for f in fs[:6]: print(json.dumps(f['properties'],ensure_ascii=False)[:400])
-          for k in (fs[0]['properties'] if fs else {}):
-            c=collections.Counter(str(f['properties'].get(k))[:30] for f in fs)
-            if len(c)<40: print(k, c.most_common(12))
-          PY
+          UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130 Safari/537.36'
+          for u in https://gis.uro.taipei/Main.aspx https://gis.uro.taipei/ua_frmEasyQuery.aspx https://bim.udd.gov.taipei/UDDPlanMap/; do
+            echo "=== $u"; curl -sSL -A "$UA" -m 40 "$u" -o p.html -w "%{http_code} %{size_download}\n" || true
+            grep -oiE '(https?:)?//[a-z0-9./_-]*(arcgis|MapServer|FeatureServer|wms|geojson|api)[a-z0-9./_?=&%-]*' p.html | sort -u | head -30
+            for js in $(grep -oE 'src="[^"]+\.js[^"]*"' p.html | sed 's/src="//;s/"$//' | grep -v 'jquery\|bootstrap\|cdn' | head -12); do
+              case "$js" in http*) url=$js;; //*) url=https:$js;; /*) url=$(echo $u | cut -d/ -f1-3)$js;; *) url=$(dirname $u)/$js;; esac
+              curl -sSL -A "$UA" -m 40 "$url" | grep -oiE '(https?:)?//[a-z0-9./_-]*(arcgis|MapServer|FeatureServer|wms|geojson)[a-z0-9./_?=&%-]*|["'"'"'][^"'"'"']*(更新單元|更新地區|MapServer|FeatureServer|ashx|asmx|api/)[^"'"'"']*["'"'"']' | sort -u | head -15 | sed "s|^|  [$js] |"
+            done
+          done
+          B=https://www.historygis.udd.gov.taipei/arcgis/rest/services
+          for s in UrbanPlan2/PlanTheme Urban/CP Urban_97/CP; do curl -sS -m 30 "$B/$s/MapServer?f=json" | head -c 300; echo; done
+          curl -sS -m 60 "$B/UrbanPlan2/PlanTheme/MapServer/0/query?where=PLANDES+like+%27%25%E9%AB%98%E6%B0%AF%25%27&outFields=PLANDES,PLANDATE,PLANLEV&returnGeometry=false&f=json" | head -c 1500; echo
