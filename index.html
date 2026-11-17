@@ -342,6 +342,14 @@ html,body{background:#e8eaed}
 #homesPop h3.h2{margin-top:0}
 .sv-embed{margin:4px 0 8px;border-radius:14px;overflow:hidden;background:#e8eaed;aspect-ratio:16/10;position:relative}.sv-embed iframe{width:100%;height:100%;border:0;display:block}.sv-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5F6368;font-size:13px;padding:8px;text-align:center}
 .sp .sv-embed{width:240px;margin-top:8px}.im-line{margin:2px 0}.im-un{margin-top:4px;font-size:12.5px;color:#5F6368}.im-un summary{cursor:pointer;color:var(--D)}.im-un div{padding:2px 0 2px 12px}.im-hunt{margin:6px 0;padding:8px 10px;border-radius:10px;background:#FEF0E1;color:#B06000;font-size:13px}.im-hunt .lnk{border:0;background:none;color:var(--D);font-size:13px;padding:0 0 0 4px;text-decoration:underline}
+.hk-card{background:#F6F8FC;border-radius:16px;padding:14px 14px 12px;margin:4px 0 12px}.hk-top{display:flex;align-items:center;gap:8px;min-height:40px}.hk-top>div{flex:1;min-width:0}.hk-n{font-size:26px;font-weight:700;color:var(--D);letter-spacing:-.5px}.hk-sub{font-size:13px;color:#5F6368}
+.hk-ic{flex:none;width:40px;height:40px;border:0;border-radius:20px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.15);display:grid;place-items:center}.hk-ic svg{width:20px;height:20px;fill:none;stroke:var(--D);stroke-width:2;stroke-linecap:round}
+.hk-go{display:block;width:100%;height:46px;margin-top:10px;border:0;border-radius:23px;background:var(--D);color:#fff;font-size:15px;font-weight:600}.hk-link{flex:none;border:0;background:none;color:var(--D);font-size:14px;font-weight:600}
+.im-hunt{display:flex;align-items:center;gap:8px;margin-top:10px;padding:0 6px 0 14px;height:46px;border-radius:23px;background:#FEF0E1;color:#B06000;font-size:14px;font-weight:600}.im-hunt span{flex:1}.im-hunt a{color:#B06000;font-size:13px}.im-hunt .lnk{border:0;background:none;color:#5F6368;font-size:13px;font-weight:500;padding:0 8px}
+.hk-spin{flex:none;width:14px;height:14px;border:2px solid #F7C99A;border-top-color:#B06000;border-radius:50%;animation:hkspin 1s linear infinite}@keyframes hkspin{to{transform:rotate(360deg)}}
+.hk-imp{display:flex;align-items:center;gap:8px;padding:4px 2px}.hk-lbl{flex:1;font-size:14px;font-weight:600}.hk-chip{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 14px;border:1px solid var(--line);border-radius:17px;background:#fff;color:var(--D);font-size:13px;font-weight:600;cursor:pointer}.hk-chip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.hk-go[hidden]{display:none}.hk-chip input{display:none}
+.hk-st{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:2px 2px 0;font-size:12.5px;color:#5F6368}.hk-st:empty{display:none}.hk-st .lnk{border:0;background:none;color:#5F6368;font-size:12.5px;padding:0;text-decoration:underline}.hk-st .im-un{width:100%;margin:0}
+.hk-more{display:block;margin:14px auto 4px;border:0;background:none;color:#5F6368;font-size:13px}
 .to-set{display:block;width:100%;margin:6px 0 10px;padding:10px 12px;border:0;border-radius:12px;background:var(--bluebg,#E8EEF9);color:var(--D);font-size:13px;font-weight:600;text-align:left}.gm-key{margin:6px 0 10px;font-size:13px;color:#5F6368}.gm-key summary{cursor:pointer;color:var(--D);font-weight:600}.gm-key input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}.hunt-set{margin:6px 0 10px;font-size:13px;color:#5F6368}.hunt-set summary{cursor:pointer;color:var(--D);font-weight:600}.hunt-set input{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:15px}
 .sale-sub{margin:0 0 8px;padding:6px 10px;border-radius:12px;background:rgba(120,120,128,.08);display:grid;gap:4px}
 .ss-row{display:flex;align-items:center;gap:8px;justify-content:space-between}.ss-row b{font-size:13px;color:var(--D)}.ss-n{font-size:12px;color:#5F6368;font-variant-numeric:tabular-nums}
@@ -1351,21 +1359,18 @@ document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.targe
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
   openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}));}});
 let LASTIMP=null;try{LASTIMP=JSON.parse(localStorage.getItem('tlm.lastimp')||'null');}catch(e){}
-function importStatus(){const n=LISTINGS.length;if(!n)return '還沒有匯入的房源。';
-  const ok=LISTINGS.filter(l=>l.lat).length,road=LISTINGS.filter(l=>l.prec==='road').length,no=LISTINGS.filter(l=>l.prec==='none'),wait=n-ok-no.length,li=LASTIMP;
-  return `${li?`<div class="im-line"><b>上次匯入</b>　新增 <b>${li.add}</b> 間${li.dup?`・重複略過 ${li.dup} 間`:''}</div>`:''}`+
-    `<div class="im-line">目前共 <b>${n}</b> 間：地圖上 <b>${ok}</b> 間${road?`（${road} 間只到路段）`:''}${wait?`・定位中 ${wait} 間…`:''}${no.length?`・<span class="bad">找不到位置 ${no.length} 間</span>`:''}</div>`+
-    (no.length?`<details class="im-un"><summary>看找不到位置的 ${no.length} 間</summary>${no.slice(0,30).map(l=>`<div>${esc(l.addr||l.title||'（沒有地址）')}</div>`).join('')}${no.length>30?`<div>…還有 ${no.length-30} 間</div>`:''}</details>`:'');}
-function renderImportStatus(){const e=$('imSt');if(e)e.innerHTML=importStatus();const c=$('imClear');if(c)c.hidden=!LISTINGS.length;}
-function importBox(){return `<div class="im-box"><h3>手動匯入</h3>
-  <div class="im-row"><label>${categoryIcon('share')}選擇檔案<input type="file" id="imFile" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv"></label><button type="button" class="s" id="imPasteBtn">貼上表格</button></div>
-  <div class="hint" style="margin:6px 0 0">CSV、Excel 或貼上表格；第一列要有「地址」欄</div>
-  <div id="imPasteBox" hidden><textarea class="im-paste" id="imPaste" placeholder="從試算表複製（含第一列欄位名稱）後貼在這裡"></textarea><div class="im-row"><button type="button" id="imPasteGo">匯入貼上的內容</button></div></div>
-  <div class="im-st" id="imSt">${importStatus()}</div><div class="im-row"><button type="button" class="s" id="imClear" ${LISTINGS.length?'':'hidden'}>清除匯入的房源</button></div></div>`;}
+function importStatus(){const M=LISTINGS.filter(l=>!l.sync),n=M.length;if(!n)return '';
+  const no=M.filter(l=>l.prec==='none'),wait=M.filter(l=>!l.lat&&l.prec!=='none').length;
+  return `<span>已匯入 <b>${n}</b> 間${wait?`・定位中 ${wait}`:''}</span>${no.length?`<details class="im-un"><summary>${no.length} 間找不到位置</summary>${no.slice(0,30).map(l=>`<div>${esc(l.addr||l.title||'（沒有地址）')}</div>`).join('')}${no.length>30?`<div>…還有 ${no.length-30} 間</div>`:''}</details>`:''}<button type="button" class="lnk" id="imClear">清除</button>`;}
+function renderImportStatus(){const e=$('imSt');if(e){e.innerHTML=importStatus();const c=$('imClear');if(c)c.onclick=imClear;}}
+function importBox(){return `<div class="hk-imp"><span class="hk-lbl">手動匯入</span><label class="hk-chip">${categoryIcon('share')}檔案<input type="file" id="imFile" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv"></label><button type="button" class="hk-chip" id="imPasteBtn">貼上</button></div>
+  <div id="imPasteBox" hidden><textarea class="im-paste" id="imPaste" placeholder="從試算表複製，含第一列欄位名稱（要有「地址」欄）"></textarea><div class="im-row"><button type="button" id="imPasteGo">匯入</button></div></div>
+  <div class="hk-st" id="imSt">${importStatus()}</div>`;}
 function bindImport(){$('imFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;busy(true);try{await importListings(await readListingFile(f));}catch(err){toast(/xlsx/.test(err.message)?'讀不到 Excel 檔，請改用 CSV':'檔案讀取失敗',true);}finally{busy(false);e.target.value='';}};
   $('imPasteBtn').onclick=()=>{$('imPasteBox').hidden=!$('imPasteBox').hidden;if(!$('imPasteBox').hidden)$('imPaste').focus();};
   $('imPasteGo').onclick=()=>{const t=$('imPaste').value.trim();if(!t)return;importListings(rowsToListings(parseDelim(t)));$('imPaste').value='';$('imPasteBox').hidden=true;};
-  $('imClear').onclick=()=>{const s=LISTINGS.some(l=>l.sync);LISTINGS=LISTINGS.filter(l=>l.sync);saveListings();drawSale();renderImportStatus();toast(s?'已清除手動匯入的房源（私人房源保留）':'已清除匯入的房源');};}
+  const c=$('imClear');if(c)c.onclick=imClear;}
+const imClear=()=>{const s=LISTINGS.some(l=>l.sync);LISTINGS=LISTINGS.filter(l=>l.sync);saveListings();drawSale();renderImportStatus();toast(s?'已清除手動匯入的房源（私人房源保留）':'已清除匯入的房源');};;
 // 私人房源：每週找房寫進使用者的私人 repo（listings.json），app 用存在這台裝置的 token 讀取；找房範圍寫回 range.json
 const GH_API='https://api.github.com';
 let SYNC=null,SYNCMETA={};try{SYNC=JSON.parse(localStorage.getItem('tlm.sync')||'null');SYNCMETA=JSON.parse(localStorage.getItem('tlm.syncmeta')||'{}');}catch(e){}
@@ -1406,7 +1411,7 @@ function syncStatus(){if(!SYNC)return '還沒設定。';const m=SYNCMETA,d=t=>ne
   if(m.err)return `<span class="bad">${esc(m.err)}</span>`;if(m.empty)return `已連到 ${esc(SYNC.repo)}，還沒有找房結果（每週找房後會出現）。`;
   if(!m.n)return '讀取中…';
   return `${esc(SYNC.repo)}：<b>${m.n}</b> 間${m.updated?`（${d(m.updated)} 找的）`:''}${m.nNew?`，新上架 <b>${m.nNew}</b> 間`:''}${m.gone&&m.gone.length?`，已下架 ${m.gone.length} 間：${m.gone.slice(0,3).map(g=>esc(g.addr)).join('、')}${m.gone.length>3?' 等':''}`:''}${m.range?`<br>每週找房範圍：${d(m.range)} 設定`:''}`;}
-function renderSyncStatus(){const e=$('syncSt');if(e)e.innerHTML=syncStatus();const b=$('exRange');if(b)b.disabled=!SYNC||!exSummary().n;}
+function renderSyncStatus(){const e=$('syncSt');if(e)e.innerHTML=state.view.type==='export'?syncShort():syncStatus();const b=$('exRange');if(b)b.disabled=!SYNC||!exSummary().n;}
 function syncBox(){return `<div class="im-box"><h3>私人房源連線</h3><div class="hint" style="margin:0">找房結果存在你的私人 GitHub repo；token 只存在這台裝置。</div>
   ${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div class="im-row"><button type="button" class="s" id="syncNow">立即更新</button><button type="button" class="s" id="syncOff">移除 token</button></div>`
   :`<div class="vform"><label class="wide">Repo<input id="syncRepo" value="rubychen8407/tlm-listings" autocapitalize="off" spellcheck="false"></label><label class="wide">GitHub token<input id="syncTok" type="password" autocomplete="off" placeholder="github_pat_…" spellcheck="false"></label></div>
@@ -1414,8 +1419,11 @@ function syncBox(){return `<div class="im-box"><h3>私人房源連線</h3><div c
 let HUNT=null,HWAIT=null,HTIMER=null;try{HUNT=JSON.parse(localStorage.getItem('tlm.hunt')||'null');HWAIT=JSON.parse(localStorage.getItem('tlm.huntwait')||'null');}catch(e){}
 const HUNT_MAX=45*60e3,HUNT_EVERY=30e3;
 function saveHunt(){try{HUNT?localStorage.setItem('tlm.hunt',JSON.stringify(HUNT)):localStorage.removeItem('tlm.hunt');HWAIT?localStorage.setItem('tlm.huntwait',JSON.stringify(HWAIT)):localStorage.removeItem('tlm.huntwait');}catch(e){}}
-function huntStatus(){if(!HWAIT)return '';const m=Math.max(0,Math.round((Date.now()-HWAIT.t)/60000));return `<div class="im-hunt">Claude 找房中…已 ${m} 分鐘，找好會自動放到地圖${HWAIT.url?`　<a href="${esc(HWAIT.url)}" target="_blank" rel="noopener">看進度</a>`:''}　<button type="button" class="lnk" id="huntStop">取消</button></div>`;}
-function renderHunt(){const e=$('huntSt');if(e){e.innerHTML=huntStatus();const b=$('huntStop');if(b)b.onclick=huntStop;}const g=$('huntGo');if(g)g.disabled=!!HWAIT;}
+function syncShort(){const m=SYNCMETA,d=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+  if(m.err)return `<span class="bad">${esc(m.err)}</span>`;if(m.empty)return '<span class="hk-sub">還沒有找房結果</span>';if(!m.n)return '<span class="hk-sub">讀取中…</span>';
+  return `<b class="hk-n">${m.n.toLocaleString()}</b><span class="hk-sub"> 間${m.updated?`・${d(m.updated)} 更新`:''}</span>`;}
+function huntStatus(){if(!HWAIT)return '';const m=Math.max(0,Math.round((Date.now()-HWAIT.t)/60000));return `<div class="im-hunt"><i class="hk-spin"></i><span>Claude 找房中・${m} 分</span>${HWAIT.url?`<a href="${esc(HWAIT.url)}" target="_blank" rel="noopener">進度</a>`:''}<button type="button" class="lnk" id="huntStop">取消</button></div>`;}
+function renderHunt(){const e=$('huntSt');if(e){e.innerHTML=huntStatus();const b=$('huntStop');if(b)b.onclick=huntStop;}const g=$('huntGo');if(g){g.disabled=!!HWAIT;g.hidden=!!HWAIT;}}
 function huntStop(){HWAIT=null;clearInterval(HTIMER);HTIMER=null;saveHunt();renderHunt();}
 async function huntTick(){if(!HWAIT)return;if(Date.now()-HWAIT.t>HUNT_MAX){huntStop();toast('等了 45 分鐘還沒有新結果，可以稍後按「立即更新」看看',true);return;}
   await syncListings(false);if(SYNCMETA.updated&&SYNCMETA.updated!==HWAIT.upd){const n=SYNCMETA.n||0,nw=SYNCMETA.nNew||0;huntStop();toast(`找房完成：共 ${n} 間${nw?`，新上架 ${nw} 間`:''}`);}else renderHunt();}
@@ -1428,8 +1436,8 @@ async function huntNow(){if(!SYNC){toast('先到設定連結私人房源',true);
   if(!ok){try{await navigator.clipboard.writeText('找房');toast('已複製「找房」，貼到和 Claude 的對話，找好會自動放到地圖');}catch(e){toast('到和 Claude 的對話輸入「找房」，找好會自動放到地圖');}}
   HWAIT={t:Date.now(),upd:SYNCMETA.updated||'',url,via:ok?'api':'chat'};saveHunt();huntWatch();renderHunt();}
 if(HWAIT&&Date.now()-HWAIT.t<HUNT_MAX)huntWatch();else if(HWAIT){HWAIT=null;saveHunt();}
-function syncMini(){return `<div class="im-box"><h3>私人房源</h3>${SYNC?`<div class="im-st" id="syncSt">${syncStatus()}</div><div id="huntSt">${huntStatus()}</div><div class="im-row"><button type="button" id="huntGo" ${HWAIT?'disabled':''}>現在找房</button><button type="button" class="s" id="syncNow">立即更新</button></div>`
-  :`<div class="note" style="margin:0">還沒連結私人 repo。</div><div class="im-row"><button type="button" id="toSettings" data-open-settings>到設定連結</button></div><div class="im-st" id="syncSt"></div>`}</div>`;}
+function syncMini(){return SYNC?`<div class="hk-card"><div class="hk-top"><div id="syncSt">${syncShort()}</div><button type="button" class="hk-ic" id="syncNow" aria-label="立即更新"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button></div><div id="huntSt">${huntStatus()}</div><button type="button" class="hk-go" id="huntGo" ${HWAIT?'disabled hidden':''}>現在找房</button></div>`
+  :`<div class="hk-card"><div class="hk-top"><span class="hk-sub">還沒連結私人房源</span><button type="button" class="hk-link" id="toSettings" data-open-settings>去設定 ›</button></div><div id="syncSt"></div></div>`;}
 function openSettings(){closePops();if(state.view.type==='settings')return;if(state.view.type!=='list')pushBack();state.view={type:'settings',prefs:exPrefs()};drawPins();render();fitSheet('full');}
 function renderSettings(){headDetail('設定','金鑰和連線只存在這台裝置，不會上傳',{name:'設定',color:'#5F6368',icon:categoryIcon('gear')});
   $('resultBtn').innerHTML=`<span>設定</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
@@ -1479,9 +1487,9 @@ function exText(){const p=state.view.prefs,S=exSummary();if(!S.n)return {t:'',n:
   t+=`\n範圍（GeoJSON）：\n${JSON.stringify(exGeoAll())}\n`;
   t+=`\n（從臺北生活圈地圖匯出・${new Date().toLocaleDateString('sv')}）`;return {t,n:S.n};}
 function openExport(){closePops();if(state.view.type!=='list'&&state.view.type!=='export')pushBack();state.view={type:'export'};render();fitSheet('full');}
-function renderExport(){headDetail('找房','把房源放到地圖上',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
+function renderExport(){headDetail('找房','',{name:'找房',color:'#B06000',icon:categoryIcon('house')});
   $('resultBtn').innerHTML=`<span>找房</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  $('body').innerHTML=syncMini()+importBox()+`<button type="button" class="to-set" data-open-settings>找房條件、範圍與連線：到「設定」 ›</button>`+foot();bindImport();bindSync();renderHunt();}
+  $('body').innerHTML=syncMini()+importBox()+`<button type="button" class="hk-more" data-open-settings>找房條件與連線 ›</button>`;bindImport();bindSync();renderHunt();}
 function exSection(v){const p=v.prefs,S=exSummary();
   return `<div class="im-box"><h3>找房條件</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>
