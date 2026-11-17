@@ -23,13 +23,40 @@ def now_full(m):
     return sum(m['q'][k] for k in ks) / len(ks)
 pt, _ = addr.locate('臺北市信義區光復南路421巷6弄12號'); poi = R.PoiIndex(layers)
 sub = dict(dist='信義區', t=2, ping=36.07, age=42, fl=2, tot=4, pt=pt, s=poi.score(pt), ym=now)
-for nowv in ('avg2', 'full'):
-    R.now_effect = on if nowv == 'avg2' else now_full
-    for ds in (300, 200, 150, 100):
-        R.similarity = (lambda ds: lambda s, r, d: d / ds + abs(r['age'] - s['age']) / 5 + abs(math.log(r['ping'] / s['ping'])) / 0.3 + R.floor_pen(s, r))(ds)
-        t0 = time.time(); bt = R.backtest(recs)
-        m = R.fit(recs)
-        for r in recs: r['e'] = math.log(r['up']) - R.predict_ln(m, r)
-        est = R.estimate(sub, m, recs, now, R.now_effect(m))
-        comps, rad = R.comps_for(sub, recs, now)
-        print(f"now={nowv:4} dist/{ds:3}: MdAPE {bt['mdape']:.4f} p80 {bt['p80_ape']:.4f} hit50 {bt['hit_25_75']:.3f} hit80 {bt['hit_10_90']:.3f} n {bt['n']} | 本案 中位 {est['q'][0.5]:.1f} 萬/坪 = {est['q'][0.5]*36.07:.0f} 萬 帶 {est['q'][0.25]*36.07:.0f}–{est['q'][0.75]*36.07:.0f} 最遠 {rad:.0f}m ({time.time()-t0:.0f}s)", flush=True)
+R.now_effect = now_full
+oc, oe = R.comps_for, R.estimate
+def wq(xs, ws, q):
+    z = sorted(zip(xs, ws)); tot = sum(ws); acc = 0
+    for x, w in z:
+        acc += w
+        if acc >= q * tot: return x
+    return z[-1][0]
+def make(mode, near=500, nmin=10, scale=400):
+    def comps_for(subject, recs, now_ym):
+        c = []
+        for r in recs:
+            if r is subject or r['t'] != subject['t'] or abs(r['age'] - subject['age']) > R.AGE_BAND or now_ym - r['ym'] >= R.KEEP_MONTHS: continue
+            if not R.SIZE_BAND[0] <= r['ping'] / subject['ping'] <= R.SIZE_BAND[1]: continue
+            d = R.dist_m(subject['pt'], r['pt'])
+            if d <= R.RADII[-1]: c.append((R.similarity(subject, r, d), d, r))
+        c.sort(key=lambda x: x[0])
+        if mode == 'near':
+            nn = [x for x in c if x[1] <= near]
+            if len(nn) >= nmin: c = nn
+        c = c[:25]
+        subject['_d'] = {id(r): d for _, d, r in c}
+        return [r for _, _, r in c], (max(d for _, d, _ in c) if c else R.RADII[-1])
+    def estimate(subject, model, recs, now_ym, tq=None):
+        out = oe(subject, model, recs, now_ym, tq)
+        if mode == 'wq' and out['q']:
+            comps, _ = comps_for(subject, recs, now_ym); ds = subject['_d']
+            res = [r['e'] for r in comps]; ws = [1 / (1 + (ds[id(r)] / scale) ** 2) for r in comps]
+            for q in out['q']: out['q'][q] = out['base'] * math.exp(wq(res, ws, q))
+        return out
+    return comps_for, estimate
+for name, kw in [('base', dict(mode='base')), ('near500', dict(mode='near', near=500)), ('near300', dict(mode='near', near=300, nmin=8)), ('wq400', dict(mode='wq', scale=400)), ('wq250', dict(mode='wq', scale=250))]:
+    R.comps_for, R.estimate = make(**kw)
+    bt = R.backtest(recs); m = R.fit(recs)
+    for r in recs: r['e'] = math.log(r['up']) - R.predict_ln(m, r)
+    est = R.estimate(sub, m, recs, now, R.now_effect(m))
+    print(f"exp={name:8}: MdAPE {bt['mdape']:.4f} p80 {bt['p80_ape']:.4f} hit50 {bt['hit_25_75']:.3f} hit80 {bt['hit_10_90']:.3f} noest {bt['no_estimate']} | 本案 中位 {est['q'][0.5]*36.07:.0f} 萬 帶 {est['q'][0.25]*36.07:.0f}–{est['q'][0.75]*36.07:.0f}", flush=True)
