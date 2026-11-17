@@ -637,6 +637,13 @@ $('undo').onclick=()=>{state.drawPts.pop();previewDraw();};$('cancel').onclick=e
 // ---------- data ----------
 function prep(list){return list.map(f=>{const o={name:f.n!=null?f.n:(f.name||''),center:f.c||f.center,polys:f.p||f.polys||null};
   if(o.polys){let a=90,b=-90,c=180,d=-180;o.polys.forEach(p=>p.forEach(([la,lo])=>{a=Math.min(a,la);b=Math.max(b,la);c=Math.min(c,lo);d=Math.max(d,lo);}));o.bb=[a,c,b,d];}return o;});}
+// 離線快取（sw.js）：資料檔第二次起直接用裝置上的版本；啟動後空閒時先把常用的資料抓好，第一次點估價、房市不用等下載
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!window.__noSW)navigator.serviceWorker.register('sw.js').catch(()=>{});
+function warmCache(){const c=navigator.connection;if(window.__noWarm||c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;
+  const sw=!!(navigator.serviceWorker&&navigator.serviceWorker.controller),list=['data/valuation.json','data/realprice.json','config/finance.json','data/market.json','data/urban.json','data/land.json'].concat(sw?['data/routes.json']:[]);
+  const one=u=>fetch(u).then(r=>{if(!r.ok)return;return sw&&r.body?r.body.cancel():r.blob();}).catch(()=>{});
+  const go=()=>list.reduce((p,u)=>p.then(()=>one(u)),Promise.resolve());
+  (window.requestIdleCallback||(f=>setTimeout(f,1500)))(()=>setTimeout(go,2500));}
 async function getJSON(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' '+r.status);return r.json();}
 async function loadBaked(){ // 預先下載好的全市資料（GitHub Actions 每週更新）
   try{const d=await getJSON('data/city.json');if(!d.layers)throw 0;const S={};LAYERS.forEach(l=>{if(l.id!=='sidewalk')S[l.id]=prep(d.layers[l.id]||[]);});state.store.city=S;state.built=d.built;state.baked=true;setTimeout(drawFuture,0);return;}catch(e){}
@@ -1105,8 +1112,9 @@ $('locate').onclick=()=>{if(!navigator.geolocation){toast('這個瀏覽器不支
 // ---------- 中古屋估價（PRD：長按地圖 →「評估這裡的房子」）。estimate()、modelX()、quantile()、poiScore() 與 scripts/build_realprice.py 相同，改一邊要同步改另一邊 ----------
 let VALDATA=null,VALLOAD=null;map.on('popupopen',()=>{$('dealLegend').classList.add('under-pop');});map.on('popupclose',()=>{$('dealLegend').classList.remove('under-pop');});
 const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
-function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture(),loadLand().catch(()=>null)]).then(([rp,v,fin])=>{
+function loadVal(){if(!VALLOAD){loadLand().then(()=>{if(state.view.type==='val')render();}).catch(()=>null);VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture()]).then(([rp,v,fin])=>{
     VALDATA={sales:rp.sales.map(a=>({pt:[a[0],a[1]],ym:a[2],dist:rp.districts[a[3]],t:a[4],ping:a[5],age:a[6],fl:a[7],tot:a[8],up:a[9],s:a[10],e:a[11]})),rents:rp.rents,types:rp.types,through:rp.through,v,fin};return VALDATA;}).catch(e=>{VALLOAD=null;throw e;});
+  }
   return VALLOAD;}
 function wquantile(xs,ws,q){const z=xs.map((x,i)=>[x,ws[i]]).sort((a,b)=>a[0]-b[0]),tot=ws.reduce((a,b)=>a+b,0);let acc=0;for(const [x,w] of z){acc+=w;if(acc>=q*tot-1e-12)return x;}return z.length?z[z.length-1][0]:null;}
 function quantile(xs,q){xs=xs.slice().sort((a,b)=>a-b);if(!xs.length)return null;const p=(xs.length-1)*q,lo=Math.floor(p),hi=Math.min(lo+1,xs.length-1);return xs[lo]+(xs[hi]-xs[lo])*(p-lo);}
@@ -1788,7 +1796,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();drawTrees();drawLand();drawUrban();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
+  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
 </script>
 </body>
 </html>

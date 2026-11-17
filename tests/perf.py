@@ -41,6 +41,16 @@ async def main():
 
         async def load():
             await page.goto(E.URL); await page.wait_for_function(E.READY, timeout=120000)
+        if '--listings' in sys.argv_saved:   # 模擬實際使用：私人 repo 有 3,731 間房源
+            import random; random.seed(1)
+            types = ['公寓', '華廈', '大樓']
+            rows = [[f'{k % 5 + 1} 主塊', '範圍內', f'測試路{k % 300}巷{k}號', types[k % 3], 1500 + k % 2000, 20 + k % 40, "'%d/%d" % (k % 5 + 1, 5 + k % 10), 10 + k % 40, -5 + k % 10,
+                     '', f'https://www.sinyi.com.tw/buy/house/X{k}', '', '', '', '', round(25.02 + random.random() * 0.07, 6), round(121.50 + random.random() * 0.09, 6)] for k in range(3731)]
+            E.GH['files']['listings.json'] = json.dumps({'updated': '2026-11-16T18:12:00Z', 'rows': [['區塊', '位置判定', '地址／路段', '型態', '開價(萬)', '建坪', '樓層', '屋齡', '開價 vs 實價(%)', "'591", '信義', '永慶', '樂屋', '住商', '備註', '緯度', '經度']] + rows}, ensure_ascii=False)
+            await page.goto(E.URL); await page.evaluate("localStorage.setItem('tlm.sync',JSON.stringify({repo:'rubychen8407/tlm-listings',token:'tok_ok'}))")
+            await step(page, "第一次同步 3,731 間", load, res)
+            await page.wait_for_function("LISTINGS.length>=3700", timeout=120000); await page.wait_for_timeout(3000)
+            print('  listings', await page.evaluate("LISTINGS.length"), 'localStorage KB', await page.evaluate("Math.round((localStorage.getItem('tlm.listings')||'').length/1024)"))
         await page.goto("about:blank")
         await step(page, "載入到可操作", load, res)
         print('  啟動時下載：', E.data_hits[hits0:])
