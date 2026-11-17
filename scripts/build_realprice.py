@@ -32,6 +32,7 @@ AGE_BAND = 12              # 屋齡差距上限（年）
 SIZE_BAND = (0.5, 2.0)     # 坪數比例上下限
 # 相似度（越小越像）：距離每 300 公尺、屋齡每差 5 年、坪數每差 30%（對數）各算 1 分，加上樓層差異。
 # 回測（2026-11 真實資料）：比原本「半徑內全部」的中位數誤差 8.4% → 7.7%
+W_SCALE = 250            # 可比案例依距離加權：w = 1 / (1 + (距離/250m)²)。回測（2026-11 真實資料）MdAPE 8.1% → 7.3%
 BAND = 0.4              # 保守／積極 = 合理分位 ∓ 0.4（回測：P10–P90 約涵蓋 75% 的實際成交）
 SHIFT = 0.15           # 市場燈號 H（−1 買方～+1 賣方）讓合理分位移動 0.15·H
 USES = ('住家用', '住商用')   # 主要用途：住家，或住商混合登記的住宅
@@ -89,6 +90,16 @@ def ym(d):
 
 def ym_str(n):
     return f'{n // 12}-{n % 12 + 1:02d}'
+
+
+def wquantile(xs, ws, q):
+    """加權分位數（與 index.html 的 wquantile() 相同）：依值排序，累積權重第一次達到 q 的值"""
+    z = sorted(zip(xs, ws)); tot = sum(ws); acc = 0.0
+    for x, w in z:
+        acc += w
+        if acc >= q * tot - 1e-12:
+            return x
+    return z[-1][0]
 
 
 def quantile(xs, q):
@@ -352,7 +363,8 @@ def fit(recs):
         A[i][i] += 1e-6
     x = solve(A, bb)
     return {'b': x[:nb], 'dist': {dists[0]: 0.0, **{d: x[nb + i] for d, i in di.items()}},
-            'q': {str(qs[0]): 0.0, **{str(q): x[nb + len(di) + i] for q, i in qi.items()}}}
+            'q': {str(qs[0]): 0.0, **{str(q): x[nb + len(di) + i] for q, i in qi.items()}},
+            'n': {str(q): sum(1 for r in recs if quarter(r['ym']) == q) for q in qs}}
 
 
 def predict_ln(model, r, q=None):
@@ -365,8 +377,14 @@ def predict_ln(model, r, q=None):
 
 
 def now_effect(model):
-    """「現在」的時間效果：最近兩季平均（最後一季筆數少，單看一季太跳）"""
-    ks = sorted(model['q'], key=int)[-2:]
+    """「現在」的時間效果：最近兩個「資料夠多」的季平均。最新一季常因申報延遲只有零星幾筆，
+    係數不穩（2026-11 實測最後一季只有 1 筆、把行情拉低約 4%），筆數不到各季中位數一半的季不算。"""
+    ks = sorted(model['q'], key=int)
+    n = model.get('n')
+    if n:
+        med = sorted(n.get(k, 0) for k in ks)[len(ks) // 2]
+        ks = [k for k in ks if n.get(k, 0) >= 0.5 * med] or ks
+    ks = ks[-2:]
     return sum(model['q'][k] for k in ks) / len(ks)
 
 
@@ -405,9 +423,9 @@ def estimate(subject, model, recs, now_ym, tq=None):
     base = math.exp(sum(b * v for b, v in zip(model['b'], base_x(s))) + model['dist'].get(s['dist'], 0.0) + (now_effect(model) if tq is None else tq))
     out = {'ok': len(comps) >= MIN_COMPS[1], 'n': len(comps), 'radius': round(rad), 'base': base, 'q': {}, 'poi': 0.0}
     if comps:
-        res = [r['e'] for r in comps]
+        res = [r['e'] for r in comps]; ws = [1 / (1 + (dist_m(subject['pt'], r['pt']) / W_SCALE) ** 2) for r in comps]
         for q in (0.1, 0.15, 0.25, 0.5, 0.75, 0.85, 0.9):
-            out['q'][q] = base * math.exp(quantile(res, q))
+            out['q'][q] = base * math.exp(wquantile(res, ws, q))
         sbar = sum(r['s'] for r in comps) / len(comps)
         out['poi'] = max(-0.08, min(0.08, math.exp(model['b'][FEATS.index('poi')] * (subject['s'] - sbar)) - 1))
     return out
@@ -574,7 +592,7 @@ def build(sales, rents, addr, layers, out_dir=os.path.join(B.ROOT, 'data'), toda
           'rent_cols': ['lat', 'lon', 'ym', 'ping', 'rent'], 'rents': rent_out}
     val = {'built': built, 'through': ym_str(now_ym), 'now_ym': now_ym, 'feats': FEATS, 'poi_layers': POI,
            'model': {'b': [round(x, 6) for x in model['b']], 'dist': {k: round(v, 5) for k, v in model['dist'].items()}, 'now': round(now_effect(model), 5)},
-           'comps': {'radii': RADII, 'min': list(MIN_COMPS), 'age_band': AGE_BAND, 'size_band': list(SIZE_BAND), 'months': KEEP_MONTHS}, 'offer': {'band': BAND, 'shift': SHIFT},
+           'comps': {'radii': RADII, 'min': list(MIN_COMPS), 'w_scale': W_SCALE, 'age_band': AGE_BAND, 'size_band': list(SIZE_BAND), 'months': KEEP_MONTHS}, 'offer': {'band': BAND, 'shift': SHIFT},
            'backtest': {k: (round(v, 4) if isinstance(v, float) else v) for k, v in bt.items()},
            'market': market(all_recs, model, now_ym, recs), 'stats': dict(stats, used=len(recs), shown=len(out), rents=len(rent_out))}
     os.makedirs(out_dir, exist_ok=True)

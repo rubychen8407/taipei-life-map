@@ -1108,6 +1108,7 @@ const dealLayer=L.layerGroup().addTo(map),dealCanvas=L.canvas({padding:.3});
 function loadVal(){if(!VALLOAD)VALLOAD=Promise.all([getJSON('data/realprice.json'),getJSON('data/valuation.json'),getJSON('config/finance.json'),loadFuture(),loadLand().catch(()=>null)]).then(([rp,v,fin])=>{
     VALDATA={sales:rp.sales.map(a=>({pt:[a[0],a[1]],ym:a[2],dist:rp.districts[a[3]],t:a[4],ping:a[5],age:a[6],fl:a[7],tot:a[8],up:a[9],s:a[10],e:a[11]})),rents:rp.rents,types:rp.types,through:rp.through,v,fin};return VALDATA;}).catch(e=>{VALLOAD=null;throw e;});
   return VALLOAD;}
+function wquantile(xs,ws,q){const z=xs.map((x,i)=>[x,ws[i]]).sort((a,b)=>a[0]-b[0]),tot=ws.reduce((a,b)=>a+b,0);let acc=0;for(const [x,w] of z){acc+=w;if(acc>=q*tot-1e-12)return x;}return z.length?z[z.length-1][0]:null;}
 function quantile(xs,q){xs=xs.slice().sort((a,b)=>a-b);if(!xs.length)return null;const p=(xs.length-1)*q,lo=Math.floor(p),hi=Math.min(lo+1,xs.length-1);return xs[lo]+(xs[hi]-xs[lo])*(p-lo);}
 function distM(a,b){return Math.hypot((a[0]-b[0])*110574,(a[1]-b[1])*111320*Math.cos(25.05*Math.PI/180));}
 function poiNear(id,pt){let best=1e9,bf=null;for(const f of (data(id)||[])){let d=distM(pt,f.center);if(f.polys)for(const r of f.polys)for(const q of r){const x=distM(pt,q);if(x<d)d=x;}if(d<best){best=d;bf=f;}}return{d:best,f:bf};}
@@ -1120,9 +1121,9 @@ function estimate(sub){const {v,sales}=VALDATA,C=v.comps,now=v.now_ym,maxR=C.rad
   const cand=[];for(const r of sales){if(r.t!==sub.t||Math.abs(r.age-sub.age)>C.age_band||now-r.ym>=C.months)continue;const k=r.ping/sub.ping;if(k<sb[0]||k>sb[1])continue;const d=distM(sub.pt,r.pt);if(d<=maxR)cand.push([d,r,similarity(sub,r,d)]);}
   cand.sort((a,b)=>a[2]-b[2]);const comps=cand.slice(0,C.min[0]),rad=comps.length?Math.round(Math.max(...comps.map(x=>x[0]))):maxR;
   const base=Math.exp(modelX(sub).reduce((a,x,i)=>a+x*v.model.b[i],0)+(v.model.dist[sub.dist]||0)+v.model.now);
-  const res=comps.map(x=>x[1].e),sbar=comps.length?comps.reduce((a,x)=>a+x[1].s,0)/comps.length:0;
+  const res=comps.map(x=>x[1].e),ws=comps.map(x=>1/(1+Math.pow(x[0]/(C.w_scale||250),2))),sbar=comps.length?comps.reduce((a,x)=>a+x[1].s,0)/comps.length:0;
   const poi=comps.length?Math.max(-.08,Math.min(.08,Math.exp(v.model.b[v.feats.indexOf('poi')]*(sub.s-sbar))-1)):0;
-  return{ok:comps.length>=C.min[1],n:comps.length,radius:rad,base,poi,comps,q:q=>base*Math.exp(quantile(res,q))};}
+  return{ok:comps.length>=C.min[1],n:comps.length,radius:rad,base,poi,comps,q:q=>base*Math.exp(C.w_scale?wquantile(res,ws,q):quantile(res,q))};}
 function compsDesc(V){const c=V.est.comps.map(x=>x[1]),T=VALDATA.types,rng=(a,u)=>{const lo=Math.min(...a),hi=Math.max(...a);return lo===hi?lo+u:lo+'–'+hi+u;};if(!c.length)return '';
   return `同為${T[V.form.t]}・屋齡 ${rng(c.map(r=>r.age),' 年')}・${rng(c.map(r=>Math.round(r.ping)),' 坪')}・${rng(c.map(r=>r.fl),' 樓')}`;}
 // 三段出價以附近成交的行情帶為主；開價只當上限（平均議價率是「開價普遍偏高」下的平均，開價已貼近行情時不適用，所以只當參考顯示）
