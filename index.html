@@ -646,6 +646,11 @@ function computeLayer(feats,idxs){const pts=new Map(),pb=new Map(),put=(m,k,v)=>
       if(best<=r*B)break;}
     if(best<=MAXD)d[k]=best;else nf[k]=-1;}
   return{d,nf,nx,ny};}
+// 生活圈多個地點是「且」：每個地點各算一次，取最遠的那個（全部都在時間內才算符合）；each 保留到每個地點的距離
+function lifeAll(f,idxs){if(f.length<=1)return computeLayer(f,idxs);const rs=f.map(x=>computeLayer([x],idxs)),d=new Float32Array(N).fill(Infinity),nf=new Int32Array(N).fill(-1),nx=new Float32Array(N),ny=new Float32Array(N);
+  for(const k of idxs){let j=0;for(let i=1;i<rs.length;i++)if(rs[i].d[k]>rs[j].d[k])j=i;d[k]=rs[j].d[k];nf[k]=rs[j].nf[k]>=0?j:-1;nx[k]=rs[j].nx[k];ny[k]=rs[j].ny[k];}
+  return{d,nf,nx,ny,each:rs};}
+const computeFor=(id,f,idxs)=>id==='life'?lifeAll(f,idxs):computeLayer(f,idxs);
 // 距離計算放到背景執行緒（Web Worker），主畫面不卡；Worker 不能用時退回原本的同步計算
 const distKey=id=>srcKey()+'|'+id+(id==='life'?'|'+lifeSig():'');
 // 兩個 Worker：一個給「現在要用的」類別，一個在背景預先算其他類別，互不排隊
@@ -662,13 +667,13 @@ const DW=wireDW(mkDW()),DW2=DW?wireDW(mkDW()):null;
 const DPEND={};
 function distAsync(id,warm){const key=distKey(id);if(DIST[key])return Promise.resolve(DIST[key]);if(DPEND[key])return DPEND[key];const f=data(id);if(!f)return Promise.resolve(null);
   const idxs=state.baked?ALL:scopeCells(),small=f.length<=8&&!f.some(x=>x.polys),w=warm?(DW2||DW):DW;
-  if(!w||small)return Promise.resolve(DIST[key]=computeLayer(f,idxs));   // 生活圈等只有幾個點的類別直接算，很快
+  if(!w||small||id==='life')return Promise.resolve(DIST[key]=computeFor(id,f,idxs));   // 生活圈等只有幾個點的類別直接算，很快
   const idn=++dSeq;
   return DPEND[key]=new Promise((ok,no)=>{DCB[idn]={ok,no,w};w.postMessage({id:idn,feats:f,idxs});}).then(r=>{delete DPEND[key];return DIST[key]=r;},err=>{delete DPEND[key];return DIST[key]=computeLayer(f,idxs);});}
 function ensureDist(ids){return Promise.all(ids.map(id=>distAsync(id)));}
 function needDist(ids){return ids.some(id=>data(id)&&!DIST[distKey(id)]);}
 let warmT=0;function warmDist(){clearTimeout(warmT);warmT=setTimeout(()=>{const ids=CATS.map(l=>l.id).filter(id=>data(id)&&!DIST[distKey(id)]);(async()=>{for(const id of ids)await distAsync(id,true);})();},400);}
-function layerDist(id){const key=distKey(id);return DIST[key]||(DIST[key]=computeLayer(data(id),state.baked?ALL:scopeCells()));}
+function layerDist(id){const key=distKey(id);return DIST[key]||(DIST[key]=computeFor(id,data(id),state.baked?ALL:scopeCells()));}
 const MRTN={};function mrtNear(){const key=srcKey();if(MRTN[key])return MRTN[key];const m=data('mrt')||[],a=new Int32Array(N).fill(-1);
   if(m.length)for(const k of (state.baked?ALL:scopeCells())){const c=CELLS[k];let b=-1,bd=Infinity;for(let i=0;i<m.length;i++){const dd=Math.hypot((m[i].center[0]-c.la)*KY,(m[i].center[1]-c.lo)*KX);if(dd<bd){bd=dd;b=i;}}a[k]=b;}
   return MRTN[key]=a;}
@@ -852,19 +857,22 @@ function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.le
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
   const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
   let h=`<div class="verdict ${ok?'ok':'no'}">${ok?'✓ 全部符合各自設定的交通時間':'✕ '+failed.map(id=>LAYER[id].name).join('、')+' 超過各自設定時間'}</div>${svEmbedHTML(c.la,c.lo)}${svLink(c.la,c.lo,'svl cell-sv')}`;
-  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i],t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
+  R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i];
+    if(D.each){D.each.forEach((E,j)=>{const t=tmin(E.d[k],id),good=t<=R.thresholds[i],f=data(id)[j];
+      h+=`<div class="row life-each"><span class="ic" style="background:${LIFE_COLORS[j]};color:#fff;font-weight:700">${String.fromCharCode(65+j)}</span><div><div class="t">${esc(f.name||'地點')}</div><div class="m">生活圈・每個地點都要在時間內</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span></div>`;});return;}
+    const t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
     const tap=f&&id!=='life'&&t!==Infinity;
     h+=`<div class="row${tap?' tap':''}"${tap?` data-poi="${id}:${D.nf[k]}" data-ok="${good?1:0}"`:''}><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div></div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span>${tap?'<span class="go">›</span>':''}</div>`;});
   $('body').innerHTML=h+gmKeyBox()+foot();bindGmKey($('body'));fillStreetViews($('body'));
   $('body').querySelectorAll('[data-poi]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.poi.split(':'),f=data(id)[+i];pushBack();openPoi(f,LAYER[id],{pt:[c.la,c.lo],txt:el.querySelector('.time').textContent,ok:el.dataset.ok==='1'});});}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
 function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
-  R.act.forEach((id,i)=>{const D=R.D[i];if(D.nf[k]<0||D.d[k]===0)return;const p=nearPt(D,k),l=LAYER[id];
-    L.polyline([[c.la,c.lo],p],{color:l.color,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(selLayer);
-    L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:l.color,fillOpacity:1,interactive:false}).addTo(selLayer);});
+  R.act.forEach((id,i)=>{const l=LAYER[id];(R.D[i].each||[R.D[i]]).forEach((D,j,A)=>{if(D.nf[k]<0||D.d[k]===0)return;const p=nearPt(D,k),col=A.length>1?LIFE_COLORS[j]:l.color;
+    L.polyline([[c.la,c.lo],p],{color:col,weight:3,dashArray:'2 7',lineCap:'round',interactive:false}).addTo(selLayer);
+    L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(selLayer);});});
   L.marker([c.la,c.lo],{icon:L.divIcon({className:'pin',html:'📍',iconSize:[30,30]}),interactive:false,zIndexOffset:900}).addTo(selLayer);}
 function openCell(k,opt={},keep){if(!keep)state.backStack=[];closeTransit();if(state.openDistanceLayer){state.openDistanceLayer=null;renderCategorySettings();}state.view=Object.assign({type:'cell',k},opt);drawPins();drawSel(k);render();fitSheet();
-  const R=state.res,c=CELLS[k],pts=[[c.la,c.lo]];R.act.forEach((id,i)=>{const D=R.D[i];if(D.nf[k]>=0)pts.push(nearPt(D,k));});
+  const R=state.res,c=CELLS[k],pts=[[c.la,c.lo]];R.act.forEach((id,i)=>(R.D[i].each||[R.D[i]]).forEach(D=>{if(D.nf[k]>=0)pts.push(nearPt(D,k));}));
   fit(L.latLngBounds(pts).pad(.2),{maxZoom:16});}
 function openZone(i){const z=state.zones[i];openCell(z.best,{fromList:true,title:`${i+1}. ${z.label}`,sub:`${z.districts.join('、')}・約 ${z.area.toFixed(0)} 公頃・區域中心`});}
 function closeDetail(silent){state.backStack=[];closeTransit();selLayer.clearLayers();if(state.view.type==='list')return;state.view={type:'list'};drawPins();if(!silent){render();if(isMob())setSheet('peek');}}
@@ -883,7 +891,7 @@ function drawLifeCenters(){lifeLayer.clearLayers();if(!state.active.has('life'))
   state.lifeCenters.forEach((c,i)=>L.marker(c.center,{icon:L.divIcon({className:'',html:'<div class="life-center-marker" style="background:'+LIFE_COLORS[i]+'">'+String.fromCharCode(65+i)+'</div>',iconSize:[30,30],iconAnchor:[15,15]}),zIndexOffset:1200,interactive:false})
     .bindTooltip(esc(c.label),{permanent:true,direction:'top',offset:[0,-16],className:'life-label'}).addTo(lifeLayer));}
 function lifeCentersHTML(){const rows=state.lifeCenters.map((c,i)=>`<div class="life-center-row"><b style="color:${LIFE_COLORS[i]}">${String.fromCharCode(65+i)}</b><input data-life-label="${i}" maxlength="18" value="${esc(c.label)}" aria-label="地點 ${String.fromCharCode(65+i)} 名稱"><button type="button" data-life-move="${i}">${state.lifeMoving===i?'點地圖…':'移動'}</button><button type="button" data-life-delete="${i}" aria-label="刪除地點 ${String.fromCharCode(65+i)}">刪除</button></div>`).join('');
-  return `<div class="life-card life-centers">${rows}<div class="distance-hint">${state.lifeCenters.length<3?'點地圖或長按地圖新增地點（'+state.lifeCenters.length+'/3）。':''}到任一個地點在時間內就算符合。</div><button type="button" class="life-done" data-life-done>完成</button></div>`;}
+  return `<div class="life-card life-centers">${rows}<div class="distance-hint">${state.lifeCenters.length<3?'點地圖或長按地圖新增地點（'+state.lifeCenters.length+'/3）。':''}每個地點都要在時間內才算符合（且）。</div><button type="button" class="life-done" data-life-done>完成</button></div>`;}
 function bindLifeCenters(el){
   el.querySelectorAll('[data-life-label]').forEach(input=>input.onchange=()=>{state.lifeCenters[+input.dataset.lifeLabel].label=input.value.trim()||'地點';drawLifeCenters();render();});
   el.querySelectorAll('[data-life-move]').forEach(btn=>btn.onclick=()=>{state.lifeMoving=+btn.dataset.lifeMove;toast('請在地圖上點新的位置');renderCategorySettings();});

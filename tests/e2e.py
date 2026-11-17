@@ -567,7 +567,16 @@ async def baked_suite(b, errs):
     await ev("state.openDistanceLayer='life';renderCategorySettings()")
     await ev(f"openCell({k})")
     txt = await ev("document.getElementById('body').innerText")
-    check(('住家' in txt or '公司' in txt) and '開車' in txt and await ev("document.getElementById('categorySettings').innerHTML===''"), '點位置：列出到最近生活圈地點的開車時間，並收起設定面板不擋地圖')
+    check('住家' in txt and '公司' in txt and await ev("document.querySelectorAll('#body .life-each').length") == 2 and '開車' in txt and await ev("document.getElementById('categorySettings').innerHTML===''"), '點位置：分別列出到「住家」「公司」的開車時間，並收起設定面板不擋地圖')
+    andr = await ev("""(()=>{const i=state.res.act.indexOf('life'),D=state.res.D[i],th=state.res.thresholds[i];let eq=true,onlyOne=0,onlyOneFail=true;
+      for(const k of scopeCells()){const a=D.each[0].d[k],b=D.each[1].d[k];if(D.d[k]!==Math.max(a,b))eq=false;
+        const ta=tmin(a,'life'),tb=tmin(b,'life');if((ta<=th)!==(tb<=th)){onlyOne++;if(tmin(D.d[k],'life')<=th)onlyOneFail=false;}}
+      return {eq,onlyOne,onlyOneFail,lines:selLayer.getLayers().filter(l=>l instanceof L.Polyline).length}})()""")
+    check(andr['eq'] and andr['onlyOne'] > 0 and andr['onlyOneFail'], f"生活圈多個地點是「且」：每格取到各地點中最遠的時間；只到得了其中一個地點的 {andr['onlyOne']} 格都不算符合")
+    check(andr['lines'] >= 2, '位置卡的地圖上，從這裡畫線到每個生活圈地點')
+    await ev("state.openDistanceLayer='life';renderCategorySettings()")
+    check('每個地點都要在時間內才算符合' in await ev("document.querySelector('#categorySettings .life-card').innerText"), '生活圈設定說明改為「每個地點都要在時間內才算符合（且）」')
+    await ev("state.openDistanceLayer=null;renderCategorySettings()")
     await page.click('#close')
     await page.click('.chip[data-id=life]')
     await page.click('[data-life-delete="1"]')
