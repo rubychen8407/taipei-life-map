@@ -7,6 +7,13 @@
     "label": "五大銀行新承做購屋貸款利率",
     "source": "https://uanalyze.com.tw/articles/3597053870"
   },
+  "first_home_rate": {
+    "value": 2.6,
+    "unit": "%",
+    "as_of": "2026-Q3",
+    "label": "首購房貸利率中位數（永慶房產集團彙整往來銀行）；青安超過額度的部分以此試算",
+    "source": "https://money.udn.com/money/amp/story/5621/9773077"
+  },
   "ltv": {
     "value": 0.8,
     "second_home_max": 0.7,
