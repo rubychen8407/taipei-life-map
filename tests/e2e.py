@@ -286,7 +286,7 @@ async def baked_suite(b, errs):
     check(await ev("facLayer.getLayers().length") < 200, '縮小時不顯示一堆設施點（只留捷運站）')
     r = await ev("(()=>{const s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return {sheetTop:s.top,topBottom:t.bottom}})()")
     check(r['topBottom'] < 135 and r['sheetTop'] > 760, f"進場：地圖是主角，上方只有類別列與儲存的篩選、下方面板收到只剩一行（{r['topBottom']:.0f}px／{r['sheetTop']:.0f}px）")
-    check(await ev("!!document.querySelector('#head .sumline b')&&/%/.test(document.querySelector('#head .sumline').innerText)"), '底部一行摘要顯示符合比例')
+    check(await ev("!!document.querySelector('#head .sumline')&&!/%|符合/.test(document.querySelector('#head .sumline').innerText)&&!/各區比較/.test(document.getElementById('body').innerText)&&!document.querySelector('#body .drow')"), '清單只寫範圍與項目數，不顯示符合比例和各區比較')
     await shot(page, '1_home')
 
     # 2. 類別按鈕、各類別獨立距離設定
@@ -475,8 +475,7 @@ async def baked_suite(b, errs):
     check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('listBtn').hidden"), '換行政區後結果面板不會自己彈出')
     check(await ev("state.scope==='m:3,4' && scopeCells().length>0 && scopeCells().every(k=>CELLS[k].d===3||CELLS[k].d===4) && scopeCells().some(k=>CELLS[k].d===3) && scopeCells().some(k=>CELLS[k].d===4)"), '複選松山＋大安：只分析這兩區')
     check(await ev("document.getElementById('rgName').innerText.includes('松山區、大安區') && document.querySelectorAll('#regionPop [aria-pressed=true]').length===2"), '範圍顯示「松山區、大安區」，彈窗兩區都標示已選')
-    check(await ev("(()=>{const b=document.querySelector('#head .sumline b');return /%$/.test(b.innerText)&&b.scrollWidth<=b.clientWidth+1&&b.getBoundingClientRect().right<=innerWidth})()"), '名稱很長時，摘要的百分比仍完整顯示')
-    check(await ev("[...document.querySelectorAll('#body .drow .n')].map(e=>e.innerText).sort().join()==='大安區,松山區'"), '各區比較只比較選到的區')
+    check(await ev("(()=>{const s=document.querySelector('#head .sumline');return s.getBoundingClientRect().right<=innerWidth&&!document.querySelector('#body .drow')})()"), '名稱很長時，摘要列不超出畫面；複選區域也不再列各區比較')
     await shot(page, '5b_multi')
     await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)
     check(True, '再點一次已選的區：取消該區')
@@ -492,8 +491,7 @@ async def baked_suite(b, errs):
     await page.click('#listBtn'); await page.wait_for_timeout(350)
     await page.click('#toCity'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
     await page.click('#listBtn'); await page.wait_for_timeout(350)
-    await page.click('.drow'); await page.wait_for_function("state.res.key.startsWith('d:')", timeout=5000)
-    check(True, '「各區比較」點一區即可切換')
+    check(await ev("state.res.key==='city'&&!document.querySelector('#body .drow')"), '單一區的清單有「看全臺北市」可回到全市；全市清單不列各區比較')
 
     # 7b. 手動調整範圍邊界
     await ev("setScope('4')"); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)

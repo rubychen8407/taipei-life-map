@@ -797,13 +797,10 @@ function render(){const v=state.view;syncListBtn();if(v.type==='cell')return ren
   if(!state.active.size){H.innerHTML='<h1>選擇你在意的設施</h1><div class="sub">點上方的類別（可複選），找出全部都走得到的地方</div>';Bd.innerHTML='';return;}
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
-  const pct=R.total?R.good/R.total*100:0;
-  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span><b>${pct.toFixed(0)}%</b><span class="r">符合</span></div>`;
+  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(!state.zones.length)h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
-  if(state.scope===''||state.scope.startsWith('m:')){const only=state.scope===''?null:new Set(selDistricts());const rk=DISTRICTS.map((d,i)=>({i,n:d.name,p:R.dstat[i].t?R.dstat[i].g/R.dstat[i].t*100:0})).filter(r=>!only||only.has(r.i)).sort((a,b)=>b.p-a.p);
-    h+='<h2>各區比較</h2>'+rk.map(r=>`<div class="drow" data-d="${r.i}"><span class="n">${r.n}</span><span class="b"><i style="width:${r.p}%"></i></span><span class="p">${r.p.toFixed(0)}%</span></div>`).join('');}
-  else h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
+  if(!(state.scope===''||state.scope.startsWith('m:')))h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
   Bd.innerHTML=h+foot();
   Bd.querySelectorAll('[data-z]').forEach(el=>el.onclick=()=>openZone(+el.dataset.z));
   Bd.querySelectorAll('[data-d]').forEach(el=>el.onclick=()=>setScope(el.dataset.d));
