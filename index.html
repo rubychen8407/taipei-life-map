@@ -904,8 +904,13 @@ function drawSel(k){selLayer.clearLayers();const c=CELLS[k],R=state.res;
     L.circleMarker(p,{radius:7,color:'#fff',weight:2,fillColor:col,fillOpacity:1,interactive:false}).addTo(selLayer);});});
   L.marker([c.la,c.lo],{icon:L.divIcon({className:'pin',html:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 22s7-6.4 7-12a7 7 0 1 0-14 0c0 5.6 7 12 7 12z" fill="#E8453C" stroke="#fff" stroke-width="1.5"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg>',iconSize:[30,30]}),interactive:false,zIndexOffset:900}).addTo(selLayer);}
 function openCell(k,opt={},keep){if(!keep)state.backStack=[];closeTransit();if(state.openDistanceLayer){state.openDistanceLayer=null;renderCategorySettings();}state.view=Object.assign({type:'cell',k},opt);drawPins();drawSel(k);render();fitSheet();
-  const R=state.res,c=CELLS[k],pts=[[c.la,c.lo]];R.act.forEach((id,i)=>(R.D[i].each||[R.D[i]]).forEach(D=>{if(D.nf[k]>=0)pts.push(nearPt(D,k));}));
-  fit(L.latLngBounds(pts).pad(.2),{maxZoom:16});}
+  const R=state.res,c=CELLS[k];
+  if(opt.fromList){const pts=[[c.la,c.lo]];R.act.forEach((id,i)=>(R.D[i].each||[R.D[i]]).forEach(D=>{if(D.nf[k]>=0)pts.push(nearPt(D,k));}));fit(L.latLngBounds(pts).pad(.2),{maxZoom:16});}
+  else keepInView([c.la,c.lo]);}
+// 點地圖時不縮放、不改視角；只有點的位置被上方篩選或下方卡片擋住時，平移到看得到
+function keepInView(ll){const p=map.latLngToContainerPoint(ll),sz=map.getSize(),pd=padding(),top=pd.paddingTopLeft[1],bot=sz.y-pd.paddingBottomRight[1],left=pd.paddingTopLeft[0],right=sz.x-pd.paddingBottomRight[0];
+  let dx=0,dy=0;if(p.y<top)dy=p.y-top;else if(p.y>bot)dy=p.y-bot;if(p.x<left)dx=p.x-left;else if(p.x>right)dx=p.x-right;
+  if(bot<=top)dy=p.y-(top+sz.y)/2;if(dx||dy)map.panBy([dx,dy],{animate:true});}
 function openZone(i){const z=state.zones[i];openCell(z.best,{fromList:true,title:`${i+1}. ${z.label}`,sub:`${z.districts.join('、')}・約 ${z.area.toFixed(0)} 公頃・區域中心`});}
 function closeDetail(silent){state.backStack=[];closeTransit();selLayer.clearLayers();if(state.view.type==='list')return;state.view={type:'list'};drawPins();if(!silent){render();if(isMob())setSheet('peek');}}
 
