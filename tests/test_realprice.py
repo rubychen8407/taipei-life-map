@@ -15,7 +15,7 @@ def check(ok, name):
 la, lo = R.twd97(306847.96600313165, 2772208.373611303)
 check(abs(la - 25.05699) < 1e-4 and abs(lo - 121.56344) < 1e-4, f'TWD97 → WGS84（松山區三民路 91 號：{la:.5f}, {lo:.5f}）')
 check(R.norm_addr('臺北市大同區昌吉街６１巷９弄１９號四樓') == ('昌吉街', '61巷', '9弄', '19號') and R.norm_addr('台北市大安區忠孝東路四段２１６巷２７弄１６之１號') == ('忠孝東路4段', '216巷', '27弄', '16之1號'), '門牌正規化：全形數字、國字段數、樓層、之號')
-check(R.floor_of('四層') == 4 and R.floor_of('十二層，陽台') == 12 and R.floor_of('一層，騎樓') is None and R.floor_of('地下一層') is None and R.floor_of('三層，四層') is None, '移轉層次：只接受單一地上樓層')
+check(R.floor_of('四層') == 4 and R.floor_of('十二層，陽台') == 12 and R.floor_of('一層，騎樓') == 1 and R.floor_of('地下一層') is None and R.floor_of('三層，四層') == 3 and R.floor_of('全') is None and R.floor_of('見其他登記事項') is None, '移轉層次：取地上最低樓層（含騎樓、樓中樓）；只有地下、全棟、見其他登記事項不收')
 check(R.seasons(date(2026, 11, 15), 3) == ['115S1', '115S2', '115S3'] and R.seasons(date(2026, 1, 5), 2) == ['114S3', '114S4'], '季別代碼：只取已發布的季')
 check(abs(R.quantile([1, 2, 3, 4], .5) - 2.5) < 1e-9 and R.quantile([5], .9) == 5, '分位數線性內插')
 
@@ -30,10 +30,16 @@ check(len(rows) == len(sales) and rows[0]['鄉鎮市區'] in M.DIST, '讀 ZIP �
 st = {}; clean = R.parse_sales(rows, st)
 by = {r['id']: r for r in clean}
 check(len(clean) == len(sales) and all(abs(by[k]['up'] - v) / v < 0.002 for k, v in truth.items()), '單價先扣掉車位價與車位面積再算（和模擬的真實單價相同）')
-bad = [dict(sales[0], 備註='親友、員工、共有人或其他特殊關係間之交易；', 編號='X1'), dict(sales[0], 主要用途='商業用', 編號='X2'), dict(sales[0], 移轉層次='一層，騎樓', 編號='X3'),
-       dict(sales[0], 交易標的='車位', 編號='X4'), dict(sales[0], 建物型態='店面(店鋪)', 編號='X5'), dict(sales[0], 交易標的='房地(土地+建物+車位)', 車位總價元='0', 車位移轉總面積平方公尺='30', 編號='X6'),
-       dict(sales[0], 建築完成年月=sales[0]['交易年月日'], 編號='X7')]
-st = {}; check(R.parse_sales(bad, st) == [] and st.get('special') == 1 and st.get('use') == 1 and st.get('parking_unsplit') == 1 and st.get('new') == 1, f'排除特殊關係、非住家、騎樓、純車位、店面、車位未拆價、新成屋 {st}')
+bad = [dict(sales[0], 備註='親友、員工、共有人或其他特殊關係間之交易；', 編號='X1'), dict(sales[0], 主要用途='商業用', 編號='X2'),
+       dict(sales[0], 交易標的='車位', 編號='X4'), dict(sales[0], 建物型態='店面(店鋪)', 編號='X5'), dict(sales[0], 建築完成年月=sales[0]['交易年月日'], 編號='X7')]
+st = {}; check(R.parse_sales(bad, st) == [] and st.get('special') == 1 and st.get('use') == 1 and st.get('new') == 1, f'排除特殊關係、商業用、純車位、店面、新成屋 {st}')
+s0 = {k: v for k, v in sales[0].items()}
+keep = [dict(s0, 移轉層次='一層，騎樓', 編號='K1'), dict(s0, 移轉層次='四層，五層', 編號='K2'), dict(s0, 移轉層次='七層，電梯樓梯間', 編號='K3'), dict(s0, 主要用途='住商用', 編號='K4'),
+        dict(s0, 交易標的='房地(土地+建物+車位)', 車位總價元='0', 車位移轉總面積平方公尺='30', 編號='K5'), dict(s0, 移轉層次='地下一層', 編號='X8')]
+st = {}; kp = {r['id']: r for r in R.parse_sales(rows + keep, st)}
+check(kp['K1']['fl'] == 1 and kp['K2']['fl'] == 4 and kp['K3']['fl'] == 7 and 'K4' in kp and 'X8' not in kp, '樓層：一層含騎樓算 1 樓、樓中樓取最低層、含電梯樓梯間取該層；住商用也收；只有地下層不收')
+pk_med = R.quantile([float(r['車位總價元']) for r in rows if r.get('鄉鎮市區') == s0['鄉鎮市區'] and float(r.get('車位總價元') or 0) > 0], .5) / 1e4
+check(kp['K5']['pke'] and abs(kp['K5']['pk'] - pk_med) < 1 and st.get('parking_est', 0) >= 1 and not st.get('parking_unsplit'), f"車位沒拆價：用同區車位價格中位數（{pk_med:.0f} 萬）補上，不再整筆丟掉 {st}")
 rc = R.parse_rents(R.read_csv(z, 'a_lvr_land_c.csv'))
 check(len(rc) == len(rents) and all(r['rent'] > 5000 for r in rc), '讀租賃檔：整戶出租的住宅')
 
