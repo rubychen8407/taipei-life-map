@@ -85,6 +85,8 @@ async def route(r):
         return await r.fulfill(path=p_, content_type='application/json')
     if u.startswith(URL + 'config/'):
         return await r.fulfill(path=os.path.join(ROOT, 'config', u[len(URL + 'config/'):]), content_type='application/json')
+    if u == URL + 'sw.js':
+        return await r.fulfill(path=os.path.join(ROOT, 'sw.js'), content_type='application/javascript')
     if u.startswith(URL):
         return await r.fulfill(path=os.path.join(ROOT, 'index.html'), content_type='text/html; charset=utf-8')
     if 'leaflet.css' in u:
@@ -157,11 +159,38 @@ async def route(r):
     return await r.abort()
 
 
+async def sw_suite(b, errs):
+    # 離線快取：資料檔第二次起不再下載；啟動後空閒時先抓好估價等資料
+    ctx = await b.new_context(**PHONE, service_workers='allow')
+    await ctx.route('**/*', route)
+    page = await ctx.new_page(); page.on('pageerror', lambda e: errs.append(str(e))); ev = page.evaluate
+    await page.goto(URL); await page.wait_for_function(READY, timeout=30000)
+    await ev("navigator.serviceWorker.ready.then(()=>true)")
+    async def cached(*names):   # wait_for_function 不會等 Promise，所以自己輪詢
+        for _ in range(60):
+            if await ev("Promise.all(%s.map(u=>caches.open('tlm-v1').then(c=>c.match(u)))).then(a=>a.every(Boolean))" % json.dumps(list(names))): return True
+            await page.wait_for_timeout(500)
+        return False
+    await page.reload(); await page.wait_for_function(READY, timeout=30000)
+    check(await ev("!!navigator.serviceWorker.controller"), '註冊離線快取（service worker），重新整理後由它接管')
+    await cached('data/city.json')
+    n0 = len(data_hits)
+    await page.reload(); await page.wait_for_function(READY, timeout=30000); await page.wait_for_timeout(800)
+    check('city.json' not in data_hits[n0:], f'第三次打開：city.json 直接用裝置上的快取，不再下載（這次下載 {data_hits[n0:]}）')
+    check(await cached('data/realprice.json', 'data/valuation.json', 'config/finance.json', 'data/market.json'), '啟動後空閒時，背景先把估價、房市資料存到裝置上')
+    n1 = len(data_hits)
+    await ev("void openVal([25.0335,121.5436])"); await page.wait_for_function("!!VALDATA", timeout=20000)
+    check(not any(x in data_hits[n1:] for x in ('realprice.json', 'valuation.json')), f'啟動後空閒時已先抓好估價資料，點估價不用再等下載（{data_hits[n1:]}）')
+    await ctx.close()
+
+
 async def new_page(b, errs, **kw):
+    kw.setdefault('service_workers', 'block')   # 一般測試不跑離線快取（sw.js 另外測）
     ctx = await b.new_context(**kw)
     page = await ctx.new_page()
     page.on('pageerror', lambda e: errs.append(str(e)))
     await page.route('**/*', route)
+    await page.add_init_script("window.__noWarm=true")   # 一般測試不預先抓資料，才能檢查「用到才下載」；預先抓另外測
     return page
 
 
@@ -1377,6 +1406,7 @@ async def main():
             check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
             await baked_suite(b, errs)
+            await sw_suite(b, errs)
             print('\n=== A. 沒有預建資料（即時查詢的備援流程）===')
             MODE['baked'] = False
             await live_suite(b, errs)

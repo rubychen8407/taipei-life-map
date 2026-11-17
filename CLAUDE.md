@@ -19,3 +19,4 @@
 - 我的物件（`tlm.homes`）每筆有 `st`：`todo` 未看房／`seen` 已看房／`nego` 議價中；點名稱直接改名。生活圈多個地點是「且」（`lifeAll` 取各地點中最遠的時間）。
 - 設計規則（ui-ux-pro-max）：字級只用 12／13／14／15／16／17／20／24（地圖上的數字徽章除外）、圓角 4／8／12／16／24／圓形；灰字用 `--sub`（#6E6E73，對比 ≥4.5:1）；點擊範圍至少 44px（視覺較小時用 `::after` 延伸）；輸入框 16px；不用 emoji 當圖示；支援 prefers-reduced-motion 與 :focus-visible。`tests/audit.py` 會量各畫面的觸控尺寸、字級與對比（結果在 `tests/out/audit.json`）。
 - 都市更新地區：`scripts/build_urban.py`（工作流程 `build-urban.yml`，每月 7 日）從臺北市都發局 ArcGIS 圖層 `UrbanPlan2/PlanTheme/MapServer/0`「都市更新地區範圍」產生 `data/urban.json`（政府劃定／自行劃定更新單元／震災與海砂屋／其他）；圖層「房市 › 都市更新地區」預設關、勾選才下載，只當資訊顯示。國土署全國都更平台（twur.nlma.gov.tw）會擋程式存取，沒有使用。`tests/test_urban.py` 用 `tests/urban_mock.py` 測試。
+- 離線快取：`sw.js`（service worker）讓 `data/*.json`、`config/*.json`、Leaflet 先用裝置上的版本，超過 6 小時才在背景更新；index.html 先抓網路（3 秒逾時才用快取）。啟動後空閒時 `warmCache()` 先抓估價、房市、都更、土地價值（有快取時再加公車路線）。一般 e2e 用 `service_workers=block` 與 `__noWarm`，`sw_suite` 另外測快取與預先抓取。`tests/perf.py --listings` 可模擬 3,731 間私人房源量效能。
