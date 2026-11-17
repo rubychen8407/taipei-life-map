@@ -1,0 +1,22 @@
+name: probe-ur
+on:
+  push:
+    branches: ['fix/ur-probe']
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36'
+          for u in https://twur.nlma.gov.tw/zh/urban/area/map/tgos https://twur.nlma.gov.tw/zh/urban/area https://webgis.udd.gov.taipei/upis_v2/; do
+            echo "=== $u"; curl -sSL -A "$UA" -m 40 "$u" -o page.html -w "%{http_code} %{size_download}\n" || true
+            grep -oiE '(src|href)="[^"]+\.js[^"]*"' page.html | head -30
+            grep -oiE '(https?:)?//[a-z0-9./_-]*(api|json|wms|wfs|arcgis|MapServer|FeatureServer|geojson|kml|layer)[a-z0-9./_?=&%-]*' page.html | sort -u | head -40
+            grep -oiE '"/[a-z0-9/_-]*(api|json|geo|area|map)[a-z0-9/_?=&-]*"' page.html | sort -u | head -40
+            head -c 1500 page.html; echo
+          done
+          curl -sSL -A "$UA" -m 40 https://twur.nlma.gov.tw/zh/urban/area/map/tgos -o t.html
+          for js in $(grep -oE 'src="[^"]+\.js[^"]*"' t.html | sed 's/src="//;s/"$//' | head -15); do
+            case "$js" in http*) url=$js;; //*) url=https:$js;; *) url=https://twur.nlma.gov.tw$js;; esac
+            echo "--- $url"; curl -sSL -A "$UA" -m 40 "$url" | grep -oE '["'"'"'][^"'"'"']*(api|ajax|json|geo|area|polygon|wkt|kml|wms)[^"'"'"']*["'"'"']' | sort -u | head -25
+          done
