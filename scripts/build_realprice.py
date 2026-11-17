@@ -34,6 +34,8 @@ SIZE_BAND = (0.5, 2.0)     # 坪數比例上下限
 # 回測（2026-11 真實資料）：比原本「半徑內全部」的中位數誤差 8.4% → 7.7%
 BAND = 0.4              # 保守／積極 = 合理分位 ∓ 0.4（回測：P10–P90 約涵蓋 75% 的實際成交）
 SHIFT = 0.15           # 市場燈號 H（−1 買方～+1 賣方）讓合理分位移動 0.15·H
+USES = ('住家用', '住商用')   # 主要用途：住家，或住商混合登記的住宅
+PK_STATS = {}               # 各區每個車位的價格與面積（只看有拆價的交易），用來補沒拆價的車位
 BAD_NOTE = re.compile(r'親友|員工|共有人|特殊關係|親等|債權|債務|急買|急賣|瑕疵|凶宅|地上權|持分|毛胚|協議價購|政府機關|公共設施保留地|法拍|塔位|畸零|無償|贈與')
 FW = str.maketrans('０１２３４５６７８９－', '0123456789-')
 CN = {'零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
@@ -59,12 +61,14 @@ def cn_num(s):
 
 
 def floor_of(s):
-    """移轉層次 → 樓層（只接受單一地上樓層；'四層'、'四層，陽台' 可，'一層，騎樓'、'地下一層'、'三層，四層' 不可）"""
+    """移轉層次 → 樓層。'四層'、'四層，陽台'、'一層，騎樓'、'七層，電梯樓梯間' → 該層；
+    樓中樓 '四層，五層' → 最低的 4；只有地下層、屋頂、見其他登記事項 → None"""
     parts = [p for p in re.split(r'[，,、\s]+', (s or '').strip()) if p]
-    fl = [p for p in parts if p.endswith('層')]
-    if len(fl) != 1 or '地下' in fl[0] or any(re.search(r'騎樓|地下|夾層|見其他|電梯樓梯間|屋頂', p) for p in parts):
+    if any(re.search(r'見其他|全', p) for p in parts):
         return None
-    return cn_num(fl[0][:-1])
+    fl = [cn_num(p[:-1]) for p in parts if p.endswith('層') and '地下' not in p and '夾層' not in p]
+    fl = [f for f in fl if f]
+    return min(fl) if fl else None
 
 
 def roc_date(s):
@@ -230,6 +234,12 @@ def parse_sales(rows, stats=None):
     out = []; st = stats if stats is not None else {}
     def skip(why):
         st[why] = st.get(why, 0) + 1
+    rows = list(rows); med = {}
+    for r in rows:   # 先收集同區有拆價車位的每位價格與面積
+        pp, pa = num(r.get('車位總價元')), num(r.get('車位移轉總面積平方公尺') or r.get('車位移轉總面積(平方公尺)'))
+        if pp > 0 and pa > 0 and (r.get('交易標的') or '').startswith('房地'):
+            m = re.search(r'車位(\d+)', r.get('交易筆棟數') or ''); k = max(1, int(m.group(1))) if m else 1
+            ps = PK_STATS.setdefault((r.get('鄉鎮市區') or '').strip(), ([], [])); ps[0].append(pp / k); ps[1].append(pa / k)
     for r in rows:
         st['rows'] = st.get('rows', 0) + 1
         if not (r.get('交易標的') or '').startswith('房地'):
@@ -237,7 +247,7 @@ def parse_sales(rows, stats=None):
         t = next((i for i, n in enumerate(TYPES) if (r.get('建物型態') or '').startswith(n)), None)
         if t is None:
             skip('type'); continue
-        if (r.get('主要用途') or '') != '住家用':
+        if (r.get('主要用途') or '') not in USES:
             skip('use'); continue
         if BAD_NOTE.search(r.get('備註') or ''):
             skip('special'); continue
@@ -251,14 +261,22 @@ def parse_sales(rows, stats=None):
         price, area = num(r.get('總價元')), num(r.get('建物移轉總面積平方公尺'))
         pk_price, pk_area = num(r.get('車位總價元')), num(r.get('車位移轉總面積平方公尺') or r.get('車位移轉總面積(平方公尺)'))
         has_pk = '車位' in (r.get('交易標的') or '') or pk_area > 0
-        if has_pk and (pk_price <= 0 or pk_area <= 0):  # 有車位但沒拆價：單價會失真
-            skip('parking_unsplit'); continue
+        m = re.search(r'車位(\d+)', r.get('交易筆棟數') or ''); n_pk = max(1, int(m.group(1))) if m else 1
+        dist = (r.get('鄉鎮市區') or '').strip(); pk_est = False
+        if has_pk and (pk_price <= 0 or pk_area <= 0):                                   # 有車位但沒拆價或沒面積：用同區每個車位的中位數補，補不到才丟掉
+            ps = PK_STATS.get(dist) if PK_STATS.get(dist) and len(PK_STATS[dist][0]) >= 20 else None
+            if ps is None:
+                skip('parking_unsplit'); continue
+            if dist not in med: med[dist] = (quantile(ps[0], .5), quantile(ps[1], .5))
+            if pk_price <= 0: pk_price = med[dist][0] * n_pk
+            if pk_area <= 0: pk_area = med[dist][1] * n_pk
+            pk_est = True; skip('parking_est')
         ping = (area - pk_area) / PING
         if ping < 5 or ping > 150 or price - pk_price <= 0:
             skip('size'); continue
         out.append({'id': r.get('編號') or f"{r.get('土地位置建物門牌')}|{r.get('交易年月日')}|{price}", 'dist': (r.get('鄉鎮市區') or '').strip(),
                     'addr': r.get('土地位置建物門牌') or '', 'ym': ym(d), 't': t, 'ping': ping, 'age': age, 'fl': fl, 'tot': tot,
-                    'up': (price - pk_price) / 1e4 / ping, 'total': price / 1e4, 'pk': pk_price / 1e4})
+                    'up': (price - pk_price) / 1e4 / ping, 'total': price / 1e4, 'pk': pk_price / 1e4, 'pke': pk_est})
     return out
 
 
