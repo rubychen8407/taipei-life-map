@@ -803,6 +803,45 @@ async def baked_suite(b, errs):
     bur = await ev("document.querySelector('#valTab .vburden')?document.querySelector('#valTab .vburden').innerText:''")
     check(bur == f'{round(pay0 / 150000 * 100)}%' and await ev("localStorage.getItem('tlm.valForm').indexOf('150000')<0") and '租金' in await ev("document.getElementById('valTab').innerText"), f'輸入月收入顯示負擔率（{bur}），收入不會存到裝置；並列附近租金')
     await shot(page, '8d_val_fin')
+    # 青安 3.0：切換方案、利率分段、寬限期、身分額度、房價上限、記住選擇
+    def ref_amort(P, n, g, rate_of):
+        out, b = [], P
+        for m in range(n):
+            r_ = rate_of(m // 12) / 1200; it = b * r_
+            p_ = it if m < g else (b * r_ / (1 - (1 + r_) ** -(n - m)) if r_ else b / (n - m))
+            out.append(p_); b -= p_ - it
+        return out
+    YR = [1.775, 1.775, 1.775, 1.9, 2.025, 2.15, 2.275]
+    yrate = lambda y: YR[min(y, 6)]
+    price = r['out'][1]; Lt = 0.8 * price
+    await page.click('#body [data-fmode=youth]'); await page.wait_for_timeout(300)
+    y1 = await ev("(()=>{const L=valLoan(state.val,state.val.off.out[1]);return {years:state.val.fin.years,LY:L.LY,LG:L.LG,pay:L.pay,peak:L.peak,ok:L.ok,txt:document.getElementById('valTab').innerText,segs:[...document.querySelectorAll('#youthSched .vrow')].map(e=>e.innerText.replace(/\s+/g,' ')),pref:localStorage.getItem('tlm.finMode'),fam:document.querySelectorAll('#body [data-ffam]').length}})()")
+    LY = min(Lt, 1000); LG = Lt - LY
+    exp1 = [a + b for a, b in zip(ref_amort(LY * 1e4, 480, 0, yrate), ref_amort(LG * 1e4, 480, 0, lambda y: 2.29) if LG > 0 else [0] * 480)]
+    check(y1['ok'] and y1['years'] == 40 and abs(y1['LY'] - LY) < .01 and abs(y1['LG'] - LG) < .01 and abs(y1['pay'] - exp1[0]) < 1 and abs(y1['peak'] - max(exp1)) < 1,
+          f"財務分頁按「青安 3.0」：年限改 40 年，青安 {LY:.0f} 萬＋一般房貸 {LG:.0f} 萬，第 1 年每月 {y1['pay']:,.0f} 元、最高 {y1['peak']:,.0f} 元（和獨立公式驗算一致）")
+    check(len(y1['segs']) == 5 and y1['segs'][0].startswith('第 1～3 年') and y1['segs'][-1].startswith('第 7 年起') and '1.775%' in y1['segs'][0] and '2.275%' in y1['segs'][-1] and y1['fam'] == 3,
+          f"青安月付分段：第 1～3 年 1.775%、第 4～6 年逐年加半碼、第 7 年起 2.275%；有一般／新婚／育兒三種身分（{' | '.join(y1['segs'])}）")
+    check('3,500 萬' in y1['txt'] and '未滿 50 歲' in y1['txt'] and '200 萬' in y1['txt'] and '全期總利息' in y1['txt'] and '"mode":"youth"' in (y1['pref'] or ''), '青安說明列出臺北市房價上限 3,500 萬、年齡與所得資格、全期總利息；方案選擇記在這台裝置')
+    await page.fill('#body [data-fin=grace]', '3'); await page.press('#body [data-fin=grace]', 'Tab'); await page.wait_for_timeout(300)
+    y2 = await ev("(()=>{const L=valLoan(state.val,state.val.off.out[1]);return {pay:L.pay,peak:L.peak,g:L.grace,bur:document.querySelector('#valTab .vburden').innerText,segs:[...document.querySelectorAll('#youthSched .vrow')].map(e=>e.innerText.replace(/\s+/g,' '))}})()")
+    exp2 = [a + b for a, b in zip(ref_amort(LY * 1e4, 480, 36, yrate), ref_amort(LG * 1e4, 480, 0, lambda y: 2.29) if LG > 0 else [0] * 480)]
+    check(y2['g'] == 3 and abs(y2['pay'] - exp2[0]) < 1 and abs(y2['peak'] - max(exp2)) < 1 and '只繳利息' in y2['segs'][0] and y2['bur'] == f"{round(max(exp2) / 150000 * 100)}%",
+          f"寬限期 3 年：青安部分前 3 年只繳利息（第 1 年 {y2['pay']:,.0f} 元），之後跳到最高 {y2['peak']:,.0f} 元；負擔率改用最高月付計（{y2['bur']}）")
+    await page.fill('#body [data-fin=grace]', '9'); await page.press('#body [data-fin=grace]', 'Tab'); await page.wait_for_timeout(300)
+    check(await ev("state.val.fin.grace===5"), '寬限期超過 5 年會改成青安上限 5 年')
+    await page.click('#body [data-ffam="2"]'); await page.wait_for_timeout(300)
+    y3 = await ev("(()=>{const L=valLoan(state.val,state.val.off.out[1]);return {LY:L.LY,cap:L.cap}})()")
+    check(y3['cap'] == 1500 and abs(y3['LY'] - min(Lt, 1500)) < .01, f"選「育兒」：青安額度上限 1,500 萬（這間青安可貸 {y3['LY']:.0f} 萬）")
+    y4 = await ev("(()=>{const L=valLoan(state.val,3600),M=valLoan(state.val,3500);return {ok:L.ok,LY:L.LY,okM:M.ok}})()")
+    check(not y4['ok'] and y4['LY'] == 0 and y4['okM'], '總價 3,600 萬超過臺北市青安上限 3,500 萬：不適用、全部以一般房貸計；剛好 3,500 萬仍適用')
+    await shot(page, '8d2_val_youth')
+    await page.click('#body [data-vtab=price]'); await page.wait_for_timeout(200)
+    check('青安' in await ev("document.getElementById('valSum').parentElement.innerText"), '估價摘要的房貸那行標示「青安」與第 1 年月付')
+    await page.click('#body [data-vtab=fin]'); await page.wait_for_timeout(200)
+    await page.click('#body [data-fmode=std]'); await page.wait_for_timeout(300)
+    y5 = await ev("({years:state.val.fin.years,grace:state.val.fin.grace,pay:valLoan(state.val,state.val.off.out[1]).pay,sched:!!document.getElementById('youthSched'),pref:localStorage.getItem('tlm.finMode')})")
+    check(y5['years'] == 30 and y5['grace'] == 0 and abs(y5['pay'] - pay0) < 1 and not y5['sched'] and '"mode":"std"' in y5['pref'], '切回「一般房貸」：年限回 30 年、取消寬限期，月付和原本一致')
     await ev("document.querySelector('#body [data-vtab=place]').click()"); await page.wait_for_timeout(300)
     check(await ev("document.querySelectorAll('#valTab .row').length") == 6 and '位置加減分' in await ev("document.getElementById('valTab').innerText"), '位置分頁：六類設施步行時間與位置加減分')
     ft = await ev("document.getElementById('valTab').innerText")
