@@ -7,17 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          B=https://www.historygis.udd.gov.taipei/arcgis/rest/services
-          curl -sS -m 40 "$B?f=json" | python3 -c "import sys,json;d=json.load(sys.stdin);print('folders',d.get('folders'));print('services',[s['name']+':'+s['type'] for s in d.get('services',[])])"
-          for f in $(curl -sS -m 40 "$B?f=json" | python3 -c "import sys,json;print(' '.join(json.load(sys.stdin).get('folders',[])))"); do
-            for s in $(curl -sS -m 40 "$B/$f?f=json" | python3 -c "import sys,json;print(' '.join(x['name']+'/'+x['type'] for x in json.load(sys.stdin).get('services',[])))"); do
-              curl -sS -m 40 "$B/$s?f=json" | python3 -c "
-          import sys,json
-          try: d=json.load(sys.stdin)
-          except Exception: sys.exit()
-          for l in d.get('layers',[]):
-            n=l['name']
-            if any(k in n for k in ['更新','都更','危老','重建']): print('$s', l['id'], n)
-          " || true
-            done
-          done
+          S=https://www.historygis.udd.gov.taipei/arcgis/rest/services/UrbanPlan2/PlanTheme/MapServer
+          curl -sS -m 60 "$S?f=json" | python3 -c "import sys,json;d=json.load(sys.stdin);print([(l['id'],l['name']) for l in d['layers']])"
+          curl -sS -m 60 "$S/0?f=json" | python3 -c "import sys,json;d=json.load(sys.stdin);print('fields',[(f['name'],f.get('alias')) for f in d.get('fields',[])]);print('maxRecord',d.get('maxRecordCount'),'geom',d.get('geometryType'),'desc',(d.get('description') or '')[:300])"
+          curl -sS -m 60 "$S/0/query?where=1%3D1&returnCountOnly=true&f=json"; echo
+          curl -sS -m 120 "$S/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson" -o ur.geojson; ls -la ur.geojson
+          python3 - <<'PY'
+          import json,collections
+          d=json.load(open('ur.geojson')); fs=d.get('features',[]); print('features',len(fs), d.get('exceededTransferLimit'))
+          for f in fs[:6]: print(json.dumps(f['properties'],ensure_ascii=False)[:400])
+          for k in (fs[0]['properties'] if fs else {}):
+            c=collections.Counter(str(f['properties'].get(k))[:30] for f in fs)
+            if len(c)<40: print(k, c.most_common(12))
+          PY
