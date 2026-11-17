@@ -572,6 +572,15 @@ async def baked_suite(b, errs):
     await ev(f"openCell({k})")
     txt = await ev("document.getElementById('body').innerText")
     check('住家' in txt and '公司' in txt and await ev("document.querySelectorAll('#body .life-each').length") == 2 and '開車' in txt and await ev("document.getElementById('categorySettings').innerHTML===''"), '點位置：分別列出到「住家」「公司」的開車時間，並收起設定面板不擋地圖')
+    await ev("closeDetail(true);setSheet('peek');map.setView([25.045,121.55],15,{animate:false})"); await page.wait_for_timeout(400)
+    v0 = await ev("(()=>{const c=map.getCenter();return {z:map.getZoom(),lat:c.lat,lng:c.lng}})()")
+    await ev("(()=>{const ll=map.containerPointToLatLng([195,330]);map.fire('click',{latlng:ll})})()"); await page.wait_for_timeout(700)
+    v1 = await ev("(()=>{const c=map.getCenter();return {z:map.getZoom(),lat:c.lat,lng:c.lng,t:state.view.type}})()")
+    check(v1['t'] == 'cell' and v1['z'] == v0['z'] and abs(v1['lat'] - v0['lat']) < 1e-7 and abs(v1['lng'] - v0['lng']) < 1e-7, f"點地圖看距離：地圖不縮放、不移動，維持原本的畫面 {v0['z']}→{v1['z']}")
+    await ev("closeDetail(true);setSheet('peek')"); await page.wait_for_timeout(300)
+    await ev("(()=>{const sz=map.getSize(),ll=map.containerPointToLatLng([195,sz.y-120]);window.__tap=ll;map.fire('click',{latlng:ll})})()"); await page.wait_for_timeout(900)
+    v2 = await ev("(()=>{const p=map.latLngToContainerPoint(__tap),pd=padding();return {z:map.getZoom(),y:p.y,bot:map.getSize().y-pd.paddingBottomRight[1]}})()")
+    check(v2['z'] == v0['z'] and v2['y'] <= v2['bot'] + 1, f"點的位置會被下方卡片擋住時，只往上平移到看得到，不縮放 {v2}")
     andr = await ev("""(()=>{const i=state.res.act.indexOf('life'),D=state.res.D[i],th=state.res.thresholds[i];let eq=true,onlyOne=0,onlyOneFail=true;
       for(const k of scopeCells()){const a=D.each[0].d[k],b=D.each[1].d[k];if(D.d[k]!==Math.max(a,b))eq=false;
         const ta=tmin(a,'life'),tb=tmin(b,'life');if((ta<=th)!==(tb<=th)){onlyOne++;if(tmin(D.d[k],'life')<=th)onlyOneFail=false;}}
