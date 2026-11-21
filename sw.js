@@ -1,9 +1,9 @@
 // 離線快取：資料檔（data/*.json、config/*.json）與 Leaflet 先用裝置上的版本立刻顯示，
 // 超過 6 小時才在背景向伺服器更新；網頁本身（index.html）先抓網路、3 秒沒回應或離線才用快取。
-const CACHE = 'tlm-v1', MAX_AGE = 6 * 3600e3;
+const CACHE = 'tlm-v1', TILES = 'tlm-tiles-v1', MAX_TILES = 3000, MAX_AGE = 6 * 3600e3;
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
-  for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+  for (const k of await caches.keys()) if (k !== CACHE && k !== TILES) await caches.delete(k);
   await self.clients.claim();
 })()));
 const stamp = async res => {
@@ -35,6 +35,20 @@ async function pageFirst(e) {
     return fetch(e.request);
   }
 }
+// 地圖底圖：看過的圖磚存在裝置上（最多約 3,000 張，超過就刪最舊的），再打開不用重抓
+let tileN = 0;
+async function tileFirst(e) {
+  const c = await caches.open(TILES), hit = await c.match(e.request);
+  if (hit) return hit;
+  const res = await fetch(e.request);
+  if (res.ok || res.type === 'opaque') {
+    e.waitUntil((async () => {
+      await c.put(e.request, res.clone());
+      if (++tileN % 200 === 0) { const ks = await c.keys(); for (const k of ks.slice(0, Math.max(0, ks.length - MAX_TILES))) await c.delete(k); }
+    })());
+  }
+  return res;
+}
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
@@ -44,4 +58,5 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (u.hostname === 'unpkg.com' && /leaflet/.test(u.pathname)) return e.respondWith(dataFirst(e));
+  if (u.hostname === 'tile.openstreetmap.org') return e.respondWith(tileFirst(e));
 });

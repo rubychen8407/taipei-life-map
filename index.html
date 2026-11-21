@@ -519,9 +519,16 @@ const X=lo=>(lo-CITY[1])*KX, Y=la=>(la-CITY[0])*KY, md=(a,b)=>Math.hypot((a[0]-b
 const dLat=CELL/KY, dLon=CELL/KX, NI=Math.ceil((CITY[3]-CITY[1])/dLon), NJ=Math.ceil((CITY[2]-CITY[0])/dLat);
 // 全市格子（只建一次）
 const CELLS=[],CELLAT=new Int32Array(NI*NJ).fill(-1);
-(()=>{for(let j=0;j<NJ;j++)for(let i=0;i<NI;i++){const la=CITY[0]+(j+.5)*dLat,lo=CITY[1]+(i+.5)*dLon;let d=-1;
-  for(let k=0;k<DISTRICTS.length;k++)if(inPoly(DISTRICTS[k],la,lo)){d=k;break;}
-  if(d>=0){CELLAT[j*NI+i]=CELLS.length;CELLS.push({i,j,la,lo,d,x:X(lo),y:Y(la)});}}})();
+// 逐列掃描：每一列只算一次和各區邊界的交點，再填滿交點之間的格子（比每格做點在多邊形內快很多；奇偶規則＝外圈扣掉洞）
+(()=>{const owner=new Int8Array(NI*NJ).fill(-1);
+  DISTRICTS.forEach((d,k)=>{const rings=[];polysOf(d).forEach(p=>p.forEach(r=>rings.push(r)));const b=d.bb;
+    const j0=Math.max(0,Math.floor((b[0]-CITY[0])/dLat-.5)),j1=Math.min(NJ-1,Math.ceil((b[2]-CITY[0])/dLat-.5));
+    for(let j=j0;j<=j1;j++){const y=CITY[0]+(j+.5)*dLat,xs=[];
+      for(const r of rings)for(let a=0,c=r.length-1;a<r.length;c=a++){const yi=r[a][1],yj=r[c][1];if((yi>y)!=(yj>y))xs.push((r[c][0]-r[a][0])*(y-yi)/(yj-yi)+r[a][0]);}
+      xs.sort((u,v)=>u-v);
+      for(let q=0;q+1<xs.length;q+=2){let i0=Math.ceil((xs[q]-CITY[1])/dLon-.5),i1=Math.ceil((xs[q+1]-CITY[1])/dLon-.5)-1;i0=Math.max(0,i0);i1=Math.min(NI-1,i1);
+        for(let i=i0;i<=i1;i++)if(owner[j*NI+i]<0)owner[j*NI+i]=k;}}});
+  for(let j=0;j<NJ;j++)for(let i=0;i<NI;i++){const d=owner[j*NI+i];if(d<0)continue;const la=CITY[0]+(j+.5)*dLat,lo=CITY[1]+(i+.5)*dLon;CELLAT[j*NI+i]=CELLS.length;CELLS.push({i,j,la,lo,d,x:X(lo),y:Y(la)});}})();
 const N=CELLS.length, ALL=Array.from({length:N},(_,k)=>k);
 function cellAtLatLng(la,lo){const i=Math.floor((lo-CITY[1])/dLon),j=Math.floor((la-CITY[0])/dLat);return i<0||j<0||i>=NI||j>=NJ?-1:CELLAT[j*NI+i];}
 
@@ -1290,9 +1297,9 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
 // ---------- 匯入房源：Claude 找好的房源表（CSV／Excel／貼上），依地址定位放到地圖，點按連到各房仲網站 ----------
 // 有「緯度／經度」欄就直接用；沒有就用 OpenStreetMap Nominatim 依地址定位（每秒 1 次、結果記在裝置上）。只有路段的，標成約略位置。
 const NOMINATIM='https://nominatim.openstreetmap.org/search',XLSX_URL='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.mini.min.js';
-let LISTINGS=[],GEOCACHE={},geoRunning=false;try{LISTINGS=JSON.parse(localStorage.getItem('tlm.listings')||'[]');GEOCACHE=JSON.parse(localStorage.getItem('tlm.geocache')||'{}');}catch(e){}
+let LISTINGS=[],GEOCACHE={},geoRunning=false;try{LISTINGS=JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>!l.sync);GEOCACHE=JSON.parse(localStorage.getItem('tlm.geocache')||'{}');}catch(e){}
 const saleLayer=L.layerGroup().addTo(map);
-function saveListings(){try{localStorage.setItem('tlm.listings',JSON.stringify(LISTINGS));localStorage.setItem('tlm.geocache',JSON.stringify(GEOCACHE));}catch(e){toast('手機儲存空間不足，部分房源沒存到',true);}}
+function saveListings(){try{localStorage.setItem('tlm.listings',JSON.stringify(LISTINGS.filter(l=>!l.sync)));localStorage.setItem('tlm.geocache',JSON.stringify(GEOCACHE));}catch(e){toast('手機儲存空間不足，部分房源沒存到',true);}}
 function platformOf(u){return /591\.com/.test(u)?'591':/sinyi/.test(u)?'信義':/yungching/.test(u)?'永慶':/rakuya/.test(u)?'樂屋':/hbhousing/.test(u)?'住商':/cthouse/.test(u)?'中信':/twhg|taiwanhouse/.test(u)?'台灣房屋':'網站';}
 function parseDelim(text){const d=(text.split('\n')[0].match(/\t/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?'\t':',',rows=[];let row=[],f='',q=false;
   for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
@@ -1434,17 +1441,17 @@ async function syncListings(force){if(!SYNC||!SYNC.token||syncRunning)return;syn
     if(!r.ok){SYNCMETA.err=ghErr(r);saveSync();renderSyncStatus();if(force)toast('私人房源讀取失敗：'+SYNCMETA.err,true);return;}
     const j=JSON.parse(await r.text()),rows=Array.isArray(j)?j:j.rows,updated=(!Array.isArray(j)&&j.updated)||'';SYNCMETA.err='';SYNCMETA.empty=false;
     if(!force&&updated&&updated===SYNCMETA.updated&&LISTINGS.some(l=>l.sync)){saveSync();renderSyncStatus();return;}
+    // 私人房源不存在裝置上：每次打開都從 repo 讀；只記上一版的房源編號，用來標新上架／算下架
     const list=rowsToListings(rows||[]);if(!list.length)throw new Error('format');
-    const old=new Map(LISTINGS.filter(l=>l.sync).map(l=>[listingKey(l),l])),had=old.size>0,keys=new Set();
-    for(const l of list){const k=listingKey(l);keys.add(k);l.sync=true;const o=old.get(k);
-      if(o){l.isNew=updated===SYNCMETA.updated?!!o.isNew:false;if(!l.lat&&o.lat){l.lat=o.lat;l.lng=o.lng;l.prec=o.prec;}}else l.isNew=had;}
-    const gone=[...old.entries()].filter(([k])=>!keys.has(k)).map(([,l])=>l);
-    LISTINGS=LISTINGS.filter(l=>!l.sync);const nNew=list.filter(l=>l.isNew).length;
-    LISTINGS=list.concat(LISTINGS.filter(l=>!keys.has(listingKey(l))));
-    if(updated!==SYNCMETA.updated)SYNCMETA.gone=gone.map(l=>({addr:l.addr,price:l.price}));
+    let SK={};try{SK=JSON.parse(localStorage.getItem('tlm.synckeys')||'{}');}catch(e){}
+    const same=!!updated&&updated===SYNCMETA.updated,prev=new Set(same?(SK.prev||[]):(SK.cur||[])),had=prev.size>0,keys=new Set();
+    for(const l of list){const k=listingKey(l);keys.add(k);l.sync=true;l.isNew=had&&!prev.has(k);}
+    const gone=[...prev].filter(k=>!keys.has(k)),nNew=list.filter(l=>l.isNew).length;
+    LISTINGS=list.concat(LISTINGS.filter(l=>!l.sync&&!keys.has(listingKey(l))));
+    if(!same){SYNCMETA.gone=gone.map(k=>({addr:k}));try{localStorage.setItem('tlm.synckeys',JSON.stringify({prev:SK.cur||[],cur:[...keys]}));}catch(e){}}
     SYNCMETA.updated=updated;SYNCMETA.n=list.length;SYNCMETA.nNew=nNew;SYNCMETA.at=Date.now();saveListings();saveSync();
     state.layers.sale=true;drawSale();renderSyncStatus();renderImportStatus();
-    if(had&&(nNew||gone.length))toast(`私人房源更新：新上架 ${nNew} 間${gone.length?`、已下架 ${gone.length} 間`:''}`);else if(!had)toast(`已載入私人房源 ${list.length} 間`);
+    if(had&&!same&&(nNew||gone.length))toast(`私人房源更新：新上架 ${nNew} 間${gone.length?`、已下架 ${gone.length} 間`:''}`);else if(!had&&!same)toast(`已載入私人房源 ${list.length} 間`);
     geocodeAll();}
   catch(e){console.warn(e);SYNCMETA.err='listings.json 格式不對';saveSync();renderSyncStatus();}
   finally{syncRunning=false;}}
@@ -1796,7 +1803,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
 (async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();drawSale();if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
+  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
 </script>
 </body>
 </html>

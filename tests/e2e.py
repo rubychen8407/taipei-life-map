@@ -178,6 +178,8 @@ async def sw_suite(b, errs):
     await page.reload(); await page.wait_for_function(READY, timeout=30000); await page.wait_for_timeout(800)
     check('city.json' not in data_hits[n0:], f'第三次打開：city.json 直接用裝置上的快取，不再下載（這次下載 {data_hits[n0:]}）')
     check(await cached('data/realprice.json', 'data/valuation.json', 'config/finance.json', 'data/market.json'), '啟動後空閒時，背景先把估價、房市資料存到裝置上')
+    nt = await ev("caches.open('tlm-tiles-v1').then(c=>c.keys()).then(k=>k.length)")
+    check(nt > 0, f'地圖底圖存在裝置上，再打開不用重抓（目前 {nt} 張）')
     n1 = len(data_hits)
     await ev("void openVal([25.0335,121.5436])"); await page.wait_for_function("!!VALDATA", timeout=20000)
     check(not any(x in data_hits[n1:] for x in ('realprice.json', 'valuation.json')), f'啟動後空閒時已先抓好估價資料，點估價不用再等下載（{data_hits[n1:]}）')
@@ -316,6 +318,9 @@ async def baked_suite(b, errs):
     r = await ev("(()=>{const s=document.getElementById('sheet').getBoundingClientRect(),t=document.getElementById('top').getBoundingClientRect();return {sheetTop:s.top,topBottom:t.bottom}})()")
     check(r['topBottom'] < 135 and r['sheetTop'] > 760, f"進場：地圖是主角，上方只有類別列與儲存的篩選、下方面板收到只剩一行（{r['topBottom']:.0f}px／{r['sheetTop']:.0f}px）")
     check(await ev("!!document.querySelector('#head .sumline')&&!/%|符合/.test(document.querySelector('#head .sumline').innerText)&&!/各區比較/.test(document.getElementById('body').innerText)&&!document.querySelector('#body .drow')"), '清單只寫範圍與項目數，不顯示符合比例和各區比較')
+    gr = await ev("""(()=>{let n=0,bad=0;for(let j=0;j<NJ;j++)for(let i=0;i<NI;i++){const la=CITY[0]+(j+.5)*dLat,lo=CITY[1]+(i+.5)*dLon;let d=-1;
+      for(let k=0;k<DISTRICTS.length;k++)if(inPoly(DISTRICTS[k],la,lo)){d=k;break;}const c=CELLAT[j*NI+i];if(d>=0)n++;if((c<0)!==(d<0)||(c>=0&&CELLS[c].d!==d))bad++;}return {n,bad,cells:CELLS.length}})()""")
+    check(gr['bad'] == 0 and gr['n'] == gr['cells'], f"逐列掃描建的格子和逐格判斷完全相同（{gr['cells']} 格，不同 {gr['bad']} 格）")
     await shot(page, '1_home')
 
     # 2. 類別按鈕、各類別獨立距離設定
@@ -1155,7 +1160,11 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await page.wait_for_function("LISTINGS.some(l=>l.addr==='延壽街100號')&&!syncRunning", timeout=8000); await page.wait_for_timeout(300)
     s2 = await ev("({addr:LISTINGS.map(l=>l.addr),nw:LISTINGS.filter(l=>l.isNew).map(l=>l.addr),pins:saleLayer.getLayers().map(m=>m.getElement().innerText),t:document.getElementById('toast').innerText,m:SYNCMETA})")
     print('  sync', s2)
-    check(sorted(s2['addr']) == sorted(['民生東路五段36巷8號', '延壽街100號']) and s2['nw'] == ['延壽街100號'] and '新上架 1 間、已下架 1 間' in s2['t'] and any(p.startswith('新') for p in s2['pins']) and s2['m']['gone'][0]['addr'] == '南京東路五段100號', '下次打開 app 自動更新：新上架的標「新」，已下架的從地圖移除並提示')
+    check(sorted(s2['addr']) == sorted(['民生東路五段36巷8號', '延壽街100號']) and s2['nw'] == ['延壽街100號'] and '新上架 1 間、已下架 1 間' in s2['t'] and any(p.startswith('新') for p in s2['pins']) and len(s2['m']['gone']) == 1, '下次打開 app 自動更新：新上架的標「新」，已下架的從地圖移除並提示')
+    st_l = await ev("JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>l.sync).length")
+    check(st_l == 0, '私人房源不存在裝置上：每次打開從私人 repo 讀，手機只記房源編號（標新上架用）')
+    await page.reload(); await page.wait_for_function(READY, timeout=20000); await page.wait_for_function("LISTINGS.filter(l=>l.sync).length===2&&!syncRunning", timeout=8000)
+    check(await ev("LISTINGS.filter(l=>l.isNew).map(l=>l.addr).join()") == '延壽街100號', '同一版重新打開：「新」標記維持一樣')
     await ev("closeDetail()"); await page.click('#exportBtn'); await page.wait_for_function("state.view.type==='export'", timeout=3000)
     st = await ev("document.getElementById('syncSt').innerText")
     check(st.replace(' ', '').startswith('2間') and '更新' in st and 'tlm-listings' not in st and '下架' not in st and '南京東路' not in st, f'找房頁只顯示房源間數與更新時間，不顯示 repo、上下架間數或地址（{st}）')
