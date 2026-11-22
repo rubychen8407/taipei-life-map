@@ -21,6 +21,9 @@ GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon':
 GMAPS = []
 GH = {'files': {}, 'calls': [], 'token': 'tok_ok', 'write': True}  # 模擬 GitHub contents API（私人房源 repo）
 GH_CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Accept, Content-Type, X-GitHub-Api-Version', 'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'}
+SB = {'otp': [], 'rows': {}, 'calls': [], 'refresh_ok': True}  # 模擬 Supabase（登入＋user_data 資料表，每個 email 一份）
+SB_HOST = 'https://exugellewviuiwnohsfo.supabase.co'
+SB_CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'apikey, authorization, content-type, prefer, x-client-info', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'}
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=')
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
 SNIP = {'sidewalk': 'footway"="sidewalk', 'park': 'leisure"="park"', 'school': 'amenity', 'sport': 'sports_centre', 'market': 'supermarket', 'bus': 'bus_stop', 'mrt': 'subway'}
@@ -111,6 +114,39 @@ async def route(r):
         return await r.fulfill(body=json.dumps({'code': 'Ok', 'waypoints': [{'location': [lo, la - 0.00027], 'distance': 30}]}), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
     if u.startswith('https://www.google.com/maps/embed'):
         return await r.fulfill(body='<html><body style="background:#9ab">street view</body></html>', content_type='text/html')
+    if u.startswith(SB_HOST):
+        rq = r.request; pu = urllib.parse.urlparse(u); path = pu.path
+        if rq.method == 'OPTIONS':
+            return await r.fulfill(status=204, headers=SB_CORS)
+        auth = rq.headers.get('authorization', '')
+        SB['calls'].append((rq.method, path + ('?' + pu.query if pu.query else ''), auth, rq.headers.get('apikey', '')))
+        J = lambda o, st=200: r.fulfill(status=st, body=json.dumps(o), headers=SB_CORS, content_type='application/json')
+        if rq.headers.get('apikey') != 'sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4':
+            return await J({'msg': 'no api key'}, 401)
+        if path == '/auth/v1/otp':
+            SB['otp'].append((json.loads(rq.post_data)['email'], urllib.parse.parse_qs(pu.query).get('redirect_to', [''])[0]))
+            return await J({})
+        if path == '/auth/v1/token':
+            rt = json.loads(rq.post_data)['refresh_token']
+            if not SB['refresh_ok'] or not rt.startswith('rf_'):
+                return await J({'error': 'invalid_grant'}, 400)
+            em = rt[3:]
+            return await J({'access_token': 'at2_' + em, 'refresh_token': 'rf_' + em, 'expires_in': 3600, 'user': {'email': em + '@example.com'}})
+        em = auth[len('Bearer at_'):] if auth.startswith('Bearer at_') else auth[len('Bearer at2_'):] if auth.startswith('Bearer at2_') else None
+        if not em:
+            return await J({'msg': 'JWT expired'}, 401)
+        if path == '/auth/v1/user':
+            return await J({'email': em + '@example.com'})
+        if path == '/auth/v1/logout':
+            return await r.fulfill(status=204, headers=SB_CORS)
+        if path == '/rest/v1/user_data':
+            mine = SB['rows'].setdefault(em, {})
+            if rq.method == 'GET':
+                return await J([{'key': k, 'value': v, 'updated_at': t} for k, (v, t) in mine.items()])
+            for row in json.loads(rq.post_data):
+                mine[row['key']] = (row['value'], row['updated_at'])
+            return await r.fulfill(status=201, headers=SB_CORS)
+        return await J({}, 404)
     if u.startswith('https://api.github.com/'):
         rq = r.request
         if rq.method == 'OPTIONS':
@@ -184,6 +220,74 @@ async def sw_suite(b, errs):
     await ev("void openVal([25.0335,121.5436])"); await page.wait_for_function("!!VALDATA", timeout=20000)
     check(not any(x in data_hits[n1:] for x in ('realprice.json', 'valuation.json')), f'啟動後空閒時已先抓好估價資料，點估價不用再等下載（{data_hits[n1:]}）')
     await ctx.close()
+
+
+async def cloud_suite(b, errs):
+    print('\n=== 雲端同步（Supabase，模擬）===')
+    pa = await new_page(b, errs, **PHONE); ev = pa.evaluate
+    await pa.goto(URL); await pa.wait_for_function(READY, timeout=30000)
+    await ev("openSettings()")
+    check(await pa.locator('#cloudBox #cloudEmail').count() == 1, '設定最上面有「雲端同步」：輸入 email 登入')
+    await pa.fill('#cloudEmail', 'ruby@example.com'); await pa.click('#cloudSend'); await pa.wait_for_timeout(300)
+    check(SB['otp'] and SB['otp'][-1] == ('ruby@example.com', URL), f'寄登入連結：寄到輸入的 email，點信裡的連結會回到 app（{SB["otp"][-1:]}）')
+    check('ruby@example.com' in await pa.inner_text('#cloudSent'), '寄出後提示到信箱點連結')
+    await shot(pa, 'cloud_login')
+    # 點信裡的連結：網址帶著 token 回來
+    await pa.goto('about:blank'); await pa.goto(URL + '#access_token=at_ruby&refresh_token=rf_ruby&expires_in=3600&token_type=bearer&type=magiclink'); await pa.wait_for_function(READY, timeout=30000)
+    await pa.wait_for_timeout(500)
+    check(await ev("location.hash===''&&!!JSON.parse(localStorage.getItem('tlm.auth')).access"), '點登入連結回來：已登入，網址上的 token 清掉')
+    # 改個人資料 → 自動上傳
+    await ev("saveHomes([{id:'h1',name:'光復北路那間',pt:[25.0535,121.5575],dist:'松山區',form:{t:0,ping:30,age:40,fl:3,tot:5},st:'seen'}]);drawHomes()")
+    await ev("state.layers.trees=true;applyLayers()")
+    await pa.wait_for_timeout(2200)
+    rows = SB['rows'].get('ruby', {})
+    check('tlm.homes' in rows and rows['tlm.homes'][0][0]['name'] == '光復北路那間', f'我的物件改了會自動存到雲端（雲端有 {sorted(rows)}）')
+    check('tlm.layers' in rows and rows['tlm.layers'][0].get('trees') is True, '圖層設定也存到雲端')
+    check(not any(k in rows for k in ('tlm.auth', 'tlm.sync', 'tlm.gmkey', 'tlm.geocache')), '登入資訊、GitHub token、街景金鑰、地址快取不上傳')
+    await ev("openSettings()")
+    check('ruby@example.com' in await pa.inner_text('#cloudBox'), f'設定顯示已登入的 email')
+    await shot(pa, 'cloud_signed_in')
+    # 另一台裝置（空的）登入同一個 email
+    pb = await new_page(b, errs, **PHONE); evb = pb.evaluate
+    await pb.goto(URL + '#access_token=at_ruby&refresh_token=rf_ruby&expires_in=3600&token_type=bearer&type=magiclink'); await pb.wait_for_function(READY, timeout=30000)
+    await pb.wait_for_timeout(400)
+    check(await evb("loadHomes().length===1&&loadHomes()[0].name==='光復北路那間'&&homeLayer.getLayers().length>0"), '另一台裝置登入後，一打開就看到我的物件（地圖上也畫出來）')
+    check(await evb("state.layers.trees===true"), '另一台裝置的圖層設定也同步')
+    # 第三台裝置本來就有自己的物件：第一次登入時合併，不會被雲端蓋掉
+    pc = await new_page(b, errs, **PHONE); evc = pc.evaluate
+    await pc.goto(URL); await pc.wait_for_function(READY, timeout=30000)
+    await evc("saveHomes([{id:'h9',name:'電腦上存的',pt:[25.05,121.56],dist:'松山區',form:{t:0,ping:25,age:30,fl:2,tot:4},st:'todo'}])")
+    await pc.goto('about:blank'); await pc.goto(URL + '#access_token=at_ruby&refresh_token=rf_ruby&expires_in=3600&token_type=bearer&type=magiclink'); await pc.wait_for_function(READY, timeout=30000)
+    await pc.wait_for_timeout(2200)
+    names = await evc("loadHomes().map(h=>h.name)")
+    check(sorted(names) == ['光復北路那間', '電腦上存的'] and len(SB['rows']['ruby']['tlm.homes'][0]) == 2, f'已有資料的裝置第一次登入：我的物件和雲端的合併（{names}），合併後也存回雲端')
+    await evc("saveHomes(loadHomes().filter(h=>h.id!=='h9'))"); await pc.wait_for_timeout(1800); await pc.context.close()
+    # 第一台改了 → 第二台切回 app 時更新
+    await ev("const h=loadHomes();h[0].st='nego';saveHomes(h)"); await pa.wait_for_timeout(2000)
+    await evb("Object.defineProperty(document,'visibilityState',{value:'visible',configurable:true});document.dispatchEvent(new Event('visibilitychange'))")
+    await pb.wait_for_timeout(800)
+    check(await evb("loadHomes()[0].st==='nego'"), '一台裝置改了，另一台切回 app 就更新（不用重新整理）')
+    # 裝置上比雲端新的不會被蓋掉
+    await evb("const h=loadHomes();h[0].name='改名了';saveHomes(h)")
+    await evb("cloudPull()"); await pb.wait_for_timeout(1800)
+    check(await evb("loadHomes()[0].name==='改名了'") and SB['rows']['ruby']['tlm.homes'][0][0]['name'] == '改名了', '裝置上剛改的比雲端新：保留並上傳，不會被舊的蓋掉')
+    # token 過期 → 自動換新
+    n = len(SB['calls'])
+    await evb("SBA.exp=Date.now()-1000;cloudPull()"); await pb.wait_for_timeout(800)
+    new = SB['calls'][n:]
+    check(any(c[1].startswith('/auth/v1/token') for c in new) and any(c[2] == 'Bearer at2_ruby' for c in new), '登入過期時自動換新 token 繼續同步')
+    # 換不到新 token → 請重新登入
+    SB['refresh_ok'] = False
+    await evb("SBA.exp=Date.now()-1000;cloudPull()"); await pb.wait_for_timeout(800)
+    await evb("openSettings()")
+    check(await evb("!SBA&&!localStorage.getItem('tlm.auth')") and '重新登入' in await pb.inner_text('#cloudBox'), '登入失效時清掉並請使用者重新登入')
+    SB['refresh_ok'] = True
+    # 登出：清掉這台裝置的個人資料，雲端保留
+    pa.on('dialog', lambda d: asyncio.ensure_future(d.accept()))
+    await ev("openSettings()"); await pa.click('#cloudOut'); await pa.wait_for_load_state(); await pa.wait_for_function(READY, timeout=30000)
+    check(await ev("!localStorage.getItem('tlm.auth')&&!localStorage.getItem('tlm.homes')") and 'tlm.homes' in SB['rows']['ruby'], '登出：這台裝置的個人資料清掉，雲端的保留')
+    check(any(c[1] == '/auth/v1/logout' for c in SB['calls']), '登出時通知 Supabase 作廢這次登入')
+    await pa.context.close(); await pb.context.close()
 
 
 async def new_page(b, errs, **kw):
@@ -1414,8 +1518,11 @@ async def main():
                 MODE['val'] = {'v': val, 'est': RP.estimate(subj, {'b': val['model']['b'], 'dist': val['model']['dist'], 'q': {'0': 0}}, [r for r in clean if 'e' in r], val['now_ym'], val['model']['now']), 's': subj['s']}
             check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
+            if os.environ.get('ONLY') == 'cloud':
+                await cloud_suite(b, errs); check(not errs, f'沒有 JavaScript 錯誤 {errs[:3]}'); await b.close(); return fails
             await baked_suite(b, errs)
             await sw_suite(b, errs)
+            await cloud_suite(b, errs)
             print('\n=== A. 沒有預建資料（即時查詢的備援流程）===')
             MODE['baked'] = False
             await live_suite(b, errs)

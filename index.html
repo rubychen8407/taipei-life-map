@@ -1293,6 +1293,81 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
   if(seq!==urbanSeq||urbanLayer||!state.layers.urban)return;urbanLayer=L.layerGroup();
   URBAN.areas.forEach(a=>L.polygon(a.r,{color:UR_COL[a.k]||UR_COL.other,weight:2,dashArray:'5 4',fillColor:UR_COL[a.k]||UR_COL.other,fillOpacity:.14,bubblingMouseEvents:false,className:'ur-area ur-'+a.k}).on('click',e=>{if(state.drawing||state.editing)return;L.popup({closeButton:false,maxWidth:260}).setLatLng(e.latlng).setContent(urbanInfo(a)).openOn(map);}).addTo(urbanLayer));
   urbanLayer.addTo(map);}
+// ---------- 雲端同步（Supabase）：個人資料跨裝置；用 email 登入連結，每個帳號只讀得到自己的資料（資料表 user_data 有 RLS） ----------
+const SB_URL='https://exugellewviuiwnohsfo.supabase.co',SB_KEY='sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4';
+// 同步的個人資料（裝置上只留一份副本，雲端為準）；金鑰、token、快取、暫存不同步
+const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys'];
+let SBA=null,CMETA={},cloudApplying=false,cloudTimer=null,cloudBusy=false,cloudErr='';
+try{SBA=JSON.parse(localStorage.getItem('tlm.auth')||'null');CMETA=JSON.parse(localStorage.getItem('tlm.cloudmeta')||'{}');}catch(e){}
+const saveSBA=()=>{try{SBA?localStorage.setItem('tlm.auth',JSON.stringify(SBA)):localStorage.removeItem('tlm.auth');}catch(e){}};
+const saveCMeta=()=>{try{localStorage.setItem('tlm.cloudmeta',JSON.stringify(CMETA));}catch(e){}};
+// 個人資料被改時記下時間，稍後上傳
+(()=>{const S=Storage.prototype,set=S.setItem,rem=S.removeItem;
+  S.setItem=function(k,v){set.call(this,k,v);if(this===localStorage&&SBA&&!cloudApplying&&CLOUD_KEYS.includes(k)){(CMETA[k]=CMETA[k]||{}).l=Date.now();saveCMeta();cloudSoon();}};
+  S.removeItem=function(k){rem.call(this,k);if(this===localStorage&&SBA&&!cloudApplying&&CLOUD_KEYS.includes(k)){(CMETA[k]=CMETA[k]||{}).l=Date.now();saveCMeta();cloudSoon();}};})();
+function cloudSoon(){if(!SBA)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>cloudPush().catch(()=>{}),1200);}
+// 登入連結回來時，網址 # 後面帶著 token
+function cloudFromHash(){const h=location.hash||'';if(!/access_token=|error_description=/.test(h))return false;const q=new URLSearchParams(h.replace(/^#/,''));
+  history.replaceState(null,'',location.pathname+location.search);
+  if(q.get('error_description')){toast('登入連結無效或已過期，請重新寄一次',true);return false;}
+  SBA={access:q.get('access_token'),refresh:q.get('refresh_token'),exp:Date.now()+(+q.get('expires_in')||3600)*1000,email:''};saveSBA();return true;}
+async function sbToken(){if(!SBA)return null;if(Date.now()<SBA.exp-60e3)return SBA.access;
+  const r=await fetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:SBA.refresh})});
+  if(!r.ok){if(r.status===400||r.status===401){SBA=null;saveSBA();cloudErr='登入已過期，請重新登入';renderCloud();}throw new Error('refresh '+r.status);}
+  const j=await r.json();SBA=Object.assign(SBA,{access:j.access_token,refresh:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email:(j.user&&j.user.email)||SBA.email});saveSBA();return SBA.access;}
+async function sbFetch(path,opt={}){const t=await sbToken();if(!t)throw new Error('no session');
+  return fetch(SB_URL+path,Object.assign({},opt,{headers:Object.assign({apikey:SB_KEY,Authorization:'Bearer '+t},opt.headers||{})}));}
+async function cloudLogin(email){const r=await fetch(SB_URL+'/auth/v1/otp?redirect_to='+encodeURIComponent(location.origin+location.pathname),{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,create_user:true})});
+  if(!r.ok){let m='';try{m=(await r.json()).msg||'';}catch(e){}throw new Error(r.status===429?'寄太多次了，請稍後再試':'寄送失敗'+(m?'：'+m:''));}}
+// 這台裝置第一次登入、裝置上和雲端都有資料時：我的物件、常用篩選、看過的房源合併，不互相蓋掉
+function cloudMerge(k,loc,rem){const by=(a,b,f)=>{const seen=new Set(b.map(f));return b.concat(a.filter(x=>!seen.has(f(x))));};
+  if(k==='tlm.homes'&&Array.isArray(loc)&&Array.isArray(rem))return by(loc,rem,x=>x&&x.id);
+  if(k==='tlm.filters'&&Array.isArray(loc)&&Array.isArray(rem))return by(loc,rem,x=>x&&x.name);
+  if(k==='tlm.seen'&&loc&&rem&&typeof loc==='object'&&typeof rem==='object')return Object.assign({},loc,rem);
+  return null;}
+const pj=v=>{try{return JSON.parse(v);}catch(e){return v;}},sj=v=>typeof v==='string'?v:JSON.stringify(v);
+// 下載：雲端比較新的蓋掉裝置上的；裝置上比較新的（或雲端沒有）上傳。回傳被雲端更新的 key
+async function cloudPull(){if(!SBA||cloudBusy)return [];cloudBusy=true;const changed=[];
+  try{if(!SBA.email){const u=await sbFetch('/auth/v1/user');if(u.ok){SBA.email=(await u.json()).email||'';saveSBA();}}
+    const r=await sbFetch('/rest/v1/user_data?select=key,value,updated_at');if(!r.ok)throw new Error('pull '+r.status);
+    const rows=await r.json(),seen=new Set();cloudApplying=true;
+    try{for(const row of rows){if(!CLOUD_KEYS.includes(row.key))continue;seen.add(row.key);const R=Date.parse(row.updated_at)||0,m=CMETA[row.key]=CMETA[row.key]||{};
+      const cur0=localStorage.getItem(row.key),mg=m.l==null&&m.r==null&&cur0!=null&&row.value!=null?cloudMerge(row.key,pj(cur0),row.value):null;
+      if(mg!=null){const nv=sj(mg);if(nv!==cur0){localStorage.setItem(row.key,nv);changed.push(row.key);}m.r=R;m.l=sj(mg)===sj(row.value)?R:Date.now();continue;}
+      if(R>(m.r||0)&&(m.l==null||R>m.l)){const cur=localStorage.getItem(row.key),nv=row.value==null?null:sj(row.value);
+        if(nv==null)localStorage.removeItem(row.key);else if(cur!==nv)localStorage.setItem(row.key,nv);if(cur!==nv)changed.push(row.key);m.r=R;m.l=R;}}
+      for(const k of CLOUD_KEYS)if(!seen.has(k)&&localStorage.getItem(k)!=null&&(CMETA[k]=CMETA[k]||{}).l==null)CMETA[k].l=Date.now();}
+    finally{cloudApplying=false;}
+    saveCMeta();cloudErr='';SBA.at=Date.now();saveSBA();}
+  catch(e){cloudErr=SBA?'雲端同步失敗，稍後會再試':cloudErr;}
+  finally{cloudBusy=false;}
+  await cloudPush().catch(()=>{});renderCloud();return changed;}
+async function cloudPush(){if(!SBA)return;const ks=CLOUD_KEYS.filter(k=>CMETA[k]&&CMETA[k].l&&CMETA[k].l>(CMETA[k].r||0));if(!ks.length)return;
+  const rows=ks.map(k=>{const v=localStorage.getItem(k);return {key:k,value:v==null?null:pj(v),updated_at:new Date(CMETA[k].l).toISOString()};});
+  const r=await sbFetch('/rest/v1/user_data?on_conflict=user_id,key',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
+  if(!r.ok){cloudErr='雲端同步失敗，稍後會再試';renderCloud();throw new Error('push '+r.status);}
+  rows.forEach(x=>CMETA[x.key].r=Date.parse(x.updated_at));saveCMeta();SBA.at=Date.now();saveSBA();cloudErr='';renderCloud();}
+async function cloudLogout(){try{await sbFetch('/auth/v1/logout',{method:'POST'});}catch(e){}
+  SBA=null;saveSBA();cloudApplying=true;try{CLOUD_KEYS.forEach(k=>localStorage.removeItem(k));}finally{cloudApplying=false;}CMETA={};saveCMeta();location.reload();}
+// 套用從雲端拿到的資料（不用重新整理）
+function applyPersonal(changed){if(!changed.length)return;
+  try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
+  try{SEEN=JSON.parse(localStorage.getItem('tlm.seen')||'{}');}catch(e){}
+  try{SALEF=Object.assign({by:'ping',min:null,max:null,seen:'all'},JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
+  try{const man=JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>!l.sync);LISTINGS=LISTINGS.filter(l=>l.sync).concat(man);}catch(e){}}
+function cloudBox(){const d=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+  return `<div class="im-box" id="cloudBox"><h3>雲端同步</h3>${SBA?`<div class="hint" style="margin:0">已登入 <b>${esc(SBA.email||'')}</b>。我的物件、篩選、圖層、看過的房源會自動同步，其他裝置登入同一個 email 就看得到。${SBA.at?`上次同步 ${d(SBA.at)}`:''}</div>${cloudErr?`<div class="hint bad" style="margin:6px 0 0">${esc(cloudErr)}</div>`:''}<div class="im-row"><button type="button" class="s" id="cloudNow">立即同步</button><button type="button" class="s" id="cloudOut">登出</button></div>`
+    :`<div class="hint" style="margin:0">用 email 登入，個人資料就會存在雲端，換手機或電腦都看得到。</div>${cloudErr?`<div class="hint bad" style="margin:6px 0 0">${esc(cloudErr)}</div>`:''}<div class="vform"><label class="wide">Email<input id="cloudEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></label></div><div class="im-row"><button type="button" id="cloudSend">寄登入連結</button></div><div class="im-st" id="cloudSent"></div>`}</div>`;}
+function renderCloud(){const b=$('cloudBox');if(!b)return;b.outerHTML=cloudBox();bindCloud();}
+function bindCloud(){const s=$('cloudSend');if(s)s.onclick=async()=>{const e=$('cloudEmail').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast('Email 格式不對',true);return;}
+    s.disabled=true;try{await cloudLogin(e);$('cloudSent').innerHTML=`已寄到 <b>${esc(e)}</b>。請<b>在這台裝置</b>打開信裡的「Sign in」，就會回到這裡並登入。`;}catch(err){toast(err.message,true);}finally{s.disabled=false;}};
+  const n=$('cloudNow');if(n)n.onclick=async()=>{n.disabled=true;const ch=await cloudPull();afterCloud(ch,true);n.disabled=false;};
+  const o=$('cloudOut');if(o)o.onclick=()=>{if(confirm('登出後，這台裝置上的個人資料會清掉（雲端的不會），確定登出？'))cloudLogout();};}
+// 雲端資料晚到時：重畫受影響的部分
+function afterCloud(ch,manual){if(!ch.length){if(manual)toast('已是最新');return;}applyPersonal(ch);
+  if(ch.includes('tlm.last')){try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last){state.restoring=true;setFilterState(last);state.restoring=false;fillScope();renderCategorySettings();drawScope(true);run();}}catch(e){state.restoring=false;}}
+  drawHomes();drawSale();drawTrees();drawLand();drawUrban();if(!$('layersPop').hidden)renderLayersPop();if(state.view.type!=='cell')render();toast('已同步其他裝置的資料');}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&SBA&&state&&!state.loading)cloudPull().then(ch=>afterCloud(ch,false));});
 // ---------- 匯出想找房的地區：整理成一段文字，分享或複製給 Claude，請它去各房仲網站找在賣的物件 ----------
 // ---------- 匯入房源：Claude 找好的房源表（CSV／Excel／貼上），依地址定位放到地圖，點按連到各房仲網站 ----------
 // 有「緯度／經度」欄就直接用；沒有就用 OpenStreetMap Nominatim 依地址定位（每秒 1 次、結果記在裝置上）。只有路段的，標成約略位置。
@@ -1496,9 +1571,9 @@ if(HWAIT&&Date.now()-HWAIT.t<HUNT_MAX)huntWatch();else if(HWAIT){HWAIT=null;save
 function syncMini(){return SYNC?`<div class="hk-card"><div class="hk-txt"><div class="hk-lbl2">自動匯入</div><div id="syncSt">${syncShort()}</div></div><button type="button" class="hk-ic" id="syncNow" aria-label="定時找房：每天自動，點一下讀取最新結果" title="定時找房（每天自動）"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></button><button type="button" class="hk-ic hk-run${HWAIT?' on':''}" id="huntGo" aria-label="${HWAIT?'Claude 找房中':'手動找房：現在叫 Claude 找'}" title="手動找房"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg></button></div>`
   :`<div class="hk-card"><div class="hk-txt"><div class="hk-lbl2">自動匯入</div><span class="hk-sub">還沒連結私人房源</span></div><button type="button" class="hk-link" id="toSettings" data-open-settings>去設定 ›</button><div id="syncSt" hidden></div></div>`;}
 function openSettings(){closePops();if(state.view.type==='settings')return;if(state.view.type!=='list')pushBack();state.view={type:'settings',prefs:exPrefs()};drawPins();render();fitSheet('full');}
-function renderSettings(){headDetail('設定','金鑰和連線只存在這台裝置，不會上傳',{name:'設定',color:'#5F6368',icon:categoryIcon('gear')});
+function renderSettings(){headDetail('設定','個人資料登入後存在雲端；金鑰和 token 只存在這台裝置',{name:'設定',color:'#5F6368',icon:categoryIcon('gear')});
   $('resultBtn').innerHTML=`<span>設定</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-  $('body').innerHTML=exSection(state.view)+syncBox()+huntBox()+`<div class="im-box"><h3>Google 街景</h3>${gmKeyBox(true)}</div>`+foot();bindExport(state.view);bindSync();bindGmKey($('body'));}
+  $('body').innerHTML=cloudBox()+exSection(state.view)+syncBox()+huntBox()+`<div class="im-box"><h3>Google 街景</h3>${gmKeyBox(true)}</div>`+foot();bindExport(state.view);bindSync();bindGmKey($('body'));bindCloud();}
 function huntBox(){return `<details class="im-box hunt-set"${HUNT?'':''}><summary>手動找房的連線（選用）${HUNT?'：已設定':''}</summary><div class="hint">到 claude.ai/code/routines 開「每日找房」→ 新增 API 觸發 → 產生 token，把網址和 token 貼在這裡，找房頁的「現在找房」就能直接叫 Claude 開始。沒設定時，按「現在找房」會複製「找房」，貼到和 Claude 的對話即可。</div><div class="vform"><label class="wide">觸發網址<input id="huntUrl" value="${esc(HUNT?HUNT.url:'')}" placeholder="https://api.anthropic.com/v1/claude_code/routines/…/fire" autocapitalize="off" spellcheck="false"></label><label class="wide">Token<input id="huntTok" type="password" autocomplete="off" value="${esc(HUNT?HUNT.token:'')}" placeholder="sk-ant-oat01-…" spellcheck="false"></label></div><div class="im-row"><button type="button" id="huntSave">儲存</button>${HUNT?'<button type="button" class="s" id="huntDel">移除</button>':''}</div></details>`;}
 function bindSync(){const go=$('syncGo');if(go)go.onclick=async()=>{const repo=$('syncRepo').value.trim().replace(/^https:\/\/github\.com\//,'').replace(/\/$/,''),token=$('syncTok').value.trim();
     if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||!token){$('syncSt').innerHTML='<span class="bad">請填 repo（帳號/名稱）和 token</span>';return;}
@@ -1800,10 +1875,12 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
   if(state.baked&&state.active.has('sidewalk')&&!state.store.city.sidewalk){busy(true);await loadSidewalk();busy(false);if(seq!==state.seq)return;}
   const act=[...state.active];if(needDist(act)){busy(true);await ensureDist(act);busy(false);if(seq!==state.seq)return;}
   analyze();drawHeat();drawPins();drawFacilities();render();warmDist();}
-(async()=>{try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
+(async()=>{const fromLink=cloudFromHash();let late=null;
+  if(SBA){const p=cloudPull();const ch=await Promise.race([p,new Promise(r=>setTimeout(()=>r(null),2500))]);if(ch)applyPersonal(ch);else late=p;if(fromLink)setTimeout(()=>toast(SBA?'已登入，個人資料會自動同步到雲端':'登入失敗',!SBA),300);}
+  try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();})();
+  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();if(late)late.then(ch=>afterCloud(ch,false));})();
 </script>
 </body>
 </html>
