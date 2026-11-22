@@ -5,5 +5,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: pip install playwright && python -m playwright install --with-deps webkit
       - run: python tests/live_probe.py
