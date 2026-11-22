@@ -14,7 +14,7 @@ async def main():
         b=await getattr(p,name).launch()
         ctx=await b.new_context(**E['PHONE'],service_workers='block'); page=await ctx.new_page()
         errs=[]; page.on('pageerror',lambda e:errs.append(str(e))); page.on('console',lambda m: m.type=='error' and errs.append(m.text))
-        await ctx.route('**/*',E['route'])
+        await ctx.route(lambda u: not u.startswith('blob:') and not u.startswith('data:'),E['route'])
         pend={}; page.on('request',lambda r: pend.__setitem__(r.url,r.method)); page.on('requestfinished',lambda r: pend.pop(r.url,None)); page.on('requestfailed',lambda r: errs.append('FAILED '+r.url[-80:]+' '+str(r.failure)))
         await page.goto(E['URL'])
         try: await page.wait_for_function(E['READY'],timeout=30000)
