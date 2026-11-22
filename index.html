@@ -5,9 +5,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>臺北生活圈地圖</title>
+<script>/* 診斷模式：網址加 ?debug，畫面下方顯示各階段時間、主執行緒卡住、點按延遲與錯誤，方便截圖回報 */
+(function(){if(!/[?&#]debug\b/.test(location.href)){window.tlmMark=function(){};return;}
+  var t0=performance.now(),D=window.__dbg={marks:[],stalls:[],taps:[],errs:[]};window.tlmMark=function(n){D.marks.push([n,Math.round(performance.now()-t0)]);};
+  tlmMark('開始');addEventListener('error',function(e){D.errs.push(String(e.message||e).slice(0,120));},true);addEventListener('unhandledrejection',function(e){D.errs.push('Promise: '+String(e.reason&&e.reason.message||e.reason).slice(0,120));});
+  var last=performance.now();(function f(){var n=performance.now();if(n-last>150)D.stalls.push([Math.round(last-t0),Math.round(n-last)]);last=n;requestAnimationFrame(f);})();
+  addEventListener('pointerdown',function(){var a=performance.now();requestAnimationFrame(function(){setTimeout(function(){D.taps.push([Math.round(a-t0),Math.round(performance.now()-a)]);},0);});},true);
+  var ready=0;setInterval(function(){if(!ready&&document.querySelector('#head .sumline')){ready=1;tlmMark('可操作');}},50);
+  function show(){var el=document.getElementById('dbgPanel');if(!el){if(!document.body)return;el=document.createElement('pre');el.id='dbgPanel';el.style.cssText='position:fixed;left:4px;right:4px;bottom:4px;z-index:99999;max-height:45vh;overflow:auto;margin:0;padding:8px;background:rgba(0,0,0,.85);color:#fff;font:12px/1.4 ui-monospace,monospace;border-radius:8px;pointer-events:none;white-space:pre-wrap';document.body.appendChild(el);}
+    var ls=0;try{for(var k in localStorage)if(localStorage.hasOwnProperty(k))ls+=(localStorage.getItem(k)||'').length;}catch(e){}
+    var tot=D.stalls.reduce(function(a,x){return a+x[1];},0);
+    el.textContent='診斷 '+(navigator.userAgent.match(/OS [\d_]+|Chrome\/\d+|Version\/[\d.]+/g)||[]).join(' ')+' SW:'+(navigator.serviceWorker&&navigator.serviceWorker.controller?'有':'無')+' 本機資料 '+Math.round(ls/1024)+'KB 登入:'+(localStorage.getItem('tlm.auth')?'是':'否')+' token:'+(localStorage.getItem('tlm.sync')?'有':'無')+
+      '\n階段(ms) '+D.marks.map(function(m){return m[0]+' '+m[1];}).join('｜')+
+      '\n卡住 共'+tot+'ms：'+D.stalls.slice(-8).map(function(x){return '@'+x[0]+' '+x[1];}).join(' ')+
+      '\n點按延遲：'+D.taps.slice(-8).map(function(x){return '@'+x[0]+' '+x[1];}).join(' ')+
+      (D.errs.length?'\n錯誤：'+D.errs.slice(-4).join(' / '):'');}
+  setInterval(show,500);})();</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+<script>tlmMark("Leaflet 載入")</script>
 <style>
 :root{--blue:#0b57d0;--bluebg:#d3e3fd;--ink:#1f1f1f;--sub:#5f6368;--line:#e3e3e3;--teal:#00695c;--shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1875,12 +1892,12 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
   if(state.baked&&state.active.has('sidewalk')&&!state.store.city.sidewalk){busy(true);await loadSidewalk();busy(false);if(seq!==state.seq)return;}
   const act=[...state.active];if(needDist(act)){busy(true);await ensureDist(act);busy(false);if(seq!==state.seq)return;}
   analyze();drawHeat();drawPins();drawFacilities();render();warmDist();}
-(async()=>{const fromLink=cloudFromHash();let late=null;
+(async()=>{tlmMark('程式就緒');const fromLink=cloudFromHash();let late=null;
   if(SBA){const p=cloudPull();const ch=await Promise.race([p,new Promise(r=>setTimeout(()=>r(null),2500))]);if(ch)applyPersonal(ch);else late=p;if(fromLink)setTimeout(()=>toast(SBA?'已登入，個人資料會自動同步到雲端':'登入失敗',!SBA),300);}
-  try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
+  tlmMark('雲端');  try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
   fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
-  await loadBaked();busy(false);state.loading=false;run();warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings();if(late)late.then(ch=>afterCloud(ch,false));})();
+  tlmMark('畫面');await loadBaked();tlmMark('全市資料');busy(false);state.loading=false;run();tlmMark('計算完成');warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings().then(()=>tlmMark('私人房源'));if(late)late.then(ch=>afterCloud(ch,false));})();
 </script>
 </body>
 </html>
