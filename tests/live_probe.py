@@ -10,15 +10,16 @@ async def main():
     rows=[[f'{k%5+1} 主塊','範圍內',f'測試路{k%300}巷{k}號',types[k%3],1500+k%2000,20+k%40,"'%d/%d"%(k%5+1,5+k%10),10+k%40,-5+k%10,'',f'https://www.sinyi.com.tw/buy/house/X{k}','','','','',round(25.02+random.random()*0.07,6),round(121.50+random.random()*0.09,6)] for k in range(3731)]
     E['GH']['files']['listings.json']=json.dumps({'updated':'2026-11-16T18:12:00Z','rows':[['區塊','位置判定','地址／路段','型態','開價(萬)','建坪','樓層','屋齡','開價 vs 實價(%)',"'591",'信義','永慶','樂屋','住商','備註','緯度','經度']]+rows},ensure_ascii=False)
     async with async_playwright() as p:
-      for name in ('webkit','chromium'):
+      for name in ('webkit',):
         b=await getattr(p,name).launch()
         ctx=await b.new_context(**E['PHONE'],service_workers='block'); page=await ctx.new_page()
         errs=[]; page.on('pageerror',lambda e:errs.append(str(e))); page.on('console',lambda m: m.type=='error' and errs.append(m.text))
         await ctx.route('**/*',E['route'])
+        pend={}; page.on('request',lambda r: pend.__setitem__(r.url,r.method)); page.on('requestfinished',lambda r: pend.pop(r.url,None)); page.on('requestfailed',lambda r: errs.append('FAILED '+r.url[-80:]+' '+str(r.failure)))
         await page.goto(E['URL'])
         try: await page.wait_for_function(E['READY'],timeout=30000)
         except Exception as e:
-            print('== NOT READY', name, errs[:10]); print(await page.evaluate("JSON.stringify({res:!!(window.state&&state.res),loading:window.state&&state.loading,bar:document.getElementById('bar').style.display,head:document.getElementById('head').innerText.slice(0,200)})")); await b.close(); continue
+            print('== NOT READY', name, errs[:10]); print('pending', list(pend.items())[:20]); print(await page.evaluate("JSON.stringify({res:!!(window.state&&state.res),loading:window.state&&state.loading,bar:document.getElementById('bar').style.display,head:document.getElementById('head').innerText.slice(0,200)})")); await b.close(); continue
         await page.evaluate("""localStorage.setItem('tlm.sync',JSON.stringify({repo:'rubychen8407/tlm-listings',token:'tok_ok'}));
           const old=[];for(let k=0;k<3731;k++)old.push({addr:'測試路'+(k%300)+'巷'+k+'號',lat:25.03+k*1e-5,lng:121.5+k*1e-5,sync:1,type:'公寓',price:2000,ping:30,links:{sinyi:'https://www.sinyi.com.tw/buy/house/X'+k}});
           localStorage.setItem('tlm.listings',JSON.stringify(old));const g={};for(let k=0;k<3000;k++)g['臺北市測試路'+k+'號']=[25.03,121.5];localStorage.setItem('tlm.geocache',JSON.stringify(g));""")
