@@ -5,5 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install playwright && python -m playwright install --with-deps webkit
-      - run: python tests/live_probe.py
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+      - run: pip install playwright && python -m playwright install --with-deps webkit chromium
+      - run: cd tests && npm install --silent && python3 make_mock.py
+      - run: python3 tests/live_probe.py
