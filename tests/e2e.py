@@ -290,6 +290,19 @@ async def cloud_suite(b, errs):
     await pa.context.close(); await pb.context.close()
 
 
+async def debug_suite(b, errs):
+    page = await new_page(b, errs, **PHONE); ev = page.evaluate
+    await page.goto(URL + '?debug'); await page.wait_for_function(READY, timeout=30000); await page.wait_for_timeout(900)
+    await page.mouse.click(300, 300); await page.wait_for_timeout(700)
+    t = await page.inner_text('#dbgPanel')
+    check(all(x in t for x in ('Leaflet 載入', '全市資料', '可操作', '點按延遲：@')), f'診斷模式（?debug）：顯示各階段時間與點按延遲，方便截圖回報（{t[:160]!r}）')
+    check(await ev("getComputedStyle(document.getElementById('dbgPanel')).pointerEvents==='none'"), '診斷面板不擋住點按')
+    await shot(page, 'debug_panel')
+    await page.goto(URL); await page.wait_for_function(READY, timeout=30000); await page.wait_for_timeout(700)
+    check(await page.locator('#dbgPanel').count() == 0, '一般打開不顯示診斷面板')
+    await page.context.close()
+
+
 async def new_page(b, errs, **kw):
     kw.setdefault('service_workers', 'block')   # 一般測試不跑離線快取（sw.js 另外測）
     ctx = await b.new_context(**kw)
@@ -1519,10 +1532,11 @@ async def main():
             check(len(idx['districts']) == 12 and idx['routes'] > 0 and bool(idx['city']) and idx['city']['mrt'] == 110 and not [f for f in os.listdir(DATA_DIR) if f.endswith('區.json')], f"建置程式只產生全市檔（不另存 12 區檔）（捷運 {idx['city'] and idx['city']['mrt']} 站，已去重複）與 {idx['routes']} 條路線")
             MODE['baked'] = True
             if os.environ.get('ONLY') == 'cloud':
-                await cloud_suite(b, errs); check(not errs, f'沒有 JavaScript 錯誤 {errs[:3]}'); await b.close(); return fails
+                await cloud_suite(b, errs); await debug_suite(b, errs); check(not errs, f'沒有 JavaScript 錯誤 {errs[:3]}'); await b.close(); return fails
             await baked_suite(b, errs)
             await sw_suite(b, errs)
             await cloud_suite(b, errs)
+            await debug_suite(b, errs)
             print('\n=== A. 沒有預建資料（即時查詢的備援流程）===')
             MODE['baked'] = False
             await live_suite(b, errs)
