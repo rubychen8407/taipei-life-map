@@ -1,0 +1,12 @@
+name: sb-probe
+on:
+  push:
+    branches: ['fix/sb-probe']
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          K=sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4; U=https://exugellewviuiwnohsfo.supabase.co
+          echo "== table"; curl -sS -m 20 "$U/rest/v1/user_data?select=key&limit=1" -H "apikey: $K" -w "\nHTTP %{http_code}\n"
+          echo "== auth settings"; curl -sS -m 20 "$U/auth/v1/settings" -H "apikey: $K"; echo
