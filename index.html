@@ -1374,7 +1374,7 @@ async function cloudLogout(){try{await sbFetch('/auth/v1/logout',{method:'POST'}
 function applyPersonal(changed){if(!changed.length)return;
   try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
   try{SEEN=JSON.parse(localStorage.getItem('tlm.seen')||'{}');}catch(e){}
-  try{SALEF=Object.assign({by:'ping',min:null,max:null,seen:'all'},JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
+  try{SALEF=Object.assign({by:'ping',min:null,max:null,seen:'all',pby:'total',pmin:null,pmax:null},JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
   try{const man=JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>!l.sync);LISTINGS=LISTINGS.filter(l=>l.sync).concat(man);}catch(e){}}
 function cloudBox(){const d=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
   return `<div class="im-box" id="cloudBox"><h3>雲端同步</h3>${SBA?`<div class="hint" style="margin:0">已登入 <b>${esc(SBA.email||'')}</b>。我的物件、篩選、圖層、看過的房源會自動同步，其他裝置登入同一個 email 就看得到。${SBA.at?`上次同步 ${d(SBA.at)}`:''}</div>${cloudErr?`<div class="hint bad" style="margin:6px 0 0">${esc(cloudErr)}</div>`:''}<div class="im-row"><button type="button" class="s" id="cloudNow">立即同步</button><button type="button" class="s" id="cloudOut">登出</button></div>`
@@ -1465,26 +1465,42 @@ function salePin(l,i){const m=L.marker([l.lat,l.lng],{icon:L.divIcon({className:
   m.saleIdx=i;m.bindPopup(()=>saleInfo(l,i),{closeButton:true,maxWidth:280});m.on('popupopen',()=>{salePop=true;if(!isSeen(l)){markSeen(l);const e=m.getElement();if(e)e.classList.add('seen');updSaleSub();}}).on('popupclose',()=>{salePop=false;if(SALEF.seen==='unseen')setTimeout(drawSale,0);});return m.addTo(saleLayer);}
 function saleListHtml(g){return `<div class="sp"><div class="a">這裡有 ${g.length} 間</div><div class="sl">${g.sort(saleCmp).map(({l,i})=>`<a href="#" data-sopen="${i}">${l.isNew?'<span class="new">新</span>':''}${esc(l.addr)}<span>${l.price!=null?Math.round(l.price).toLocaleString()+' 萬':''}${l.floor?`・${esc(l.floor)} 樓`:''}</span></a>`).join('')}</div></div>`;}
 // 房源依坪數篩選（建坪或室內），存在裝置；只影響地圖上顯示哪些房子
-let SALEF={by:'ping',min:null,max:null,seen:'all'};try{SALEF=Object.assign(SALEF,JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
+let SALEF={by:'ping',min:null,max:null,seen:'all',pby:'total',pmin:null,pmax:null};try{SALEF=Object.assign(SALEF,JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
 const SF_MAX=80; // 滑桿最右邊＝不限
 // 室內坪數：房源表有「室內」欄就用；沒有時依型態用建坪估（公寓、透天約 9 成；華廈、大樓約 6.3 成，扣公設），資訊卡標「估」
 const innerEst=l=>{const v=parseFloat(l.inner);if(isFinite(v)&&v>0)return {v,est:/估/.test(l.inner||'')};const p=+l.ping;if(!(p>0))return null;return {v:Math.round(p*(/公寓|透天|平房/.test(l.type||'')?0.91:0.63)*100)/100,est:true};};
 const saleSize=l=>{if(SALEF.by==='inner'){const r=innerEst(l);return r?r.v:null;}const v=+l.ping;return isFinite(v)&&v>0?v:null;};
-const saleFOn=()=>SALEF.min!=null||SALEF.max!=null||SALEF.seen!=='all';
-function saleOk(l){if(SALEF.seen==='seen'&&!isSeen(l))return false;if(SALEF.seen==='unseen'&&isSeen(l))return false;if(SALEF.min==null&&SALEF.max==null)return true;
+// 價格：總價（萬）或單價（萬／坪，房源表沒有單價欄就用總價÷建坪）；滑桿最右邊＝不限
+const PF={total:{max:6000,step:100,u:'萬'},unit:{max:150,step:1,u:'萬／坪'}};
+const salePrice=l=>{if(SALEF.pby==='unit'){const u=+l.unit;if(isFinite(u)&&u>0)return u;const p=+l.price,g=+l.ping;return p>0&&g>0?p/g:null;}const v=+l.price;return isFinite(v)&&v>0?v:null;};
+const pfLabel=()=>{const c=PF[SALEF.pby]||PF.total;if(SALEF.pmin==null&&SALEF.pmax==null)return '不限';const f=v=>v.toLocaleString();return `${f(SALEF.pmin??0)}–${SALEF.pmax==null?f(c.max)+'+':f(SALEF.pmax)} ${c.u}`;};
+const saleFOn=()=>SALEF.min!=null||SALEF.max!=null||SALEF.pmin!=null||SALEF.pmax!=null||SALEF.seen!=='all';
+function saleOk(l){if(SALEF.seen==='seen'&&!isSeen(l))return false;if(SALEF.seen==='unseen'&&isSeen(l))return false;
+  if(SALEF.pmin!=null||SALEF.pmax!=null){const p=salePrice(l);if(p==null||(SALEF.pmin!=null&&p<SALEF.pmin)||(SALEF.pmax!=null&&p>SALEF.pmax))return false;}
+  if(SALEF.min==null&&SALEF.max==null)return true;
   const v=saleSize(l);if(v==null)return false;return (SALEF.min==null||v>=SALEF.min)&&(SALEF.max==null||v<=SALEF.max);}
 function saveSaleF(){try{localStorage.setItem('tlm.salef',JSON.stringify(SALEF));}catch(e){}}
 const sfLabel=()=>SALEF.min==null&&SALEF.max==null?'不限':`${SALEF.min??0}–${SALEF.max==null?SF_MAX+'+':SALEF.max} 坪`;
-// 圖層「房屋出售」底下的精簡篩選：坪數雙滑桿＋看過／沒看過
+const pfDual=()=>{const c=PF[SALEF.pby]||PF.total;return `<div class="dual" id="pfDual" aria-label="價格範圍"><input type="range" id="pfMin" min="0" max="${c.max}" step="${c.step}" value="${SALEF.pmin??0}" aria-label="最低價格"><input type="range" id="pfMax" min="0" max="${c.max}" step="${c.step}" value="${SALEF.pmax??c.max}" aria-label="最高價格"><div class="dual-fill" id="pfFill"></div></div>`;};
+// 圖層「房屋出售」底下的精簡篩選：坪數、價格雙滑桿＋看過／沒看過
 function saleSubHTML(){const n=LISTINGS.filter(l=>l.lat).length;
   return `<div class="sale-sub" id="saleSub"><div class="ss-row"><div class="seg sm"><button type="button" data-sfby="ping" aria-pressed="${SALEF.by==='ping'}">建坪</button><button type="button" data-sfby="inner" aria-pressed="${SALEF.by==='inner'}">室內</button></div><b id="sfLab">${sfLabel()}</b></div>
   <div class="dual" aria-label="坪數範圍"><input type="range" id="sfMin" min="0" max="${SF_MAX}" step="1" value="${SALEF.min??0}" aria-label="最小坪數"><input type="range" id="sfMax" min="0" max="${SF_MAX}" step="1" value="${SALEF.max??SF_MAX}" aria-label="最大坪數"><div class="dual-fill" id="sfFill"></div></div>
+  <div class="ss-row"><div class="seg sm" role="group" aria-label="價格"><button type="button" data-pfby="total" aria-pressed="${SALEF.pby!=='unit'}">總價</button><button type="button" data-pfby="unit" aria-pressed="${SALEF.pby==='unit'}">單價</button></div><b id="pfLab">${pfLabel()}</b></div>
+  ${pfDual()}
   <div class="ss-row"><div class="seg sm" role="group" aria-label="看過"><button type="button" data-sfseen="all" aria-pressed="${SALEF.seen==='all'}">全部</button><button type="button" data-sfseen="unseen" aria-pressed="${SALEF.seen==='unseen'}">沒看過</button><button type="button" data-sfseen="seen" aria-pressed="${SALEF.seen==='seen'}">看過</button></div><span class="ss-n" id="sfN">${n?LISTINGS.filter(l=>l.lat&&saleOk(l)).length+'/'+n:''}</span></div></div>`;}
 function updSaleSub(){const r=$('saleSub');if(!r)return;const n=LISTINGS.filter(l=>l.lat).length;$('sfN').textContent=n?LISTINGS.filter(l=>l.lat&&saleOk(l)).length+'/'+n:'';$('sfLab').textContent=sfLabel();
-  const a=+$('sfMin').value,b=+$('sfMax').value;$('sfFill').style.left=(a/SF_MAX*100)+'%';$('sfFill').style.right=(100-b/SF_MAX*100)+'%';}
+  const a=+$('sfMin').value,b=+$('sfMax').value;$('sfFill').style.left=(a/SF_MAX*100)+'%';$('sfFill').style.right=(100-b/SF_MAX*100)+'%';
+  const c=PF[SALEF.pby]||PF.total,pa=+$('pfMin').value,pb=+$('pfMax').value;$('pfLab').textContent=pfLabel();$('pfFill').style.left=(pa/c.max*100)+'%';$('pfFill').style.right=(100-pb/c.max*100)+'%';}
 function bindSaleSub(root){const mn=root.querySelector('#sfMin');if(!mn)return;const mx=root.querySelector('#sfMax');let raf=0;
   const upd=(ev)=>{let a=+mn.value,b=+mx.value;if(a>b){if(ev&&ev.target===mn)mn.value=a=b;else mx.value=b=a;}SALEF.min=a>0?a:null;SALEF.max=b<SF_MAX?b:null;saveSaleF();updSaleSub();cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>drawSale());};
   mn.oninput=upd;mx.oninput=upd;
+  const bindPf=()=>{const pn=root.querySelector('#pfMin'),px=root.querySelector('#pfMax');const c=PF[SALEF.pby]||PF.total;
+    const up=(ev)=>{let a=+pn.value,b=+px.value;if(a>b){if(ev&&ev.target===pn)pn.value=a=b;else px.value=b=a;}SALEF.pmin=a>0?a:null;SALEF.pmax=b<c.max?b:null;saveSaleF();updSaleSub();cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>drawSale());};
+    pn.oninput=up;px.oninput=up;};
+  bindPf();
+  root.querySelectorAll('[data-pfby]').forEach(x=>x.onclick=()=>{if(SALEF.pby===x.dataset.pfby)return;SALEF.pby=x.dataset.pfby;SALEF.pmin=SALEF.pmax=null;root.querySelectorAll('[data-pfby]').forEach(y=>y.setAttribute('aria-pressed',String(y===x)));
+    root.querySelector('#pfDual').outerHTML=pfDual();bindPf();saveSaleF();updSaleSub();drawSale();});
   root.querySelectorAll('[data-sfby]').forEach(x=>x.onclick=()=>{SALEF.by=x.dataset.sfby;root.querySelectorAll('[data-sfby]').forEach(y=>y.setAttribute('aria-pressed',String(y===x)));saveSaleF();updSaleSub();drawSale();});
   root.querySelectorAll('[data-sfseen]').forEach(x=>x.onclick=()=>{SALEF.seen=x.dataset.sfseen;root.querySelectorAll('[data-sfseen]').forEach(y=>y.setAttribute('aria-pressed',String(y===x)));saveSaleF();updSaleSub();drawSale();});
   updSaleSub();}
