@@ -1,12 +1,15 @@
 name: probe-live
 on: {push: {branches: ['fix/probe-live']}}
+permissions: {contents: write}
 jobs:
   p:
+    if: "!contains(github.event.head_commit.message, '[out]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: "20"}
-      - run: pip install playwright && python -m playwright install --with-deps webkit chromium
-      - run: cd tests && npm install --silent && python3 make_mock.py
-      - run: python3 tests/live_probe.py
+      - run: pip install playwright && python -m playwright install --with-deps chromium && sudo apt-get install -y fonts-noto-cjk
+      - run: python3 tests/demo_capture.py
+      - run: python3 tests/demo_cut.py && rm demo/raw.webm && ls -la demo
+      - run: |
+          git config user.name github-actions; git config user.email github-actions@users.noreply.github.com
+          git add demo && git commit -m "demo output [out]" && git push
