@@ -337,6 +337,13 @@ html,body{background:#e8eaed}
 .rk-bar{display:flex;height:10px;border-radius:4px;background:#E8EAED;overflow:hidden;margin-top:4px}.rk-bar i{display:block;height:100%;transition:width .2s}
 .rk-leg{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:12px;color:#3C4043}.rk-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
 @media (prefers-reduced-motion:reduce){.rk-bar i{transition:none}}
+.aff{margin:4px 0 14px;padding:12px;border-radius:16px;background:#F7F8FA}.aff-h b{font-size:17px}.aff-h small{display:block;font-size:12px;color:var(--sub)}
+.aff-b{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}.aff-in{flex:1 1 150px;border-color:#D2D6DC}.aff-in .pre{font-size:13px;font-weight:600;color:var(--sub)}.aff-in input{font-size:17px}
+.aff-sum{font-size:13px;color:#3C4043;margin:2px 0 4px}.aff-sum b{font-size:17px}.aff-sum span{color:var(--sub)}
+.aff-row{display:flex;gap:10px;width:100%;border:0;background:none;text-align:left;padding:10px 0;border-top:1px solid var(--line);color:inherit;font:inherit}.aff-row.top .rk-n{background:#F7931E;color:#fff}
+.aff-m{flex:1;min-width:0;display:block}.aff-t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.aff-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.aff-p{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;margin:2px 0 4px}.aff-p .fair{font-weight:800;color:#137333;font-size:15px;font-variant-numeric:tabular-nums}.aff-p .ask{color:var(--sub)}.aff-p em{font-style:normal;color:#137333;font-weight:700}.aff-p .pay{color:#3C4043}
+.aff-c{display:block;font-size:12px;color:var(--sub);margin-top:4px}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -1411,7 +1418,7 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
 // ---------- 雲端同步（Supabase）：個人資料跨裝置；用 email 登入連結，每個帳號只讀得到自己的資料（資料表 user_data 有 RLS） ----------
 const SB_URL='https://exugellewviuiwnohsfo.supabase.co',SB_KEY='sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4';
 // 同步的個人資料（裝置上只留一份副本，雲端為準）；金鑰、token、快取、暫存不同步
-const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys'];
+const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW'];
 let SBA=null,CMETA={},cloudApplying=false,cloudTimer=null,cloudBusy=false,cloudErr='';
 try{SBA=JSON.parse(localStorage.getItem('tlm.auth')||'null');CMETA=JSON.parse(localStorage.getItem('tlm.cloudmeta')||'{}');}catch(e){}
 const saveSBA=()=>{try{SBA?localStorage.setItem('tlm.auth',JSON.stringify(SBA)):localStorage.removeItem('tlm.auth');}catch(e){}};
@@ -1796,15 +1803,53 @@ function saleHistHTML(){const c=PF[SALEF.pby]||PF.total,N=12,w=c.max/N,bins=new 
 function saleStatsHTML(){const A=saleAll(),nv=A.filter(saleOk).length,nw=A.filter(l=>l.isNew).length,un=A.filter(l=>!isSeen(l)).length;
   return `<div class="stiles" id="saleStats"><button type="button" class="st-t" data-st="all" aria-pressed="${SALEF.seen==='all'}"><b>${nv}<small>/${A.length}</small></b><span>符合篩選</span></button><button type="button" class="st-t new" data-st="new"${nw?'':' disabled'}><b>${nw}</b><span>新上架</span></button><button type="button" class="st-t un" data-st="unseen" aria-pressed="${SALEF.seen==='unseen'}"><b>${un}</b><span>沒看過</span></button></div>`;}
 function saleBoxHTML(){const A=saleAll();if(!A.length)return `<div class="s-empty">${categoryIcon('house')}<b>還沒有房源</b><span>按下方「現在找房」或匯入房源表，房源就會出現在地圖和這裡</span></div>`;
-  return `<div class="lrow sale-on">${categoryIcon('house')}<span>在地圖上顯示房源</span><button type="button" class="switch" id="saleOn" aria-label="在地圖上顯示房源" aria-pressed="${!!state.layers.sale}"></button></div>${saleStatsHTML()}<div class="hk-lbl2 sh-l">價格分布<span>點長條只看那個價位</span></div>${saleHistHTML()}${saleSubHTML()}`;}
-function bindSaleBox(){const B=$('saleBox');if(!B)return;bindSaleSub(B);const sw=$('saleOn');if(sw)sw.onclick=()=>{state.layers.sale=!state.layers.sale;sw.setAttribute('aria-pressed',String(state.layers.sale));applyLayers();};
+  return `<div class="lrow sale-on">${categoryIcon('house')}<span>在地圖上顯示房源</span><button type="button" class="switch" id="saleOn" aria-label="在地圖上顯示房源" aria-pressed="${!!state.layers.sale}"></button></div>${saleStatsHTML()}${affHTML()}<div class="hk-lbl2 sh-l">價格分布<span>點長條只看那個價位</span></div>${saleHistHTML()}${saleSubHTML()}`;}
+// ---------- 負擔得起的推薦：每間房源用估價模型算合理出價，留下合理出價在預算內的，依推薦指數（同比較物件的模型排名）排序 ----------
+let AFF={budget:null,n:20};try{AFF=Object.assign(AFF,JSON.parse(localStorage.getItem('tlm.afford')||'{}'));}catch(e){}
+const affBudget=()=>+AFF.budget>0?+AFF.budget:(+exPrefs().hi||3000);
+const LVAL=new Map();let affSeq=0,affRes=null;
+function listingForm(l){const T=VALDATA.types;let t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
+  const ping=+l.ping,age=Math.round(+l.age);if(!(ping>=5&&ping<=150)||!(age>=1&&age<=80))return null;
+  return {t:t<0?0:t,ping,age,fl:fm&&+fm[1]>=1?+fm[1]:4,tot:fm&&+fm[2]>=+fm[1]?+fm[2]:7,ask:l.price>0?+l.price:'',cond:0,reno:'',deal:'',guessT:t<0,guessF:!fm};}
+function listingVal(l){const f=listingForm(l);if(!f)return null;const key=listingKey(l)+'|'+[l.lat,l.lng,f.t,f.ping,f.age,f.fl,f.tot,f.ask].join(',');
+  if(LVAL.has(key))return LVAL.get(key);const pt=[l.lat,l.lng],k=cellAtLatLng(pt[0],pt[1]);let V=null;
+  if(k>=0){V={pt,dist:DISTRICTS[CELLS[k].d].name,form:f,fin:finInit()};V.s=poiScore(pt);V.est=estimate({pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist,f.t);V.off=V.est.ok?valOffers(V):null;if(!V.off)V=null;}
+  LVAL.set(key,V);return V;}
+// 分批計算（每批約 12ms），不卡畫面；房源多時顯示進度
+async function affCompute(){const seq=++affSeq,B=affBudget(),sv={...SALEF};const pool=saleAll().map(l=>({l,i:LISTINGS.indexOf(l)})).filter(o=>{SALEF.pmin=SALEF.pmax=null;try{return saleOk(o.l);}finally{SALEF.pmin=sv.pmin;SALEF.pmax=sv.pmax;}}).filter(o=>!(o.l.price>0)||o.l.price<=B*1.6);
+  const out=[];let j=0,skip=0;
+  while(j<pool.length){const t0=performance.now();while(j<pool.length&&performance.now()-t0<12){const o=pool[j++],V=listingVal(o.l);if(!V){skip++;continue;}if(V.off.out[1]<=B)out.push({l:o.l,i:o.i,V,h:{form:V.form,name:o.l.addr}});}
+    if(j<pool.length){const p=$('affProg');if(p)p.textContent=`計算中 ${Math.round(j/pool.length*100)}%`;await new Promise(r=>setTimeout(r,0));if(seq!==affSeq)return;}}
+  if(seq!==affSeq)return;const R=out.length?cmpRank(out):[];affRes={B,items:out,R,skip,pool:pool.length};renderAff();}
+function affHTML(){const B=affBudget();
+  return `<div class="aff" id="affBox"><div class="aff-h"><div><b>負擔得起的推薦</b><small>合理出價在預算內，依推薦指數排序</small></div></div>
+    <div class="aff-b"><label class="vd-in aff-in"><span class="pre">預算</span><input id="affIn" inputmode="decimal" value="${B}" aria-label="能負擔的總價（萬）"><span>萬</span></label><div class="seg sm" role="group" aria-label="推薦重點">${Object.entries(RANK_W).map(([k,[n]])=>`<button type="button" data-afw="${k}" aria-pressed="${cmpW===k}">${n}</button>`).join('')}</div></div>
+    <div id="affList"><div class="hint2" id="affProg">計算中…</div></div></div>`;}
+function renderAff(){const el=$('affList');if(!el||!affRes)return;const {R,items,skip}=affRes,n=Math.min(AFF.n,R.length),num=v=>Math.round(v).toLocaleString('en-US');
+  if(!R.length){el.innerHTML=`<div class="hint2" id="affEmpty">沒有合理出價在 ${num(affRes.B)} 萬以內的房源${skip?`（${skip} 間缺坪數或屋齡，無法估價）`:''}</div>`;return;}
+  el.innerHTML=`<div class="aff-sum"><b>${R.length}</b> 間符合${skip?`<span>・${skip} 間缺坪數或屋齡沒算</span>`:''}</div>`+R.slice(0,n).map((r,j)=>{const x=items[r.i],V=x.V,o=V.off,l=x.l,ask=+l.price||null,pay=valLoan(V,o.out[1]).pay,cut=ask?(o.out[1]/ask-1)*100:null;
+    return `<button type="button" class="aff-row${j<3?' top':''}" data-aff="${x.i}"><span class="rk-n">${j+1}</span><span class="aff-m"><span class="aff-t"><b>${esc(l.addr)}</b><span class="rk-s">${Math.round(r.total)}<small> 分</small></span></span>
+      <span class="aff-p"><span class="fair">合理 ${num(o.out[1])} 萬</span>${ask?`<span class="ask">開價 ${num(ask)}${cut<=-.5?`・<em>${pcTxt(cut)}</em>`:''}</span>`:''}<span class="pay">月付約 ${num(pay)} 元</span></span>
+      <span class="rk-bar">${r.parts.map((v,k)=>v?`<i style="width:${v.toFixed(1)}%;background:${RANK_K[k][2]}"></i>`:'').join('')}</span>
+      <span class="aff-c">${esc([V.form.guessT?'':VALDATA.types[V.form.t],l.ping?(+l.ping).toFixed(1).replace(/\.0$/,'')+' 坪':'',l.age!=null?Math.round(l.age)+' 年':'',V.form.guessF?'樓層未知':''].filter(Boolean).join('・'))}</span></span></button>`;}).join('')+
+    (R.length>n?`<button type="button" class="hk-more" id="affMore">顯示更多（還有 ${R.length-n} 間）</button>`:'')+
+    `<div class="rk-leg">${RANK_K.map(([k,nm,c])=>`<span><i style="background:${c}"></i>${nm}</span>`).join('')}</div><details class="mk-det"><summary>怎麼算的</summary>每間房源用估價模型（附近相似成交）算出保守／合理／積極出價，合理出價不會高於開價；留下合理出價在預算內的。推薦指數同「比較物件」的模型排名：價格划算（預期成交價對比行情）、生活機能、月付負擔（相對最低那間）、屋齡，依上方重點加權。月付用合理出價、貸 8 成、目前利率試算。缺樓層時假設 4/7 樓。統計估算，只供參考。</details>`;
+  el.querySelectorAll('[data-aff]').forEach(b=>b.onclick=()=>openSaleAt(+b.dataset.aff));const m=$('affMore');if(m)m.onclick=()=>{AFF.n+=20;renderAff();};}
+async function bindAff(){const box=$('affBox');if(!box)return;try{await loadVal();}catch(e){$('affList').innerHTML='<div class="hint2">估價資料還沒建好，暫時無法計算</div>';return;}
+  const inp=$('affIn');let tm=0;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=parseFloat(inp.value);if(v>=100){AFF.budget=v;AFF.n=20;try{localStorage.setItem('tlm.afford',JSON.stringify({budget:v}));}catch(e){}affCompute();}},350);};
+  box.querySelectorAll('[data-afw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.afw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}box.querySelectorAll('[data-afw]').forEach(y=>y.setAttribute('aria-pressed',String(y===b)));if(affRes){affRes.R=cmpRank(affRes.items);renderAff();}});
+  affCompute();}
+function openSaleAt(i){const l=LISTINGS[i];if(!l||!l.lat)return;if(!state.layers.sale){state.layers.sale=true;applyLayers();}if(isMob())setSheet('peek');map.setView([l.lat,l.lng],Math.max(map.getZoom(),17),{animate:false});
+  setTimeout(()=>{salePop=true;const pp=L.popup(salePopOpt()).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);bindSaleCard(pp.getElement()&&pp.getElement().querySelector('.sp'),l);if(!isSeen(l))markSeen(l);},60);}
+function bindSaleBox(){const B=$('saleBox');if(!B)return;bindSaleSub(B);bindAff();const sw=$('saleOn');if(sw)sw.onclick=()=>{state.layers.sale=!state.layers.sale;sw.setAttribute('aria-pressed',String(state.layers.sale));applyLayers();};
   B.onclick=e=>{const hb=e.target.closest('[data-hb]'),st=e.target.closest('[data-st]');
     if(hb){const c=PF[SALEF.pby]||PF.total,w=c.max/12,k=+hb.dataset.hb,a=k*w,b=k<12?(k+1)*w:null;if(SALEF.pmin===(a||null)&&SALEF.pmax===b){SALEF.pmin=SALEF.pmax=null;}else{SALEF.pmin=a||null;SALEF.pmax=b;}
       if(!state.layers.sale){state.layers.sale=true;applyLayers();}saveSaleF();const pn=$('pfMin'),px=$('pfMax');if(pn){pn.value=SALEF.pmin??0;px.value=SALEF.pmax??c.max;}updSaleSub();drawSale();}
     if(st){const k=st.dataset.st;if(k==='new'){const n=saleAll().filter(l=>l.isNew&&l.lat);if(n.length){if(!state.layers.sale){state.layers.sale=true;applyLayers();}map.fitBounds(L.latLngBounds(n.map(l=>[l.lat,l.lng])).pad(.3),{maxZoom:16});if(isMob())setSheet('peek');}return;}
       SALEF.seen=SALEF.seen===k?'all':k;saveSaleF();B.querySelectorAll('[data-sfseen]').forEach(y=>y.setAttribute('aria-pressed',String(y.dataset.sfseen===SALEF.seen)));updSaleSub();drawSale();}};}
 function rerenderSaleBox(){const B=$('saleBox');if(!B)return;B.innerHTML=saleBoxHTML();B.dataset.n=saleAll().length;bindSaleBox();}
-function refreshSaleBox(){const h=$('saleHist');if(h)h.outerHTML=saleHistHTML();const t=$('saleStats');if(t)t.outerHTML=saleStatsHTML();}
+let affT=0;function affSoon(){if(!$('affBox'))return;clearTimeout(affT);affT=setTimeout(affCompute,300);}
+function refreshSaleBox(){affSoon();const h=$('saleHist');if(h)h.outerHTML=saleHistHTML();const t=$('saleStats');if(t)t.outerHTML=saleStatsHTML();}
 function exSection(v){const p=v.prefs,S=exSummary();
   return `<div class="im-box"><h3>找房條件</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
     <div class="wide seg" role="group" aria-label="型態">${EX_TYPES.map((x,i)=>`<button type="button" data-ext="${i}" aria-pressed="${p.types.includes(i)}">${x}</button>`).join('')}</div>

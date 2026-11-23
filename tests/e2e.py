@@ -1379,6 +1379,26 @@ X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([['項目','地址／路段'],
     await shot(page, '8t0_sale_tab')
     await page.click('#saleHist .on'); await page.wait_for_timeout(300)
     check(await ev("SALEF.pmin==null&&SALEF.pmax==null&&saleLayer.getLayers().length===2"), '再點一次同一根長條取消價格篩選')
+    # 負擔得起的推薦：合理出價在預算內，依推薦指數排序
+    await ev("""(()=>{window.__L0=LISTINGS.slice();window.__C0=[map.getCenter(),map.getZoom()];const mk=(n,pr,pg,ag,fl)=>({addr:'測試路'+n+'號',type:'住宅大樓',price:pr,ping:pg,age:ag,floor:fl,lat:25.033+n*0.0006,lng:121.545+n*0.0004,prec:'addr',links:[{p:'信義',u:'https://x.test/'+n}]});
+      LISTINGS.push(mk(1,2400,25,15,'5/12'),mk(2,2900,30,10,'8/15'),mk(3,3300,32,20,''),mk(4,4200,40,8,'9/14'),mk(5,5200,45,5,'10/20'),{addr:'沒坪數路1號',type:'公寓',price:1800,lat:25.034,lng:121.546,prec:'addr',links:[{p:'永慶',u:'https://x.test/np'}]});
+      AFF.budget=3000;closeDetail();})()""")
+    await page.click('#exportBtn'); await page.wait_for_function("!!document.querySelector('#affList .aff-row')||!!document.getElementById('affEmpty')", timeout=10000)
+    af = await ev("""(()=>{const rows=[...document.querySelectorAll('#affList .aff-row')];const exp=LISTINGS.filter(l=>l.lat).map(l=>listingVal(l)).filter(V=>V&&V.off.out[1]<=3000).length;
+      return {n:rows.length,exp,sc:rows.map(r=>parseFloat(r.querySelector('.rk-s').innerText)),fair:rows.map(r=>parseInt(r.querySelector('.fair').innerText.replace(/[^0-9]/g,''))),sum:document.querySelector('.aff-sum').innerText,bars:document.querySelectorAll('#affList .rk-bar i').length,pay:rows.every(r=>/月付約 [0-9,]+ 元/.test(r.innerText)),guess:document.getElementById('affList').innerText.includes('樓層未知')}})()""")
+    print('  aff', af)
+    check(af['n'] >= 2 and af['n'] == af['exp'] and all(f <= 3000 for f in af['fair']) and af['sc'] == sorted(af['sc'], reverse=True) and af['bars'] >= af['n'] * 2 and af['pay'] and '缺坪數或屋齡' in af['sum'], f"房源分頁「負擔得起的推薦」：只列合理出價在 3,000 萬以內的房源，依推薦指數由高到低，附開價、月付、指數長條；缺坪數的另外註明 {af}")
+    await shot(page, '8t1_afford')
+    await page.fill('#affIn', '2300'); await page.wait_for_timeout(900)
+    af2 = await ev("({n:document.querySelectorAll('#affList .aff-row').length,fair:[...document.querySelectorAll('#affList .fair')].map(e=>parseInt(e.innerText.replace(/[^0-9]/g,''))),saved:JSON.parse(localStorage.getItem('tlm.afford')).budget})")
+    check(af2['n'] < af['n'] and all(f <= 2300 for f in af2['fair']) and af2['saved'] == 2300, f"改預算 2,300 萬：清單跟著變少，預算記在裝置（也會雲端同步）{af2}")
+    await page.fill('#affIn', '3000'); await page.wait_for_timeout(900)
+    await page.click('#affBox [data-afw=pay]'); await page.wait_for_timeout(300)
+    check(await ev("cmpW==='pay'&&document.querySelector('#affBox [data-afw=pay]').getAttribute('aria-pressed')==='true'"), '切「重月付」：推薦指數依新權重重排')
+    await page.click('#affList .aff-row >> nth=0'); await page.wait_for_selector('.leaflet-popup-content .sp', timeout=5000)
+    check(await ev("document.querySelector('.leaflet-popup-content .sp .a').innerText.startsWith('測試路')"), '點清單裡的一間：地圖移過去並打開那間的資訊卡')
+    await ev("(()=>{map.closePopup();LISTINGS.length=0;window.__L0.forEach(l=>LISTINGS.push(l));AFF.budget=null;localStorage.removeItem('tlm.afford');cmpW='bal';localStorage.removeItem('tlm.cmpW');map.setView(window.__C0[0],window.__C0[1],{animate:false});drawSale();})()")
+    await page.click('#exportBtn'); await page.wait_for_timeout(300)
     await page.locator('#sfMin').fill('29'); await page.wait_for_timeout(300)
     sf = await ev("({pins:saleLayer.getLayers().map(m=>m.getElement().innerText),lab:document.getElementById('sfLab').innerText,n:document.getElementById('sfN').innerText,saved:JSON.parse(localStorage.getItem('tlm.salef'))})")
     check(len(sf['pins']) == 1 and '2,688' in sf['pins'][0] and sf['lab'] == '29–80+ 坪' and sf['n'] == '1/2' and sf['saved']['min'] == 29 and sf['saved']['max'] is None, f"拖坪數滑桿：建坪 29 坪以上只剩 1 間 {sf}")
