@@ -3,7 +3,7 @@ import asyncio, time, json, os
 from playwright.async_api import async_playwright
 URL = 'https://rubychen8407.github.io/taipei-life-map/'
 OUT = 'demo'; os.makedirs(OUT, exist_ok=True)
-READY = "window.state&&state.res&&!!document.querySelector('#head .sumline')"
+READY = "typeof state!=='undefined'&&state.res&&!!document.querySelector('#head .sumline')"
 TAP = """window.__tap=(x,y)=>{const d=document.createElement('div');d.style.cssText=`position:fixed;left:${x-22}px;top:${y-22}px;width:44px;height:44px;border-radius:50%;background:rgba(11,87,208,.28);border:2px solid rgba(11,87,208,.85);z-index:99999;pointer-events:none;transition:transform .45s ease-out,opacity .45s ease-out`;document.body.appendChild(d);requestAnimationFrame(()=>{d.style.transform='scale(1.6)';d.style.opacity='0'});setTimeout(()=>d.remove(),600)};
 addEventListener('pointerdown',e=>window.__tap&&__tap(e.clientX,e.clientY),true);"""
 marks = []
@@ -58,7 +58,7 @@ async def main():
         mark('heat')
         await ev("map.flyTo([25.05,121.545],12,{duration:1.6})"); await page.wait_for_timeout(2000)
         await tapsel('#layersBtn'); await page.wait_for_selector('#layersPop [data-layer=priceheat]', state='visible'); await page.wait_for_timeout(600)
-        await tapsel('#layersPop [data-layer=priceheat]'); await page.wait_for_function("!!window.phLayer||typeof phLayer!=='undefined'&&!!phLayer", timeout=20000); await page.wait_for_timeout(500)
+        await tapsel('#layersPop [data-layer=priceheat]'); await page.wait_for_function("typeof phLayer!=='undefined'&&!!phLayer", timeout=20000); await page.wait_for_timeout(500)
         await tapsel('#layersBtn'); await page.wait_for_timeout(2600); await shot('s_heat')
         await tapsel('#layersBtn'); await tapsel('#layersPop [data-layer=priceheat]'); await tapsel('#layersBtn'); await page.wait_for_timeout(600)
         # 整體房市
@@ -68,7 +68,7 @@ async def main():
         await ev("document.querySelector('#mkFc').scrollIntoView({behavior:'smooth'})"); await page.wait_for_timeout(2400); await shot('s_market_fc')
         await page.wait_for_timeout(800)
         mark('end')
-        info = await ev("({val:state.val?null:null,mk:window.MARKET?{light:MARKET.light&&MARKET.light.label,fc:MARKET.forecast.probs}:null})")
+        info = await ev("({val:state.val?null:null,mk:typeof MARKET!=='undefined'&&MARKET?{light:MARKET.light&&MARKET.light.label,fc:MARKET.forecast.probs}:null})")
         print('INFO', json.dumps(info, ensure_ascii=False))
         await page.close(); v = await page.video.path(); await ctx.close(); await b.close()
         os.rename(v, f'{OUT}/raw.webm')
