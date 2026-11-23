@@ -369,6 +369,20 @@ body.placing #map{cursor:crosshair}
 .hl-ed{background:#F6F8FC;border-radius:12px;padding:8px 10px;margin:-2px 0 6px}.hl-r{display:flex;align-items:center;gap:8px;font-size:13px;min-height:44px;border-bottom:1px solid var(--line)}.hl-r span{font-weight:700;flex:none}.hl-r a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--D)}.hl-r button{flex:none;width:44px;height:44px;border:0;background:none;color:#5F6368}.hl-r svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
 .hl-add{display:flex;gap:6px;margin-top:8px}.hl-add input{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid #D2D6DC;padding:0 10px;font-size:16px}.hl-ok,.hl-done{border:0;border-radius:12px;font-weight:700;font-size:15px;height:44px;padding:0 14px}.hl-ok{background:var(--D);color:#fff}.hl-done{background:none;color:var(--D);width:100%;margin-top:4px}
 .vlinks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.sw-set{background:#F7F8FA;border-radius:12px;margin:0 0 10px}.sw-set summary{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:13px;color:#3C4043;cursor:pointer;list-style:none}.sw-set summary::-webkit-details-marker{display:none}.sw-ed{color:var(--D);font-weight:700;flex:none}.sw-set[open]{padding-bottom:10px}.sw-set>*:not(summary){margin-left:12px;margin-right:12px}.sw-hint{margin-top:6px}
+.sw-prog{height:4px;border-radius:4px;background:#ECEEF1;overflow:hidden}.sw-prog i{display:block;height:100%;background:#F7931E;transition:width .2s}.sw-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin:4px 0 8px}
+.sw-deck{position:relative;padding-bottom:8px}.sw-card{position:relative;z-index:2;background:#fff;border-radius:24px;box-shadow:0 6px 20px rgba(0,0,0,.14);padding:16px;touch-action:pan-y;user-select:none;-webkit-user-select:none;will-change:transform}.sw-card:focus-visible{outline:3px solid var(--D)}
+.sw-next{position:absolute;left:10px;right:10px;top:10px;bottom:0;z-index:1;transform:scale(.96);opacity:.55;color:transparent;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.sw-stamp{position:absolute;top:18px;z-index:3;font-style:normal;font-size:24px;font-weight:800;border:3px solid;border-radius:12px;padding:2px 12px;opacity:0;pointer-events:none}.sw-stamp.like{left:16px;color:#188038;transform:rotate(-12deg)}.sw-stamp.skip{right:16px;color:#D93025;transform:rotate(12deg)}
+.sw-top{display:flex;justify-content:space-between;align-items:baseline}.sw-pos{font-size:12px;font-weight:700;color:var(--sub)}.sw-sc{font-size:24px;font-weight:800;color:#C5221F;font-variant-numeric:tabular-nums}.sw-sc small{font-size:13px;color:var(--sub)}
+.sw-a{font-size:20px;font-weight:800;line-height:1.3;margin-top:2px}.sw-a .new{display:inline-block;background:#FCE8E6;color:#C5221F;border-radius:8px;padding:0 6px;margin-right:6px;font-size:13px;vertical-align:middle}.sw-comm{font-size:13px;color:var(--sub)}
+.sw-price{display:flex;gap:16px;margin:10px 0 4px}.sw-price small{display:block;font-size:12px;color:var(--sub);font-weight:600}.sw-price b{font-size:24px;font-weight:800;color:#137333;font-variant-numeric:tabular-nums}.sw-price b.ask{color:#3C4043}.sw-price em{font-style:normal;font-size:14px}.sw-price .dbadge{margin-top:2px}
+.sw-pay{font-size:14px;color:#3C4043;margin-bottom:8px}.sw-pay small{font-size:12px;color:var(--sub)}.sw-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.sw-links .hlk{min-height:36px;font-size:14px}
+.sw-btns{display:flex;justify-content:center;align-items:center;gap:20px;margin:10px 0 4px}.sw-b{border:0;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center}.sw-b svg{fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sw-b.undo{width:48px;height:48px;color:#5F6368}.sw-b.undo svg{width:22px;height:22px}.sw-b.skip{width:64px;height:64px;color:#D93025}.sw-b.skip svg{width:28px;height:28px}.sw-b.like{width:64px;height:64px;color:#F7931E}.sw-b.like svg{width:30px;height:30px;fill:#F7931E}.sw-b:disabled{opacity:.35}.sw-tip{text-align:center}
+.sw-end{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:24px 12px}.sw-end svg{width:40px;height:40px;fill:none;stroke:#9AA0A6;stroke-width:1.5}.sw-end b{font-size:17px}.sw-end span{font-size:13px;color:var(--sub)}.sw-end .hl-ok{margin-top:8px;padding:0 20px}
+.pk.y{color:#137333}.pk.n{color:#5F6368}
+@media (prefers-reduced-motion:reduce){.sw-card,.sw-prog i{transition:none!important}}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -524,7 +538,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="navbar" class="glass" role="tablist" aria-label="主要功能"><button class="nb" id="exploreBtn" role="tab" aria-label="探索地圖"></button><button class="nb" id="exportBtn" role="tab" aria-label="房源：篩選、找房、匯入"></button><button class="nb" id="homesBtn" role="tab" aria-label="我的物件"></button><button class="nb" id="marketBtn" role="tab" aria-label="整體房市"></button></div>
+<div id="navbar" class="glass" role="tablist" aria-label="主要功能"><button class="nb" id="exploreBtn" role="tab" aria-label="探索地圖"></button><button class="nb" id="exportBtn" role="tab" aria-label="房源：篩選、找房、匯入"></button><button class="nb" id="recBtn" role="tab" aria-label="推薦：負擔得起的房源，滑卡片挑物件"></button><button class="nb" id="homesBtn" role="tab" aria-label="我的物件"></button><button class="nb" id="marketBtn" role="tab" aria-label="整體房市"></button></div>
 <div id="fabs"><button class="fab" id="flagBtn" aria-label="插旗：喜愛點、嫌惡點" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
@@ -562,6 +576,7 @@ function categoryIcon(id){const paths={
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
  star:'<path d="m12 4 2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
  flag:'<path d="M6 21V3.5"/><path d="M6 4h11.5l-2.6 4.2L17.5 12.5H6"/>',
+ rec:'<rect x="4" y="5" width="11" height="15" rx="2" transform="rotate(-8 9.5 12.5)"/><path d="M14 4.5h4a2 2 0 0 1 2 2v11"/><path d="m9.5 10.5 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z"/>',
  bookmark:'<path d="M7 3.8h10a1 1 0 0 1 1 1v15.4l-6-4-6 4V4.8a1 1 0 0 1 1-1Z"/>',
  explore:'<circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
@@ -1024,7 +1039,7 @@ let recalcRaf=0;function scheduleRecalc(now){cancelAnimationFrame(recalcRaf);rec
   recalcRaf=requestAnimationFrame(()=>{recalcRaf=0;if(state.res){analyze();drawHeat();}});}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;document.body.classList.toggle('vlist',listHidden());syncTabs();syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='homes')return renderHomes();if(v.type==='flag')return renderFlag();if(v.type==='settings')return renderSettings();
+function render(){const v=state.view;document.body.classList.toggle('vlist',listHidden());syncTabs();syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='homes')return renderHomes();if(v.type==='swipe')return renderSwipe();if(v.type==='flag')return renderFlag();if(v.type==='settings')return renderSettings();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML='';syncListBtn(); // 地圖主畫面不放左下角按鈕，清單改由右側「清單」按鈕打開
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -1235,10 +1250,10 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 // 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
 ['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
-$('exploreBtn').innerHTML=categoryIcon('explore')+'<span>探索</span>';$('exportBtn').innerHTML=categoryIcon('house')+'<span>房源</span>';$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('savedBtn').innerHTML=categoryIcon('bookmark')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('exploreBtn').onclick=()=>{closePops();if(state.view.type!=='list')closeDetail();else syncTabs();};$('homesBtn').onclick=()=>openHomes();$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('flagBtn').innerHTML=categoryIcon('flag');$('flagBtn').onclick=()=>togglePop('flagsPop','flagBtn');$('locate').innerHTML=categoryIcon('locate');
+$('exploreBtn').innerHTML=categoryIcon('explore')+'<span>探索</span>';$('exportBtn').innerHTML=categoryIcon('house')+'<span>房源</span>';$('recBtn').innerHTML=categoryIcon('rec')+'<span>推薦</span>';$('recBtn').onclick=()=>openSwipe();$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('savedBtn').innerHTML=categoryIcon('bookmark')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('exploreBtn').onclick=()=>{closePops();if(state.view.type!=='list')closeDetail();else syncTabs();};$('homesBtn').onclick=()=>openHomes();$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('flagBtn').innerHTML=categoryIcon('flag');$('flagBtn').onclick=()=>togglePop('flagsPop','flagBtn');$('locate').innerHTML=categoryIcon('locate');
 // 底部 4 個分頁：探索（地圖本身與點地圖的詳細）、房源、物件、房市；目前所在的分頁高亮
-function tabOf(t){return t==='export'?'exportBtn':t==='homes'||t==='cmp'?'homesBtn':t==='market'?'marketBtn':t==='settings'?'':'exploreBtn';}
-function syncTabs(){const on=tabOf(state.view&&state.view.type);['exploreBtn','exportBtn','homesBtn','marketBtn'].forEach(id=>{const b=$(id);if(b){b.setAttribute('aria-selected',String(id===on));b.classList.toggle('on',id===on);}});}
+function tabOf(t){return t==='swipe'?'recBtn':t==='export'?'exportBtn':t==='homes'||t==='cmp'?'homesBtn':t==='market'?'marketBtn':t==='settings'?'':'exploreBtn';}
+function syncTabs(){const on=tabOf(state.view&&state.view.type);['exploreBtn','exportBtn','recBtn','homesBtn','marketBtn'].forEach(id=>{const b=$(id);if(b){b.setAttribute('aria-selected',String(id===on));b.classList.toggle('on',id===on);}});}
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','savedBtn'],['flagsPop','flagBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;if($(b))$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();
   $(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='flagsPop')renderFlagsPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}}
@@ -1443,6 +1458,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
     Bd.innerHTML=`<div class="vform"><div class="wide seg" role="group" aria-label="建物型態">${T.map((n,i)=>`<button type="button" data-vt="${i}" aria-pressed="${f.t===i}">${n}</button>`).join('')}</div>
       <label>坪數（不含車位）<input data-vf="ping" inputmode="decimal" value="${esc(f.ping)}"></label><label>屋齡（年）<input data-vf="age" inputmode="numeric" value="${esc(f.age)}"></label>
       <label>所在樓層<input data-vf="fl" inputmode="numeric" value="${esc(f.fl)}"></label><label>總樓層<input data-vf="tot" inputmode="numeric" value="${esc(f.tot)}"></label>
+      <div class="wide seg" role="group" aria-label="車位">${[['','車位不確定'],['1','有車位'],['0','沒有車位']].map(([v,n])=>`<button type="button" data-vp="${v}" aria-pressed="${String(f.park??'')===v}">${n}</button>`).join('')}</div>
       <label class="wide">開價（萬，不含車位；可不填）<input data-vf="ask" inputmode="decimal" placeholder="例如 2800" value="${esc(f.ask)}"></label>
       <div class="wide seg" role="group" aria-label="屋況">${['可直接入住','局部翻修','全室翻修'].map((n,i)=>`<button type="button" data-vc="${i}" aria-pressed="${f.cond===i}">${n}</button>`).join('')}</div>
       ${f.cond?`<label class="wide">裝潢預算（萬）<input data-vf="reno" inputmode="decimal" placeholder="例如 150" value="${esc(f.reno)}"></label>`:''}
@@ -1450,6 +1466,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
     const read=()=>Bd.querySelectorAll('[data-vf]').forEach(i=>{f[i.dataset.vf]=i.value.trim();});
     Bd.querySelectorAll('[data-vt]').forEach(b=>b.onclick=()=>{read();f.t=+b.dataset.vt;render();});
     Bd.querySelectorAll('[data-vc]').forEach(b=>b.onclick=()=>{read();f.cond=+b.dataset.vc;render();});
+    Bd.querySelectorAll('[data-vp]').forEach(b=>b.onclick=()=>{read();f.park=b.dataset.vp===''?'':+b.dataset.vp;render();});
     $('valGo').onclick=()=>{read();const n=k=>+f[k];
       if(!(n('ping')>=5&&n('ping')<=150)){toast('坪數請填 5～150');return;}if(!(n('age')>=1&&n('age')<=80)){toast('屋齡請填 1～80 年（新成屋不適用）');return;}
       if(!(n('tot')>=1&&n('tot')<=60&&n('fl')>=1&&n('fl')<=n('tot'))){toast('樓層不能超過總樓層');return;}if(f.ask!==''&&!(n('ask')>=100)){toast('開價單位是「萬」，例如 2800');return;}
@@ -1525,7 +1542,7 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
 // ---------- 雲端同步（Supabase）：個人資料跨裝置；用 email 登入連結，每個帳號只讀得到自己的資料（資料表 user_data 有 RLS） ----------
 const SB_URL='https://exugellewviuiwnohsfo.supabase.co',SB_KEY='sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4';
 // 同步的個人資料（裝置上只留一份副本，雲端為準）；金鑰、token、快取、暫存不同步
-const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW','tlm.flags'];
+const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW','tlm.flags','tlm.swiped'];
 let SBA=null,CMETA={},cloudApplying=false,cloudTimer=null,cloudBusy=false,cloudErr='';
 try{SBA=JSON.parse(localStorage.getItem('tlm.auth')||'null');CMETA=JSON.parse(localStorage.getItem('tlm.cloudmeta')||'{}');}catch(e){}
 const saveSBA=()=>{try{SBA?localStorage.setItem('tlm.auth',JSON.stringify(SBA)):localStorage.removeItem('tlm.auth');}catch(e){}};
@@ -1663,7 +1680,7 @@ function diffBadge(v,base){if(v==null)return '';const c=v<=-5?'good':v>=5?'high'
 function priceScale(u,refs,offer){const vs=[u,...refs.map(r=>r.v)].concat(offer!=null?[offer]:[]),lo=Math.min(...vs)*.92,hi=Math.max(...vs)*1.06,X=v=>((v-lo)/(hi-lo)*100).toFixed(1)+'%';
   return `<div class="pscale" aria-hidden="true"><div class="track"></div>${refs.map(r=>`<i class="m ${r.k}" style="left:${X(r.v)}"><b>${r.n}<br>${r.v.toFixed(1)}</b></i>`).join('')}<i class="m ask" style="left:${X(u)}"><b>開價<br>${u.toFixed(1)}</b></i>${offer!=null?`<i class="m offer" style="left:${X(offer)}"></i>`:''}</div>`;}
 function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$/,''),u=saleUnit(l),refs=saleRefs(l),base=l.vsEst!=null?'估價':'實價',dv=l.vsEst!=null?l.vsEst:l.vsReal;
-  const r=innerEst(l),chips=[l.type,l.ping!=null?`${(+l.ping).toFixed(1).replace(/\.0$/,'')} 坪`:'',r&&+r.v!==+l.ping?`室內 ${r.v}${r.est?'（估）':''}`:'',l.floor?`${l.floor} 樓`:'',l.age!=null?`${f(l.age)} 年`:'',l.park?'車位':''].filter(Boolean);
+  const r=innerEst(l),chips=[l.type,l.ping!=null?`${(+l.ping).toFixed(1).replace(/\.0$/,'')} 坪`:'',r&&+r.v!==+l.ping?`室內 ${r.v}${r.est?'（估）':''}`:'',l.floor?`${l.floor} 樓`:'',l.age!=null?`${f(l.age)} 年`:'',hasPark(l)===true?'車位':''].filter(Boolean);
   const canOffer=l.price!=null&&u!=null&&refs.length;
   return `<div class="sp" data-sp="${i}"><div class="a">${l.isNew?'<span class="new">新上架</span>':''}${esc(l.addr)}</div>${l.comm?`<div class="comm">${esc(l.comm)}</div>`:''}
     <div class="sp-chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
@@ -1766,7 +1783,7 @@ map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.s
 // 用事件委派：資訊卡內容重畫（例如街景載入）後按鈕仍然有效
 document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('.leaflet-popup [data-sval]');if(!b)return;ev.preventDefault();{const l=LISTINGS[+b.dataset.sval];if(!l)return;map.closePopup();
   try{await loadVal();}catch(err){}const T=(typeof VALDATA!=='undefined'&&VALDATA&&VALDATA.types)||[],t=T.findIndex(n=>l.type&&(n===l.type||n.includes(l.type)||l.type.includes(n.replace('住宅',''))));const fm=(l.floor||'').match(/(-?\d+)\s*\/\s*(\d+)/);
-  openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{}),{links:l.links||[]});}});
+  openVal([l.lat,l.lng],Object.assign({},t>=0?{t}:{},l.ping!=null?{ping:l.ping}:{},l.age!=null?{age:Math.round(l.age)}:{},fm?{fl:+fm[1],tot:+fm[2]}:{},l.price!=null?{ask:l.price}:{},hasPark(l)==null?{}:{park:hasPark(l)?1:0}),{links:l.links||[]});}});
 let LASTIMP=null;try{LASTIMP=JSON.parse(localStorage.getItem('tlm.lastimp')||'null');}catch(e){}
 function importStatus(){const M=LISTINGS.filter(l=>!l.sync),n=M.length;if(!n)return '<span class="hk-sub">CSV、Excel 或貼上表格</span>';
   const no=M.filter(l=>l.prec==='none'),wait=M.filter(l=>!l.lat&&l.prec!=='none').length;
@@ -1911,7 +1928,7 @@ function saleHistHTML(){const c=PF[SALEF.pby]||PF.total,N=12,w=c.max/N,bins=new 
 function saleStatsHTML(){const A=saleAll(),nv=A.filter(saleOk).length,nw=A.filter(l=>l.isNew).length,un=A.filter(l=>!isSeen(l)).length;
   return `<div class="stiles" id="saleStats"><button type="button" class="st-t" data-st="all" aria-pressed="${SALEF.seen==='all'}"><b>${nv}<small>/${A.length}</small></b><span>符合篩選</span></button><button type="button" class="st-t new" data-st="new"${nw?'':' disabled'}><b>${nw}</b><span>新上架</span></button><button type="button" class="st-t un" data-st="unseen" aria-pressed="${SALEF.seen==='unseen'}"><b>${un}</b><span>沒看過</span></button></div>`;}
 function saleBoxHTML(){const A=saleAll();if(!A.length)return `<div class="s-empty">${categoryIcon('house')}<b>還沒有房源</b><span>按下方「現在找房」或匯入房源表，房源就會出現在地圖和這裡</span></div>`;
-  return `<div class="lrow sale-on">${categoryIcon('house')}<span>在地圖上顯示房源</span><button type="button" class="switch" id="saleOn" aria-label="在地圖上顯示房源" aria-pressed="${!!state.layers.sale}"></button></div>${saleStatsHTML()}${affHTML()}<div class="hk-lbl2 sh-l">價格分布<span>點長條只看那個價位</span></div>${saleHistHTML()}${saleSubHTML()}`;}
+  return `<div class="lrow sale-on">${categoryIcon('house')}<span>在地圖上顯示房源</span><button type="button" class="switch" id="saleOn" aria-label="在地圖上顯示房源" aria-pressed="${!!state.layers.sale}"></button></div>${saleStatsHTML()}<div class="hk-lbl2 sh-l">價格分布<span>點長條只看那個價位</span></div>${saleHistHTML()}${saleSubHTML()}`;}
 // ---------- 負擔得起的推薦：每間房源用估價模型算合理出價，留下合理出價在預算內的，依推薦指數（同比較物件的模型排名）排序 ----------
 let AFF={budget:null,n:20};try{AFF=Object.assign(AFF,JSON.parse(localStorage.getItem('tlm.afford')||'{}'));}catch(e){}
 const affBudget=()=>+AFF.budget>0?+AFF.budget:(+exPrefs().hi||3000);
@@ -1931,37 +1948,78 @@ async function affCompute(){const seq=++affSeq,B=affBudget(),sv={...SALEF};const
   while(j<pool.length){const t0=performance.now();while(j<pool.length&&performance.now()-t0<12){const o=pool[j++],V=listingVal(o.l);if(!V){skip++;continue;}if(V.off.out[1]<=B)out.push({l:o.l,i:o.i,V,h:{form:V.form,name:o.l.addr}});}
     if(j<pool.length){const p=$('affProg');if(p)p.textContent=`計算中 ${Math.round(j/pool.length*100)}%`;await new Promise(r=>setTimeout(r,0));if(seq!==affSeq)return;}}
   if(seq!==affSeq)return;const R=out.length?cmpRank(out):[];affRes={B,items:out,R,skip,pool:pool.length};renderAff();}
-function affHTML(){const B=affBudget();
-  return `<div class="aff" id="affBox"><div class="aff-h"><div><b>負擔得起的推薦</b><small>合理出價在預算內，依推薦指數排序</small></div></div>
-    <div class="aff-sc"><span class="aff-scn">${categoryIcon('region')}${esc(scopeName())}</span><button type="button" class="aff-good" id="affGood" aria-pressed="${!!AFF.good}">只看符合條件的地方</button></div>
-    <div class="aff-b"><label class="vd-in aff-in"><span class="pre">預算</span><input id="affIn" inputmode="decimal" value="${B}" aria-label="能負擔的總價（萬）"><span>萬</span></label><div class="seg sm" role="group" aria-label="推薦重點">${Object.entries(RANK_W).map(([k,[n]])=>`<button type="button" data-afw="${k}" aria-pressed="${cmpW===k}">${n}</button>`).join('')}</div></div>
-    <div id="affList"><div class="hint2" id="affProg">計算中…</div></div></div>`;}
-function renderAff(){const el=$('affList');if(!el||!affRes)return;const {R,items,skip}=affRes,n=Math.min(AFF.n,R.length),num=v=>Math.round(v).toLocaleString('en-US');
+// ---------- 推薦（獨立分頁）：負擔得起的房源一張一張滑——右滑加入我的物件、左滑略過 ----------
+let SWIPED={};try{SWIPED=JSON.parse(localStorage.getItem('tlm.swiped')||'{}')||{};}catch(e){}
+const saveSwiped=()=>{try{localStorage.setItem('tlm.swiped',JSON.stringify(SWIPED));}catch(e){}};
+const hasPark=l=>{const v=String(l.park==null?'':l.park).trim();if(!v)return null;return !/^(無|否|沒有|0|-|—|N|no)$/i.test(v);};
+let swHist=[];
+const swDeck=()=>affRes?affRes.R.map(r=>affRes.items[r.i]).filter(x=>!SWIPED[listingKey(x.l)]):[];
+function openSwipe(){closePops();if(state.view.type==='swipe')return;closeDetail(true);state.view={type:'swipe'};drawPins();render();fitSheet('full');}
+function swSetHTML(){const B=affBudget();return `<details class="sw-set" id="swSet"><summary><span>預算 <b>${Math.round(B).toLocaleString('en-US')} 萬</b>・${esc(scopeName())}${AFF.good?'・符合條件':''}・${RANK_W[cmpW][0]}</span><span class="sw-ed">調整</span></summary>
+    <div class="aff-b"><label class="vd-in aff-in"><span class="pre">預算</span><input id="affIn" inputmode="decimal" value="${B}" aria-label="能負擔的總價（萬）"><span>萬</span></label><button type="button" class="aff-good" id="affGood" aria-pressed="${!!AFF.good}">只看符合條件的地方</button></div>
+    <div class="seg sm" role="group" aria-label="推薦重點">${Object.entries(RANK_W).map(([k,[n]])=>`<button type="button" data-afw="${k}" aria-pressed="${cmpW===k}">${n}</button>`).join('')}</div>
+    <div class="hint2 sw-hint">範圍用上方「選區域」改。合理出價用估價模型（附近相似成交）算，推薦指數同「比較物件」的模型排名。</div></details>`;}
+function renderSwipe(){headDetail('推薦','合理出價在預算內的房源，右滑加入物件、左滑略過',{name:'推薦',color:'#C5221F',icon:categoryIcon('rec')});
+  $('resultBtn').innerHTML=`<span>推薦</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+  $('body').innerHTML=swSetHTML()+`<div id="affList"><div class="hint2" id="affProg">計算中…</div></div>`;bindSwSet();}
+function swCardHTML(x,pos,total){const V=x.V,o=V.off,l=x.l,ask=+l.price||null,pay=valLoan(V,o.out[1]).pay,cut=ask?(o.out[1]/ask-1)*100:null,num=v=>Math.round(v).toLocaleString('en-US'),r=affRes.R.find(z=>affRes.items[z.i]===x),pk=hasPark(l);
+  const chips=[V.form.guessT?l.type:VALDATA.types[V.form.t],l.ping?(+l.ping).toFixed(1).replace(/\.0$/,'')+' 坪':'',l.age!=null?Math.round(l.age)+' 年':'',l.floor?l.floor+' 樓':'',pk===true?'有車位':pk===false?'無車位':''].filter(Boolean);
+  return `<div class="sw-card" id="swCard" tabindex="0" aria-label="${esc(l.addr)}，推薦指數 ${Math.round(r.total)} 分"><i class="sw-stamp like">加入</i><i class="sw-stamp skip">略過</i>
+    <div class="sw-top"><span class="sw-pos">${pos} / ${total}</span><span class="sw-sc">${Math.round(r.total)}<small> 分</small></span></div>
+    <div class="sw-a">${l.isNew?'<span class="new">新上架</span>':''}${esc(l.addr)}</div>${l.comm?`<div class="sw-comm">${esc(l.comm)}</div>`:''}
+    <div class="sp-chips">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>
+    <div class="sw-price"><div><small>合理出價</small><b>${num(o.out[1])}<em> 萬</em></b></div>${ask?`<div><small>開價</small><b class="ask">${num(ask)}<em> 萬</em></b>${cut<=-.5?`<span class="dbadge good">可議 ${pcTxt(cut)}</span>`:''}</div>`:''}</div>
+    <div class="sw-pay">月付約 <b>${num(pay)}</b> 元<small>（合理出價、貸 8 成）</small></div>
+    <div class="rk-bar">${r.parts.map((v,k)=>v?`<i style="width:${v.toFixed(1)}%;background:${RANK_K[k][2]}"></i>`:'').join('')}</div>
+    <div class="rk-leg">${RANK_K.map(([k,nm,c],j)=>`<span><i style="background:${c}"></i>${nm} ${Math.round(r.sc[k]??0)}</span>`).join('')}</div>
+    <div class="sw-links">${(l.links||[]).map(z=>`<a href="${esc(z.u)}" target="_blank" rel="noopener noreferrer" class="hlk">${esc(z.p)} ›</a>`).join('')}<button type="button" class="hlk add" data-swmap="${x.i}">在地圖看</button></div></div>`;}
+function renderAff(){const el=$('affList');if(!el||!affRes)return;const {R,skip}=affRes,num=v=>Math.round(v).toLocaleString('en-US'),D=swDeck(),done=R.length-D.length,liked=R.filter(r=>SWIPED[listingKey(affRes.items[r.i].l)]==='like').length;
   if(!R.length){el.innerHTML=`<div class="hint2" id="affEmpty">${esc(scopeName())}${AFF.good?'符合條件的地方':''}沒有合理出價在 ${num(affRes.B)} 萬以內的房源${skip?`（${skip} 間缺坪數或屋齡，無法估價）`:''}</div>`;return;}
-  el.innerHTML=`<div class="aff-sum"><b>${R.length}</b> 間符合${skip?`<span>・${skip} 間缺坪數或屋齡沒算</span>`:''}</div>`+R.slice(0,n).map((r,j)=>{const x=items[r.i],V=x.V,o=V.off,l=x.l,ask=+l.price||null,pay=valLoan(V,o.out[1]).pay,cut=ask?(o.out[1]/ask-1)*100:null;
-    return `<button type="button" class="aff-row${j<3?' top':''}" data-aff="${x.i}"><span class="rk-n">${j+1}</span><span class="aff-m"><span class="aff-t"><b>${esc(l.addr)}</b><span class="rk-s">${Math.round(r.total)}<small> 分</small></span></span>
-      <span class="aff-p"><span class="fair">合理 ${num(o.out[1])} 萬</span>${ask?`<span class="ask">開價 ${num(ask)}${cut<=-.5?`・<em>${pcTxt(cut)}</em>`:''}</span>`:''}<span class="pay">月付約 ${num(pay)} 元</span></span>
-      <span class="rk-bar">${r.parts.map((v,k)=>v?`<i style="width:${v.toFixed(1)}%;background:${RANK_K[k][2]}"></i>`:'').join('')}</span>
-      <span class="aff-c">${esc([V.form.guessT?'':VALDATA.types[V.form.t],l.ping?(+l.ping).toFixed(1).replace(/\.0$/,'')+' 坪':'',l.age!=null?Math.round(l.age)+' 年':'',V.form.guessF?'樓層未知':''].filter(Boolean).join('・'))}</span></span></button>`;}).join('')+
-    (R.length>n?`<button type="button" class="hk-more" id="affMore">顯示更多（還有 ${R.length-n} 間）</button>`:'')+
-    `<div class="rk-leg">${RANK_K.map(([k,nm,c])=>`<span><i style="background:${c}"></i>${nm}</span>`).join('')}</div><details class="mk-det"><summary>怎麼算的</summary>每間房源用估價模型（附近相似成交）算出保守／合理／積極出價，合理出價不會高於開價；留下合理出價在預算內的。推薦指數同「比較物件」的模型排名：價格划算（預期成交價對比行情）、生活機能、月付負擔（相對最低那間）、屋齡，依上方重點加權。月付用合理出價、貸 8 成、目前利率試算。缺樓層時假設 4/7 樓。統計估算，只供參考。</details>`;
-  el.querySelectorAll('[data-aff]').forEach(b=>b.onclick=()=>openSaleAt(+b.dataset.aff));const m=$('affMore');if(m)m.onclick=()=>{AFF.n+=20;renderAff();};}
-async function bindAff(){const box=$('affBox');if(!box)return;try{await loadVal();}catch(e){$('affList').innerHTML='<div class="hint2">估價資料還沒建好，暫時無法計算</div>';return;}
-  const saveA=()=>{try{localStorage.setItem('tlm.afford',JSON.stringify({budget:AFF.budget,good:!!AFF.good}));}catch(e){}};
-  const inp=$('affIn');let tm=0;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=parseFloat(inp.value);if(v>=100){AFF.budget=v;AFF.n=20;saveA();affCompute();}},350);};
-  $('affGood').onclick=()=>{AFF.good=!AFF.good;AFF.n=20;$('affGood').setAttribute('aria-pressed',String(AFF.good));saveA();affCompute();};
-  box.querySelectorAll('[data-afw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.afw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}box.querySelectorAll('[data-afw]').forEach(y=>y.setAttribute('aria-pressed',String(y===b)));if(affRes){affRes.R=cmpRank(affRes.items);renderAff();}});
+  if(!D.length){el.innerHTML=`<div class="sw-end" id="swEnd">${categoryIcon('rec')}<b>${R.length} 間都看完了</b><span>加入物件 ${liked} 間・略過 ${R.length-liked} 間</span>${R.length>liked?'<button type="button" class="hl-ok" id="swReset">重新看略過的</button>':''}${swHist.length?'<button type="button" class="hl-done" id="swUndo2">上一張</button>':''}</div>`;
+    const rs=$('swReset');if(rs)rs.onclick=()=>{R.forEach(r=>{const k=listingKey(affRes.items[r.i].l);if(SWIPED[k]==='skip')delete SWIPED[k];});saveSwiped();swHist=[];renderAff();};const u=$('swUndo2');if(u)u.onclick=swUndo;return;}
+  const x=D[0],nx=D[1];
+  el.innerHTML=`<div class="sw-prog"><i style="width:${(done/R.length*100).toFixed(1)}%"></i></div><div class="sw-meta"><span>${R.length} 間符合${skip?`・${skip} 間資料不足`:''}</span><span>已加入 ${liked}</span></div>
+    <div class="sw-deck">${nx?`<div class="sw-card sw-next" aria-hidden="true">${esc(nx.l.addr)}</div>`:''}${swCardHTML(x,done+1,R.length)}</div>
+    <div class="sw-btns"><button type="button" class="sw-b undo" id="swUndo" aria-label="上一張" ${swHist.length?'':'disabled'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4.5 11.5 9 16"/><path d="M5 11.5h9.5a5 5 0 0 1 0 10H12"/></svg></button><button type="button" class="sw-b skip" id="swSkip" aria-label="略過">${'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>'}</button><button type="button" class="sw-b like" id="swLike" aria-label="加入我的物件">${categoryIcon('star')}</button></div>
+    <div class="hint2 sw-tip">右滑或按星星＝加入我的物件；左滑或按 ✕＝略過</div>`;
+  bindSwCard(x);}
+function swAct(kind,fromSwipe){const D=swDeck(),x=D[0];if(!x)return;const k=listingKey(x.l);let hid=null;
+  if(kind==='like'){const r=addHomeFromListing(x);if(r===false)return;hid=r;}
+  SWIPED[k]=kind;saveSwiped();swHist.push({k,hid});if(swHist.length>50)swHist.shift();
+  const c=$('swCard');const go=()=>{renderAff();const n=$('swCard');if(n)n.focus({preventScroll:true});};
+  if(c&&!matchMedia('(prefers-reduced-motion: reduce)').matches){c.style.transition='transform .22s ease-in,opacity .22s';c.style.transform=`translateX(${kind==='like'?420:-420}px) rotate(${kind==='like'?18:-18}deg)`;c.style.opacity='0';setTimeout(go,200);}else go();
+  if(kind==='like')toast(hid==='dup'?'已經在我的物件裡':'已加入我的物件');}
+function swUndo(){const h=swHist.pop();if(!h)return;delete SWIPED[h.k];saveSwiped();if(h.hid&&h.hid!=='dup'){saveHomes(loadHomes().filter(z=>z.id!==h.hid));drawHomes();}renderAff();}
+function addHomeFromListing(x){const l=x.l,a=loadHomes(),links=(l.links||[]).slice(0,8);
+  if(a.some(h=>(h.links||[]).some(k=>links.some(m=>m.u===k.u))))return 'dup';
+  if(a.length>=HOMES_MAX){toast('我的物件最多 '+HOMES_MAX+' 間，請先刪除一間');return false;}
+  const V=Object.assign({},x.V,{links}),rec=homeRecord(V);rec.name=String(l.addr||rec.name).replace(/^(臺|台)北市/,'').slice(0,20);rec.form.ask=+l.price||'';const pk=hasPark(l);if(pk!=null)rec.form.park=pk?1:0;
+  a.unshift(rec);saveHomes(a);drawHomes();return rec.id;}
+function bindSwCard(x){const c=$('swCard');if(!c)return;$('swSkip').onclick=()=>swAct('skip');$('swLike').onclick=()=>swAct('like');$('swUndo').onclick=swUndo;
+  c.querySelectorAll('[data-swmap]').forEach(b=>b.onclick=()=>openSaleAt(+b.dataset.swmap));
+  c.onkeydown=e=>{if(e.key==='ArrowRight'){e.preventDefault();swAct('like');}if(e.key==='ArrowLeft'){e.preventDefault();swAct('skip');}};
+  let sx=null,sy=0,dx=0,drag=false;
+  c.addEventListener('pointerdown',e=>{if(e.target.closest('a,button'))return;sx=e.clientX;sy=e.clientY;dx=0;drag=false;try{c.setPointerCapture(e.pointerId);}catch(_){}c.style.transition='none';});
+  c.addEventListener('pointermove',e=>{if(sx==null)return;dx=e.clientX-sx;const dy=e.clientY-sy;if(!drag){if(Math.abs(dx)<8)return;if(Math.abs(dy)>Math.abs(dx)){sx=null;return;}drag=true;}
+    c.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`;c.querySelector('.sw-stamp.like').style.opacity=Math.max(0,Math.min(1,dx/90));c.querySelector('.sw-stamp.skip').style.opacity=Math.max(0,Math.min(1,-dx/90));});
+  const end=()=>{if(sx==null)return;sx=null;if(drag&&Math.abs(dx)>90){swAct(dx>0?'like':'skip',true);return;}c.style.transition='transform .2s';c.style.transform='';c.querySelectorAll('.sw-stamp').forEach(z=>z.style.opacity=0);};
+  c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);}
+async function bindSwSet(){try{await loadVal();}catch(e){$('affList').innerHTML='<div class="hint2">估價資料還沒建好，暫時無法計算</div>';return;}
+  const saveA=()=>{try{localStorage.setItem('tlm.afford',JSON.stringify({budget:AFF.budget,good:!!AFF.good}));}catch(e){}},sum=()=>{const s2=$('swSet').querySelector('summary span');if(s2)s2.innerHTML=`預算 <b>${Math.round(affBudget()).toLocaleString('en-US')} 萬</b>・${esc(scopeName())}${AFF.good?'・符合條件':''}・${RANK_W[cmpW][0]}`;};
+  const inp=$('affIn');let tm=0;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=parseFloat(inp.value);if(v>=100){AFF.budget=v;saveA();sum();affCompute();}},350);};
+  $('affGood').onclick=()=>{AFF.good=!AFF.good;$('affGood').setAttribute('aria-pressed',String(AFF.good));saveA();sum();affCompute();};
+  $('swSet').querySelectorAll('[data-afw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.afw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}$('swSet').querySelectorAll('[data-afw]').forEach(y=>y.setAttribute('aria-pressed',String(y===b)));sum();if(affRes){affRes.R=cmpRank(affRes.items);renderAff();}});
   affCompute();}
 function openSaleAt(i){const l=LISTINGS[i];if(!l||!l.lat)return;if(!state.layers.sale){state.layers.sale=true;applyLayers();}if(isMob())setSheet('peek');map.setView([l.lat,l.lng],Math.max(map.getZoom(),17),{animate:false});
   setTimeout(()=>{salePop=true;const pp=L.popup(salePopOpt()).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);bindSaleCard(pp.getElement()&&pp.getElement().querySelector('.sp'),l);if(!isSeen(l))markSeen(l);},60);}
-function bindSaleBox(){const B=$('saleBox');if(!B)return;bindSaleSub(B);bindAff();const sw=$('saleOn');if(sw)sw.onclick=()=>{state.layers.sale=!state.layers.sale;sw.setAttribute('aria-pressed',String(state.layers.sale));applyLayers();};
+function bindSaleBox(){const B=$('saleBox');if(!B)return;bindSaleSub(B);const sw=$('saleOn');if(sw)sw.onclick=()=>{state.layers.sale=!state.layers.sale;sw.setAttribute('aria-pressed',String(state.layers.sale));applyLayers();};
   B.onclick=e=>{const hb=e.target.closest('[data-hb]'),st=e.target.closest('[data-st]');
     if(hb){const c=PF[SALEF.pby]||PF.total,w=c.max/12,k=+hb.dataset.hb,a=k*w,b=k<12?(k+1)*w:null;if(SALEF.pmin===(a||null)&&SALEF.pmax===b){SALEF.pmin=SALEF.pmax=null;}else{SALEF.pmin=a||null;SALEF.pmax=b;}
       if(!state.layers.sale){state.layers.sale=true;applyLayers();}saveSaleF();const pn=$('pfMin'),px=$('pfMax');if(pn){pn.value=SALEF.pmin??0;px.value=SALEF.pmax??c.max;}updSaleSub();drawSale();}
     if(st){const k=st.dataset.st;if(k==='new'){const n=saleAll().filter(l=>l.isNew&&l.lat);if(n.length){if(!state.layers.sale){state.layers.sale=true;applyLayers();}map.fitBounds(L.latLngBounds(n.map(l=>[l.lat,l.lng])).pad(.3),{maxZoom:16});if(isMob())setSheet('peek');}return;}
       SALEF.seen=SALEF.seen===k?'all':k;saveSaleF();B.querySelectorAll('[data-sfseen]').forEach(y=>y.setAttribute('aria-pressed',String(y.dataset.sfseen===SALEF.seen)));updSaleSub();drawSale();}};}
 function rerenderSaleBox(){const B=$('saleBox');if(!B)return;B.innerHTML=saleBoxHTML();B.dataset.n=saleAll().length;bindSaleBox();}
-let affT=0;function affSoon(){if(!$('affBox'))return;clearTimeout(affT);affT=setTimeout(affCompute,300);}
+let affT=0;function affSoon(){if(state.view.type!=='swipe')return;clearTimeout(affT);affT=setTimeout(affCompute,300);}
 function refreshSaleBox(){affSoon();const h=$('saleHist');if(h)h.outerHTML=saleHistHTML();const t=$('saleStats');if(t)t.outerHTML=saleStatsHTML();}
 function exSection(v){const p=v.prefs,S=exSummary();
   return `<div class="im-box"><h3>找房條件</h3><div class="vform"><label>總價下限（萬）<input data-exp="lo" inputmode="numeric" value="${esc(p.lo)}"></label><label>總價上限（萬）<input data-exp="hi" inputmode="numeric" value="${esc(p.hi)}"></label>
@@ -2063,7 +2121,7 @@ const homeLayer=L.layerGroup().addTo(map);
 const HOMES_MAX=30;
 function loadHomes(){try{return JSON.parse(localStorage.getItem('tlm.homes')||'[]');}catch(e){return [];}}
 function saveHomes(a){try{localStorage.setItem('tlm.homes',JSON.stringify(a));}catch(e){}}
-function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno,deal:f.deal||''};}
+function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno,deal:f.deal||'',park:f.park===0||f.park===1?f.park:''};}
 function sameHome(h,V){return JSON.stringify(homeForm(h.form))===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
 function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),st:'todo',saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null,links:(V.links||[]).slice(0,8)};}
 function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:finInit(),links:h.links||[]};
@@ -2134,6 +2192,7 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=
   let h=rankHTML(its)+`<table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
     txt('狀態',its.map(x=>stName(x.h.st||'todo')))+
     txt('物件連結',its.map(x=>(x.h.links||[]).length?x.h.links.map(l=>`<a href="${esc(l.u)}" target="_blank" rel="noopener noreferrer">${esc(l.p)}</a>`).join('、'):'—'))+
+    txt('車位',its.map(x=>x.h.form.park===1?'<b class="pk y">有</b>':x.h.form.park===0?'<span class="pk n">沒有</span>':'<span class="pk">不確定</span>'))+
     txt('條件',its.map(x=>`${T[x.h.form.t]}<small>屋齡 ${x.h.form.age} 年・${x.h.form.fl}/${x.h.form.tot} 樓</small>`))+
     row('開價',val((V,hh)=>hh.form.ask?+hh.form.ask:null),wan)+
     row('談判價',val(V=>dealOf(V)),wan)+
