@@ -1,12 +1,12 @@
 {
- "built": "2026-11-15",
+ "built": "2026-11-23",
  "districts": {
   "大安區": {
    "park": 459,
-   "school": 246,
+   "school": 245,
    "sport": 780,
    "market": 172,
-   "bus": 1336,
+   "bus": 1335,
    "mrt": 40
   },
   "文山區": {
@@ -14,7 +14,7 @@
    "school": 176,
    "sport": 688,
    "market": 121,
-   "bus": 1135,
+   "bus": 1134,
    "mrt": 20
   },
   "信義區": {
@@ -27,7 +27,7 @@
   },
   "萬華區": {
    "park": 267,
-   "school": 141,
+   "school": 140,
    "sport": 568,
    "market": 138,
    "bus": 1014,
@@ -35,10 +35,10 @@
   },
   "中正區": {
    "park": 387,
-   "school": 237,
+   "school": 236,
    "sport": 799,
    "market": 163,
-   "bus": 1227,
+   "bus": 1226,
    "mrt": 29
   },
   "南港區": {
@@ -84,7 +84,7 @@
   "士林區": {
    "park": 603,
    "school": 268,
-   "sport": 1320,
+   "sport": 1321,
    "market": 197,
    "bus": 2521,
    "mrt": 36
@@ -92,7 +92,7 @@
   "北投區": {
    "park": 346,
    "school": 166,
-   "sport": 770,
+   "sport": 771,
    "market": 97,
    "bus": 1708,
    "mrt": 18
@@ -101,11 +101,10 @@
  "routes": 2401,
  "city": {
   "park": 1475,
-  "school": 709,
-  "sport": 2936,
+  "school": 708,
+  "sport": 2937,
   "market": 552,
-  "bus": 5787,
+  "bus": 5786,
   "mrt": 101
- },
- "routes_built": "2026-11-22"
+ }
 }
