@@ -342,7 +342,9 @@ html,body{background:#e8eaed}
 #regionPop{width:min(300px,calc(100vw - 24px));box-sizing:border-box}
 #filterPop{width:min(320px,calc(100vw - 24px));box-sizing:border-box}
 @keyframes drop{from{opacity:0;transform:translateY(-6px) scale(.98)}}#regionPop:not([hidden]),#filterPop:not([hidden]){animation:drop .18s ease-out}
-/* 最下方：滿版結果工具列（清單、房市、物件、找房） */
+/* 不顯示分析結果清單：只有點地圖、估價、房市等詳細畫面才出現面板 */
+body.vlist #sheet{visibility:hidden;pointer-events:none}
+/* 最下方：滿版結果工具列（房市、物件、找房） */
 #navbar{position:absolute;z-index:1200;left:0;right:0;bottom:0;height:var(--navh);box-sizing:border-box;padding:4px 8px env(safe-area-inset-bottom);display:flex;justify-content:space-around;align-items:stretch;background:var(--D);box-shadow:0 -1px 0 rgba(0,0,0,.06),0 -6px 18px rgba(18,59,138,.18)}
 #navbar .nb{flex:1;max-width:120px;border:0;background:none;color:rgba(255,255,255,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:600;padding:0;border-radius:12px;margin:2px;transition:color .15s,background .15s}
 #navbar .nb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -436,7 +438,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
   <div id="editbar"><div>拖曳<b>白點</b>移動邊界，拖曳<b>小點</b>新增轉折，連點兩下白點刪除。</div>
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
-<div id="navbar" class="glass" role="toolbar" aria-label="結果"><button class="nb" id="listBtn" aria-label="分析結果清單"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>清單</span></button><button class="nb" id="marketBtn" aria-label="整體房市"></button><button class="nb" id="homesBtn" aria-label="我的物件" aria-expanded="false"></button><button class="nb" id="exportBtn" aria-label="找房：匯入房源、匯出範圍"></button></div>
+<div id="navbar" class="glass" role="toolbar" aria-label="結果"><button class="nb" id="marketBtn" aria-label="整體房市"></button><button class="nb" id="homesBtn" aria-label="我的物件" aria-expanded="false"></button><button class="nb" id="exportBtn" aria-label="找房：匯入房源、匯出範圍"></button></div>
 <div id="fabs"><button class="fab" id="setBtn" aria-label="設定"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
@@ -511,7 +513,7 @@ const isMob=()=>window.innerWidth<700;
 L.Draggable.prototype.options.clickTolerance=10; // 手指點下去難免會小小移動；超過 3px 就被當成拖曳、點擊失效，放寬到 10px
 const map=L.map('map',{preferCanvas:true,zoomControl:false,zoomSnap:.5}).setView([25.07,121.56],12);
 map.attributionControl.setPrefix(false);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors｜交通部 TDX｜內政部'}).addTo(map);
 if(!isMob())L.control.zoom({position:'bottomright'}).addTo(map);
 map.createPane('analysis');map.getPane('analysis').style.zIndex=350;map.getPane('analysis').style.pointerEvents='none';
 const scopeLayer=L.layerGroup().addTo(map),labelLayer=L.layerGroup().addTo(map),facLayer=L.layerGroup().addTo(map),pinLayer=L.layerGroup().addTo(map),
@@ -574,11 +576,13 @@ let toastT;function toast(t,err){const el=$('toast');el.textContent=t;el.classNa
 const sheet=$('sheet');let snap='half';
 function snapPx(s){const H=window.innerHeight;return typeof s==='number'?s:s==='peek'?PEEK:s==='full'?Math.round(H*.88):Math.round(H*.46);}
 function navH(){const n=$('navbar');return n?n.offsetHeight:0;}
-function setSheet(s,anim=true){snap=s;const v=Math.max(0,Math.min(snapPx(s),Math.round(window.innerHeight*.88)-navH()-8));state.sheetVis=isMob()?v:0;
+// 主畫面不顯示分析結果清單；只有「先選行政區」與下載失敗這類需要使用者處理的提示仍會出現
+function listHidden(){return !!(state.view&&state.view.type==='list')&&!(!state.loading&&!state.baked&&state.scope==='')&&!(!state.res&&state.err);}
+function setSheet(s,anim=true){snap=s;const noList=listHidden();document.body.classList.toggle('vlist',noList);const v=noList?0:Math.max(0,Math.min(snapPx(s),Math.round(window.innerHeight*.88)-navH()-8));state.sheetVis=isMob()?v:0;
   sheet.style.transition=anim?'':'none';sheet.style.setProperty('--vis',v+'px');document.documentElement.style.setProperty('--sheetvis',v+'px');
   $('body').style.maxHeight=isMob()?Math.max(0,v-$('grab').offsetHeight)+'px':'';
   sheet.classList.toggle('closed',isMob()&&v<=4);
-  const rb=$('resultBtn');if(rb)rb.hidden=!(isMob()&&v<=4&&!state.drawing&&!state.editing);syncListBtn();}
+  const rb=$('resultBtn');if(rb)rb.hidden=noList||!(isMob()&&v<=4&&!state.drawing&&!state.editing);syncListBtn();}
 function syncListBtn(){const b=$('listBtn');if(b)b.setAttribute('aria-pressed',String(isMob()&&state.sheetVis>4&&state.view&&state.view.type==='list'));}
 function fitSheet(max='half'){if(!isMob())return;$('body').style.maxHeight='none';const want=$('grab').offsetHeight+$('body').scrollHeight+8;setSheet(Math.max(PEEK,Math.min(want,snapPx(max))));}
 (()=>{let y0=0,v0=0,moved=0,on=false;const g=$('grab');
@@ -850,16 +854,16 @@ let recalcRaf=0;function scheduleRecalc(now){cancelAnimationFrame(recalcRaf);rec
   recalcRaf=requestAnimationFrame(()=>{recalcRaf=0;if(state.res){analyze();drawHeat();}});}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='settings')return renderSettings();
+function render(){const v=state.view;document.body.classList.toggle('vlist',listHidden());syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='settings')return renderSettings();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML='';syncListBtn(); // 地圖主畫面不放左下角按鈕，清單改由右側「清單」按鈕打開
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
   if(!state.baked&&state.scope===''){H.innerHTML='<h1>先選一個行政區</h1><div class="sub">目前沒有預先下載的資料，選區後會即時下載（較慢）</div>';
     Bd.innerHTML='<div class="dgrid">'+DISTRICTS.map((d,i)=>`<button class="btn" data-d="${i}">${d.name}</button>`).join('')+'</div>';
-    Bd.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>setScope(b.dataset.d));if(isMob()&&snap==='peek')setSheet('half');return;} // 沒有預建資料時一定要先選區，這時才主動打開面板
+    Bd.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>setScope(b.dataset.d));if(isMob()&&(snap==='peek'||state.sheetVis<5))setSheet('half');else setSheet(snap,false);return;} // 沒有預建資料時一定要先選區，這時才主動打開面板
   if(!state.active.size){H.innerHTML='<h1>選擇你在意的設施</h1><div class="sub">點上方的類別（可複選），找出全部都走得到的地方</div>';Bd.innerHTML='';return;}
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
-    Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';return;}
+    Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';if(state.err)setSheet(isMob()&&state.sheetVis<5?'half':snap,false);return;}
   H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(!state.zones.length)h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
@@ -1896,7 +1900,7 @@ async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCen
   if(SBA){const p=cloudPull();const ch=await Promise.race([p,new Promise(r=>setTimeout(()=>r(null),2500))]);if(ch)applyPersonal(ch);else late=p;if(fromLink)setTimeout(()=>toast(SBA?'已登入，個人資料會自動同步到雲端':'登入失敗',!SBA),300);}
   tlmMark('雲端');  try{const last=JSON.parse(localStorage.getItem('tlm.last')||'null');if(last)setFilterState(last);}catch(e){}
   drawHomes();drawFuture();
-  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');$('listBtn').onclick=()=>{if(state.view.type!=='list')closeDetail();setSheet(state.sheetVis>4&&snap!=='peek'?'peek':'half');};setSheet('peek',false);render();drawScope(true);busy(true);
+  fillScope();renderCategorySettings();$('resultBtn').onclick=()=>setSheet('half');setSheet('peek',false);render();drawScope(true);busy(true);
   tlmMark('畫面');await loadBaked();tlmMark('全市資料');busy(false);state.loading=false;run();tlmMark('計算完成');warmCache();drawTrees();drawLand();drawUrban();(window.requestIdleCallback||(f=>setTimeout(f,300)))(()=>drawSale());if(/[#&]import=/.test(location.hash))await importFromHash();else geocodeAll();syncListings().then(()=>tlmMark('私人房源'));if(late)late.then(ch=>afterCloud(ch,false));})();
 </script>
 </body>

@@ -395,7 +395,7 @@ async def baked_suite(b, errs):
     sp = await ev("(()=>{const ks=scopeCells().filter(k=>state.res.worst&&!isNaN(state.res.worst[k]));return heatRank?[heatRank(-1),heatRank(1e9)]:null})()")
     check(sp and sp[0] == 0 and sp[1] == 1, '熱圖依目前範圍內的排名上色：最差到最好一定用滿整條色帶')
     check(await ev("(()=>{const get=map.getZoom;map.getZoom=()=>17;const a=heatOpacity();map.getZoom=()=>12;const b=heatOpacity();map.getZoom=get;return a<=0.35&&b>=0.85})()"), '熱圖：全市看得清楚，放大到街區自動淡化，讓設施圖示浮現')
-    check(await ev("document.querySelector('#body .legend').innerText.includes('整體設施密度') && !document.querySelector('#body .legend').innerText.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
+    check(await ev("document.querySelector('#body .legend').textContent.includes('整體設施密度') && !document.querySelector('#body .legend').textContent.includes('捷運')"), 'Heatmap 圖例顯示整體密度，不再以類別顏色分組')
     check(await ev("state.zones.length>0&&!document.querySelector('#body [data-z]')&&!document.getElementById('body').innerText.includes('符合條件的區域')&&pinLayer.getLayers().length===0&&state.zones.every(z=>z.comp.includes(z.best)&&z.comp.every(k=>state.res.okc[k]===state.res.act.length))&&state.zones.every((z,i,a)=>!i||a[i-1].comp.length>=z.comp.length)"), '算出符合條件的範圍（邊界圈起來的每一塊，中心點在範圍內）；清單不再列區域、地圖不再有推薦圖釘')
     check(await ev("document.querySelectorAll('#chips .chip').length") == 8 and not await ev("!!document.querySelector('.chip[data-id=green]')") and await ev("document.querySelectorAll('#chips .chip[aria-pressed=true]').length") == 3, '上方類別按鈕列 8 個（含超市、人行道，已移除綠地）（含生活圈）、預設選 3 個')
     check(await ev("[...document.querySelectorAll('#chips .chip')].every(b=>{const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&b.querySelector('.chip-icon svg')&&b.querySelector('.chip-name').textContent.trim()}) && document.getElementById('chips').scrollWidth<=document.getElementById('chips').clientWidth+1"),
@@ -467,19 +467,19 @@ async def baked_suite(b, errs):
     # 3. 結果按鈕＋卡片拖拉
     rb = await ev("(()=>{const n=document.getElementById('navbar').getBoundingClientRect(),f=document.getElementById('fabs').getBoundingClientRect(),s=document.getElementById('sheet').getBoundingClientRect(),o=document.getElementById('resultBtn').getBoundingClientRect(),ids=[...document.querySelectorAll('#navbar .nb')].map(b=>b.id),ops=[...document.querySelectorAll('#fabs .fab')].map(b=>b.id);return {ids,ops,l:n.left,r:n.right,b:n.bottom,fb:f.bottom,nt:n.top,st:s.top,sb:s.bottom,oldGone:o.height===0}})()")
     print('  nav', rb)
-    check(rb['ids'] == ['listBtn', 'marketBtn', 'homesBtn', 'exportBtn'] and rb['l'] == 0 and rb['r'] == 390 and rb['b'] == 844 and rb['ops'] == ['setBtn', 'layersBtn', 'locate'] and rb['fb'] <= rb['nt'] and rb['oldGone'] and rb['st'] >= rb['nt'] - 1, f"結果工具列（清單、房市、物件、找房）佔滿最下緣；右側只留操作層（設定、圖層、定位），都在工具列上方 {rb}")
-    await page.click('#listBtn'); await page.wait_for_timeout(350)
-    check(await ev("snap") == 'half' and await ev("document.getElementById('listBtn').getAttribute('aria-pressed')") == 'true', '點工具列的「清單」：面板升到半高，按鈕亮起')
+    check(rb['ids'] == ['marketBtn', 'homesBtn', 'exportBtn'] and rb['l'] == 0 and rb['r'] == 390 and rb['b'] == 844 and rb['ops'] == ['setBtn', 'layersBtn', 'locate'] and rb['fb'] <= rb['nt'] and rb['oldGone'] and rb['st'] >= rb['nt'] - 1, f"結果工具列（房市、物件、找房，沒有清單）佔滿最下緣；右側只留操作層（設定、圖層、定位），都在工具列上方 {rb}")
+    check(await ev("state.view.type==='list'&&state.sheetVis===0&&getComputedStyle(document.getElementById('sheet')).visibility==='hidden'&&document.getElementById('resultBtn').hidden"), '不顯示分析結果清單：地圖主畫面沒有面板，也沒有打開清單的按鈕')
+    check(await ev("document.querySelectorAll('#categorySettings input[type=range][data-distance]').length===1"), '一次只展開一個類別的步行距離拉桿，位置在搜尋區域下方')
+    await ev("openZone(0)"); await page.wait_for_timeout(600); await ev("setSheet('half')"); await page.wait_for_timeout(350)
+    check(await ev("snap") == 'half' and await ev("getComputedStyle(document.getElementById('sheet')).visibility") == 'visible', '點區域等詳細畫面才出現面板')
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 120, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
     check(await ev("snap") == 'full', '往上拖把卡片拉到全高')
     box = await ev(HANDLE)
     await page.mouse.move(*box); await page.mouse.down(); await page.mouse.move(box[0], 800, steps=6); await page.mouse.up(); await page.wait_for_timeout(350)
-    check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 5 and await ev("document.getElementById('listBtn').getAttribute('aria-pressed')") == 'false', '往下拖把卡片收起：面板完全隱藏、清單按鈕回到未選取')
-    check(await ev("document.querySelectorAll('#categorySettings input[type=range][data-distance]').length===1 && !document.querySelector('#body [data-distance]')"), '一次只展開一個類別的步行距離拉桿，位置在搜尋區域下方')
+    check(await ev("snap") == 'peek' and await ev("state.sheetVis") < 5, '往下拖把卡片收起：面板完全隱藏')
     await shot(page, '2_peek')
-    await page.click('#listBtn'); await page.wait_for_timeout(350)
-    check(await ev("snap") == 'half', '再點清單按鈕展開回半高')
+    await ev("closeDetail()"); await page.wait_for_timeout(300)
 
     # 4. 點推薦生活圈
     await ev("openZone(0)"); await page.wait_for_timeout(600)
@@ -514,10 +514,9 @@ async def baked_suite(b, errs):
         check(z, '點清單裡的公車／捷運站：顯示路線，地圖移到該站')
         await page.click('#close'); await page.wait_for_timeout(400)
         check(await ev("state.view.type==='list'&&(state.backStack||[]).length===0"), '按 ✕ 直接離開，回到地圖')
-        await page.click('#listBtn'); await page.wait_for_timeout(350)
         await ev("openZone(0)"); await page.wait_for_timeout(600)
     await page.click('#back'); await page.wait_for_timeout(300)
-    check(await ev("state.view.type") == 'list' and await ev("selLayer.getLayers().length") == 0, '按返回回到清單')
+    check(await ev("state.view.type") == 'list' and await ev("selLayer.getLayers().length") == 0, '按返回回到地圖（不顯示清單）')
 
     # 5. 點地圖任一位置
     k = await ev("(()=>{const b=new Set(state.zones.map(z=>z.best)),m=data('mrt');return scopeCells().find(k=>state.res.okc[k]===state.res.act.length&&!b.has(k)&&CELLS[k].d===4&&m.every(f=>md(f.center,[CELLS[k].la,CELLS[k].lo])>500))})()")
@@ -545,7 +544,7 @@ async def baked_suite(b, errs):
     check(GMAPS == ['AIzaTEST_key_1234567890abcdefXYZ'] and em['key'] == 'AIzaTEST_key_1234567890abcdefXYZ' and em['src2'] == 'outdoor' and 'embed/v1/streetview' in em['src'] and 'pano=' + em['want'] in em['src'] and 'heading=180' in em['src'] and 'pano=' + em['want'] in em['href'], f"設定金鑰後：找最近的 Google 室外街景（不用網友照片），卡片裡直接嵌入可轉動街景、鏡頭朝向這個點；「看街景」也改開同一個全景 {em}")
     await shot(page, '3c_streetview')
     await page.click('#close'); await page.wait_for_timeout(300)
-    check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('listBtn').hidden"), '關閉地點卡片後結果面板保持收起，只留清單按鈕')
+    check(await ev("snap==='peek'&&state.sheetVis<5&&document.body.classList.contains('vlist')"), '關閉地點卡片後結果面板保持收起，只留清單按鈕')
 
     # 6. 放大才顯示設施點；點公車站 → 路線
     hub = None
@@ -615,7 +614,7 @@ async def baked_suite(b, errs):
     check(await ev("!document.getElementById('regionPop').hidden && document.querySelector('#regionPop [data-region=\"4\"]').getAttribute('aria-pressed')==='true'"), '選了一區後彈窗留著，可以繼續複選')
     await page.click('#regionBtn')
     check(len(calls) == n0 and len([d for d in data_hits if d.endswith('區.json')]) == 0, '切到大安區即時顯示，不下載')
-    check(await ev("scopeCells().every(k=>CELLS[k].d===4)") and '大安區' in await ev("document.getElementById('head').innerText") and await ev("document.getElementById('scopeName').textContent") == '大安區', '只分析大安區，標題與上方列同步')
+    check(await ev("scopeCells().every(k=>CELLS[k].d===4)") and '大安區' in await ev("document.getElementById('head').textContent") and await ev("document.getElementById('scopeName').textContent") == '大安區', '只分析大安區，標題與上方列同步')
     used = await ev("(()=>{const i=state.res.act.indexOf('mrt'),D=state.res.D[i];return scopeCells().filter(k=>{const f=data('mrt')[D.nf[k]];return f&&!inPoly(DISTRICTS[4],f.center[0],f.center[1])}).length})()")
     check(used > 0, f'靠區界的位置會用區界外較近的設施計算（{used} 格用到別區的捷運站）')
     await shot(page, '5_district')
@@ -623,7 +622,7 @@ async def baked_suite(b, errs):
     # 複選區域
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]')
     await page.wait_for_function("state.res.key==='m:松山區,大安區'", timeout=5000)
-    check(await ev("snap==='peek'&&state.sheetVis<5&&!document.getElementById('listBtn').hidden"), '換行政區後結果面板不會自己彈出')
+    check(await ev("snap==='peek'&&state.sheetVis<5&&document.body.classList.contains('vlist')"), '換行政區後結果面板不會自己彈出')
     check(await ev("state.scope==='m:3,4' && scopeCells().length>0 && scopeCells().every(k=>CELLS[k].d===3||CELLS[k].d===4) && scopeCells().some(k=>CELLS[k].d===3) && scopeCells().some(k=>CELLS[k].d===4)"), '複選松山＋大安：只分析這兩區')
     check(await ev("document.getElementById('rgName').innerText.includes('松山區、大安區') && document.querySelectorAll('#regionPop [aria-pressed=true]').length===2"), '範圍顯示「松山區、大安區」，彈窗兩區都標示已選')
     check(await ev("(()=>{const s=document.querySelector('#head .sumline');return s.getBoundingClientRect().right<=innerWidth&&!document.querySelector('#body .drow')})()"), '名稱很長時，摘要列不超出畫面；複選區域也不再列各區比較')
@@ -639,10 +638,7 @@ async def baked_suite(b, errs):
     check(True, '在地圖上點區名也能選區域')
     await page.click('#scopeClear'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="4"]'); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000); await page.click('#regionBtn')
-    await page.click('#listBtn'); await page.wait_for_timeout(350)
-    await page.click('#toCity'); await page.wait_for_function("state.res.key==='city'", timeout=5000)
-    await page.click('#listBtn'); await page.wait_for_timeout(350)
-    check(await ev("state.res.key==='city'&&!document.querySelector('#body .drow')"), '單一區的清單有「看全臺北市」可回到全市；全市清單不列各區比較')
+    await ev("setScope('')"); await page.wait_for_function("state.res.key==='city'", timeout=5000)
 
     # 7b. 手動調整範圍邊界
     await ev("setScope('4')"); await page.wait_for_function("state.res.key==='d:大安區'", timeout=5000)
@@ -697,7 +693,7 @@ async def baked_suite(b, errs):
         await page.click(f'.chip[data-id={i}]')
         if await ev(f"state.active.has('{i}')"):
             await page.click(f'.chip[data-id={i}]')
-    check('選擇你在意的設施' in await ev("document.getElementById('head').innerText") and not await ev("!!heat"), '全部取消時提示選擇類別')
+    check('選擇你在意的設施' in await ev("document.getElementById('head').textContent") and not await ev("!!heat"), '全部取消時提示選擇類別')
 
     # 10b. 生活圈是一個類別：和其他類別一樣設定交通方式與時間，地點直接點地圖新增，結果併入同一份分析
     await page.click('.chip[data-id=life]')
@@ -1133,9 +1129,21 @@ async def baked_suite(b, errs):
     # 11. 桌機版面
     page = await new_page(b, errs, viewport={'width': 1280, 'height': 800})
     await page.goto(URL); await page.wait_for_function(READY, timeout=20000)
-    r = await page.evaluate("(()=>{const s=document.getElementById('sheet').getBoundingClientRect();return {l:s.left,w:s.width,b:s.bottom}})()")
-    check(r['l'] < 20 and 380 <= r['w'] <= 400 and r['b'] <= 800, '桌機版：卡片變成左側面板')
+    check(await page.evaluate("getComputedStyle(document.getElementById('sheet')).visibility==='hidden'&&!document.getElementById('listBtn')"), '桌機／iPad：地圖主畫面不顯示分析結果清單面板')
+    await page.evaluate("openZone(0)"); await page.wait_for_timeout(400)
+    r = await page.evaluate("(()=>{const s=document.getElementById('sheet').getBoundingClientRect();return {l:s.left,w:s.width,b:s.bottom,v:getComputedStyle(document.getElementById('sheet')).visibility}})()")
+    check(r['l'] < 20 and 380 <= r['w'] <= 400 and r['b'] <= 800 and r['v'] == 'visible', '桌機版：點區域後才出現左側面板')
     await shot(page, '6_desktop')
+    await page.click('#close'); await page.wait_for_timeout(300)
+    check(await page.evaluate("getComputedStyle(document.getElementById('sheet')).visibility==='hidden'"), '桌機版：按 ✕ 關掉面板，回到只有地圖')
+    await page.close()
+    # iPad 直向（820×1180）
+    page = await new_page(b, errs, viewport={'width': 820, 'height': 1180}, has_touch=True)
+    await page.goto(URL); await page.wait_for_function(READY, timeout=20000); await page.wait_for_timeout(300)
+    check(await page.evaluate("getComputedStyle(document.getElementById('sheet')).visibility==='hidden'&&[...document.querySelectorAll('#navbar .nb')].map(b=>b.id).join()==='marketBtn,homesBtn,exportBtn'"), 'iPad：沒有清單面板，下方工具列只有房市、物件、找房')
+    await page.evaluate("openZone(0)"); await page.wait_for_timeout(300); await page.click('#close'); await page.wait_for_timeout(300)
+    check(await page.evaluate("getComputedStyle(document.getElementById('sheet')).visibility==='hidden'"), 'iPad：詳細面板可以用 ✕ 關閉')
+    await shot(page, '6b_ipad')
     await page.close()
 
     # 11b. 匯入房源（Claude 找好的房源表）→ 依地址定位到地圖 → 點按連到房仲網站
@@ -1440,7 +1448,6 @@ async def real_suite(b, errs):
     await shot(page, 'real_2_all')
     for i in ['market', 'bus', 'sport']:
         await page.click(f'.chip[data-id={i}]')
-    await page.click('#listBtn'); await page.wait_for_timeout(350)
     await ev("openZone(0)"); await page.wait_for_timeout(400); await shot(page, 'real_3_zone'); await page.click('#close')
     await page.click('#regionBtn'); await page.click('#regionPop [data-region="3"]'); await page.wait_for_function("state.res.key==='d:松山區'"); await page.click('#regionBtn'); await shot(page, 'real_4_songshan')
     name = await ev("(()=>{const m=data('mrt').find(f=>/南京三民|小巨蛋|松山/.test(f.name))||data('mrt')[0];void openPlace(m,LAYER.mrt);return m.name})()")
