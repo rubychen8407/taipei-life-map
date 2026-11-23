@@ -10,13 +10,21 @@ marks = []
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True,
-                                  record_video_dir=OUT, record_video_size={'width': 780, 'height': 1688}, locale='zh-TW')
+        ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True, locale='zh-TW')
         await ctx.add_init_script(TAP)
         page = await ctx.new_page(); ev = page.evaluate; T0 = time.time()
+        os.makedirs(f'{OUT}/fr', exist_ok=True); frames = []
+        cdp = await ctx.new_cdp_session(page)
+        async def on_frame(f):
+            n = len(frames); open(f'{OUT}/fr/{n:05d}.jpg', 'wb').write(__import__('base64').b64decode(f['data']))
+            frames.append((n, f['metadata']['timestamp']))
+            try: await cdp.send('Page.screencastAck', {'sessionId': f['sessionId']})
+            except Exception: pass
+        cdp.on('Page.screencastFrame', lambda f: asyncio.ensure_future(on_frame(f)))
+        await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 780, 'maxHeight': 1688, 'everyNthFrame': 1})
         page.on('pageerror', lambda e: print('PAGEERR', e, flush=True)); page.on('console', lambda m: m.type in ('error','warning') and print('CONSOLE', m.text[:200], flush=True))
         page.on('requestfailed', lambda r: print('REQFAIL', r.url[:120], r.failure, flush=True))
-        def mark(n): marks.append((n, round(time.time() - T0, 2))); print('MARK', n, marks[-1][1], flush=True)
+        def mark(n): marks.append((n, time.time())); print('MARK', n, marks[-1][1], flush=True)
         async def shot(n): await page.screenshot(path=f'{OUT}/{n}.png')
         async def tapxy(x, y): await page.mouse.click(x, y)
         async def tapsel(sel): await page.click(sel)
@@ -70,7 +78,8 @@ async def main():
         mark('end')
         info = await ev("({val:state.val?null:null,mk:typeof MARKET!=='undefined'&&MARKET?{light:MARKET.light&&MARKET.light.label,fc:MARKET.forecast.probs}:null})")
         print('INFO', json.dumps(info, ensure_ascii=False))
-        await page.close(); v = await page.video.path(); await ctx.close(); await b.close()
-        os.rename(v, f'{OUT}/raw.webm')
-        json.dump(marks, open(f'{OUT}/marks.json', 'w'))
+        await cdp.send('Page.stopScreencast'); await page.wait_for_timeout(300)
+        await ctx.close(); await b.close()
+        json.dump(marks, open(f'{OUT}/marks.json', 'w')); json.dump(frames, open(f'{OUT}/frames.json', 'w'))
+        print('FRAMES', len(frames))
 asyncio.run(main())
