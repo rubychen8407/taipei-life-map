@@ -79,7 +79,7 @@ async def main():
         await step(page, '縮放 4 次', zoom, res)
 
         async def sheet():
-            await page.evaluate("void (closeDetail&&closeDetail())"); await page.click('#listBtn'); await page.wait_for_timeout(500)
+            await page.evaluate("void (closeDetail&&closeDetail())"); await page.wait_for_timeout(500)
         await step(page, '開結果清單', sheet, res)
 
         if prof:

@@ -38,7 +38,7 @@ async def audit(b, errs):
         res[name] = await ev(MEASURE)
         await page.screenshot(path=os.path.join(G['OUT'], 'audit_' + name + '.png'))
     await grab('home')
-    await page.click('#listBtn'); await grab('list')
+    await page.evaluate('openZone(0)'); await grab('list')
     await ev("closeDetail();openCell(state.zones[0].best,{title:'測試位置'})"); await grab('cell')
     await ev("closeDetail()"); await page.click('#layersBtn'); await grab('layers'); await ev("closePops()")
     await page.click('#regionBtn'); await grab('region'); await ev("closePops()")
