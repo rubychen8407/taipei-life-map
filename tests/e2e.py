@@ -1126,6 +1126,13 @@ async def baked_suite(b, errs):
     await page.click('#close'); await page.wait_for_timeout(300)
     await page.click('#homesBtn'); await page.click('#homesPop [data-hdel]'); await page.wait_for_timeout(200)
     check(await ev("JSON.parse(localStorage.getItem('tlm.homes')).length===1&&homeLayer.getLayers().length===1"), '可以刪除儲存的物件')
+    # 上限 30 間
+    await ev("(()=>{const a=JSON.parse(localStorage.getItem('tlm.homes'));const b=a[0];for(let i=0;i<29;i++)a.push(Object.assign({},b,{id:'x'+i,name:'測試'+i}));localStorage.setItem('tlm.homes',JSON.stringify(a));drawHomes();})()")
+    check(await ev("loadHomes().length===30&&HOMES_MAX===30"), '我的物件可以存到 30 間')
+    await ev("void openVal([25.034,121.547])"); await page.wait_for_function("!!document.getElementById('valGo')", timeout=5000)
+    await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSave')", timeout=5000); await page.click('#valSave'); await page.wait_for_timeout(300)
+    check(await ev("loadHomes().length===30&&document.getElementById('toast').innerText.includes('最多 30 間')"), '第 31 間：不再新增，提示最多 30 間')
+    await ev("localStorage.setItem('tlm.homes',JSON.stringify(loadHomes().slice(0,1)));drawHomes()"); await page.click('#close'); await page.wait_for_timeout(200)
     await page.click('#exploreBtn'); await page.wait_for_timeout(200)
     check(await ev("state.view.type==='list'&&document.getElementById('exploreBtn').getAttribute('aria-selected')==='true'"), '按「探索」回到只有地圖')
     await ev("void map.setView([25.12,121.50],16,{animate:false})"); await page.wait_for_timeout(300)

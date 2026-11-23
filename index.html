@@ -1362,7 +1362,7 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   $('valEdit').onclick=()=>{V.est=null;drawVal();render();fitSheet('full');};
   if($('valSave'))$('valSave').onclick=()=>{let a=loadHomes();const i=a.findIndex(x=>x.id===V.homeId);
     if(i>=0&&sameHome(a[i],V)){a.splice(i,1);saveHomes(a);toast('已從我的物件移除');}
-    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;rec.st=a[i].st||'todo';a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=10){toast('我的物件最多 10 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側星號「我的物件」按鈕裡可以比較');}saveHomes(a);}
+    else{const rec=homeRecord(V);if(i>=0){rec.id=V.homeId;rec.name=a[i].name;rec.st=a[i].st||'todo';a[i]=rec;toast('已更新「'+rec.name+'」');}else{if(a.length>=HOMES_MAX){toast('我的物件最多 '+HOMES_MAX+' 間，請先刪除一間');return;}V.homeId=rec.id;a.unshift(rec);toast('已儲存，右側星號「我的物件」按鈕裡可以比較');}saveHomes(a);}
     drawHomes();render();};
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
@@ -1902,6 +1902,7 @@ function futureRow(pt){const f=nearestFuture(pt);if(!f||f.d>2500)return '';retur
 
 // ---------- 我的物件（PRD V1.1）：估價結果存在本機（不含收入），地圖上星號標示，可 2～3 間並排比較 ----------
 const homeLayer=L.layerGroup().addTo(map);
+const HOMES_MAX=30;
 function loadHomes(){try{return JSON.parse(localStorage.getItem('tlm.homes')||'[]');}catch(e){return [];}}
 function saveHomes(a){try{localStorage.setItem('tlm.homes',JSON.stringify(a));}catch(e){}}
 function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno,deal:f.deal||''};}
