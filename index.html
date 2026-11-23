@@ -327,6 +327,16 @@ html,body{background:#e8eaed}
 .mk-ind svg{display:block;width:100%;height:70px;margin-top:6px}.mk-ind .how{font-size:12px;color:#5f6368;line-height:1.5;margin-top:4px}
 #homesPop>h3.h2{display:none}.hpipe{display:flex;gap:3px;height:8px;margin:2px 0}.hpipe i{border-radius:4px}.hpipe .st-todo{background:#9AA0A6}.hpipe .st-seen{background:#1A56DB}.hpipe .st-nego{background:#E8710A}
 .hst-tabs [data-hfil=todo] small{color:#5F6368}.hst-tabs [data-hfil=seen] small{color:#1A56DB}.hst-tabs [data-hfil=nego] small{color:#B35900}.hst-tabs button small{font-weight:700;opacity:1!important}.hmain .dbadge{font-size:12px;padding:0 6px;margin-top:2px}
+.vdeal{margin:10px 0 6px;padding:10px 12px;border-radius:16px;background:#EEF7F0}.vd-h b{font-size:15px;color:#137333}.vd-h small{display:block;font-size:12px;color:var(--sub)}
+.vd-row{display:flex;align-items:center;gap:8px;margin:8px 0 6px}.vd-st{flex:none;width:52px;height:44px;border:0;border-radius:12px;background:#fff;color:#137333;font-size:15px;font-weight:700}.vd-in{flex:1;min-width:0;display:flex;align-items:center;gap:4px;background:#fff;border-radius:12px;padding:0 12px;height:44px;border:1.5px solid #A8DAB5}.vd-in input{flex:1;min-width:0;width:100%;border:0;outline:0;font-size:20px;font-weight:800;text-align:right;background:none;font-variant-numeric:tabular-nums}.vd-in span{font-size:14px;font-weight:600;color:var(--sub)}
+.vd-chips{display:flex;flex-wrap:wrap;gap:6px}.vd-chips button{border:0;border-radius:16px;background:#fff;color:#3C4043;font-size:13px;font-weight:600;padding:0 10px;min-height:32px;position:relative}.vd-chips button::after{content:'';position:absolute;inset:-6px 0}.vd-chips .clr{color:#C5221F}
+#dealInfo{margin-top:8px;font-size:13px;min-height:22px}
+.rk-card{background:#F7F8FA;border-radius:16px;padding:12px 14px;margin:8px 0 12px}.rk-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}.rk-h b{font-size:17px}
+.rk-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}.rk-row:first-of-type{border-top:0}.rk-n{flex:none;width:28px;height:28px;border-radius:50%;background:#E8EAED;color:#3C4043;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}.rk-row.top .rk-n{background:#F7931E;color:#fff}
+.rk-m{flex:1;min-width:0}.rk-t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.rk-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}.rk-s{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}.rk-s small{font-size:12px;font-weight:600;color:var(--sub)}
+.rk-bar{display:flex;height:10px;border-radius:4px;background:#E8EAED;overflow:hidden;margin-top:4px}.rk-bar i{display:block;height:100%;transition:width .2s}
+.rk-leg{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:12px;color:#3C4043}.rk-leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+@media (prefers-reduced-motion:reduce){.rk-bar i{transition:none}}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -1242,6 +1252,13 @@ function marketH(dist,t){const {v,fin}=VALDATA,T=VALDATA.types,seg=t!=null?v.mar
 function valOffers(V){const {v,fin}=VALDATA,f=V.form,e=V.est,o=v.offer,cl=q=>Math.max(.05,Math.min(.95,q)),qf=.5+o.shift*V.mk.H,alpha=[0,.3,.6][f.cond]||0;
   const val=q=>e.q(cl(q))*(1+e.poi)*f.ping-alpha*(f.reno||0),r=fin.bargain_rate.value*(1-.5*V.mk.H),cap=f.ask?+f.ask:Infinity,expect=f.ask?f.ask*(1-r):null,raw=[val(qf-o.band),val(qf),val(qf+o.band)];
   return{raw,cap,r,expect,out:raw.map(x=>Math.min(x,cap)),band:[e.q(.25)*(1+e.poi)*f.ping,e.q(.75)*(1+e.poi)*f.ping],mid:e.q(.5)*(1+e.poi)*f.ping};}
+// 談判價：市場上實際談到的價格（手動填，萬）；有填就用它試算房貸，沒填用合理出價
+const dealOf=V=>+V.form.deal>0?+V.form.deal:null,loanPrice=V=>dealOf(V)||V.off.out[1],loanLbl=V=>dealOf(V)?'談判價':'合理出價';
+function dealInfoHTML(V){const d=dealOf(V),o=V.off,f=V.form;if(!d)return '<span class="hint2">還沒填：房貸先用合理出價試算</span>';
+  const pos=d<o.out[0]?['低於保守價','good']:d<=o.out[1]?['在保守～合理之間','good']:d<=o.out[2]?['在合理～積極之間','mid']:['高於積極價','high'];
+  return `<span class="dbadge ${pos[1]}">${pos[0]}</span>${diffBadge((d/o.out[1]-1)*100,'合理')}${f.ask?`<span class="dsub">${Math.round(+f.ask-d)===0?'等於開價':`比開價${d<+f.ask?'少':'多'} ${Math.abs(Math.round(+f.ask-d)).toLocaleString('en-US')} 萬（${pcTxt((d/+f.ask-1)*100)}）`}</span>`:''}`;}
+function loanLine(V){const o=V.off,p=loanPrice(V),L=valLoan(V,p),inc=+V.fin.income||0,bur=inc?(L.peak+(+V.fin.mgmt||0))/inc:null;
+  return `<span class="vdot" style="background:#123B8A"></span><div>以${loanLbl(V)} ${wan(p)} 貸款 ${Math.round(L.L/p*100)}%${L.youth&&L.ok?'（青安）':''}：${L.peak>L.pay+1?'第 1 年':''}每月約 <b>${Math.round(L.pay).toLocaleString('en-US')} 元</b>${bur!=null?`，負擔率 <span class="vburden ${bur<=.3?'g':bur<=.4?'y':'r'}">${Math.round(bur*100)}%</span>`:''}</div>`;}
 function finPrefs(){try{return Object.assign({mode:'std',fam:0,grace:0},JSON.parse(localStorage.getItem('tlm.finMode')||'{}'));}catch(e){return {mode:'std',fam:0,grace:0};}}
 function finSave(F){try{localStorage.setItem('tlm.finMode',JSON.stringify({mode:F.mode,fam:F.fam,grace:F.grace}));}catch(e){}}
 const exRate=()=>(VALDATA.fin.first_home_rate||VALDATA.fin.mortgage_rate).value;
@@ -1275,8 +1292,8 @@ function drawVal(){selLayer.clearLayers();const V=state.val;if(!V||state.view.ty
   L.marker(V.pt,{icon:L.divIcon({className:'val-pin',html:'<span>'+categoryIcon('value')+'</span>',iconSize:[38,38],iconAnchor:[19,19]}),interactive:false,zIndexOffset:1000}).addTo(selLayer);}
 function spark(xs,w=96,h=26,c='#123B8A'){if(!xs||xs.length<2)return '';const lo=Math.min(...xs),hi=Math.max(...xs),X=i=>2+i/(xs.length-1)*(w-4),Y=v=>h-3-(v-lo)/((hi-lo)||1)*(h-6);
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><path d="${xs.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join('')}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;}
-function offerBar(V){const o=V.off,f=V.form,pts=[...o.out,...o.band,o.mid].concat(f.ask?[+f.ask]:[]),lo=Math.min(...pts),hi=Math.max(...pts),pad=(hi-lo)*.08||1,X=v=>12+(v-lo+pad)/(hi-lo+2*pad)*296;
-  return `<svg class="vbar" viewBox="0 0 320 58" role="img" aria-label="出價區間"><rect x="${X(o.band[0])}" y="26" width="${Math.max(2,X(o.band[1])-X(o.band[0]))}" height="10" rx="5" fill="#123B8A" fill-opacity=".14" stroke="#123B8A" stroke-opacity=".35"/><line x1="${X(o.out[0])}" x2="${X(o.out[2])}" y1="31" y2="31" stroke="#123B8A" stroke-width="2"/>${o.out.map((v,i)=>`<circle cx="${X(v)}" cy="31" r="${i===1?7:5}" fill="#123B8A" stroke="#fff" stroke-width="1.5"/>`).join('')}${f.ask?`<path d="M${X(+f.ask)} 22l6 -9h-12z" fill="#F7931E"/><text x="${Math.max(24,Math.min(296,X(+f.ask)))}" y="9" text-anchor="middle" font-size="10.5" fill="#5F6368">開價 ${wan(+f.ask)}</text>`:''}<text x="${Math.max(70,Math.min(250,(X(o.band[0])+X(o.band[1]))/2))}" y="52" text-anchor="middle" font-size="10.5" fill="#5F6368">附近行情帶 ${Math.round(o.band[0]).toLocaleString('en-US')}–${wan(o.band[1])}</text></svg>`;}
+function offerBar(V){const o=V.off,f=V.form,dl=dealOf(V),pts=[...o.out,...o.band,o.mid].concat(f.ask?[+f.ask]:[]).concat(dl?[dl]:[]),lo=Math.min(...pts),hi=Math.max(...pts),pad=(hi-lo)*.08||1,X=v=>12+(v-lo+pad)/(hi-lo+2*pad)*296;
+  return `<svg class="vbar" viewBox="0 0 320 58" role="img" aria-label="出價區間"><rect x="${X(o.band[0])}" y="26" width="${Math.max(2,X(o.band[1])-X(o.band[0]))}" height="10" rx="5" fill="#123B8A" fill-opacity=".14" stroke="#123B8A" stroke-opacity=".35"/><line x1="${X(o.out[0])}" x2="${X(o.out[2])}" y1="31" y2="31" stroke="#123B8A" stroke-width="2"/>${o.out.map((v,i)=>`<circle cx="${X(v)}" cy="31" r="${i===1?7:5}" fill="#123B8A" stroke="#fff" stroke-width="1.5"/>`).join('')}${f.ask?`<path d="M${X(+f.ask)} 22l6 -9h-12z" fill="#F7931E"/><text x="${Math.max(24,Math.min(296,X(+f.ask)))}" y="9" text-anchor="middle" font-size="10.5" fill="#5F6368">開價 ${wan(+f.ask)}</text>`:''}${dl?`<path class="vdeal-mk" d="M${X(dl)} 23l6 8 -6 8 -6 -8z" fill="#188038" stroke="#fff" stroke-width="1.5"/>`:''}<text x="${Math.max(70,Math.min(250,(X(o.band[0])+X(o.band[1]))/2))}" y="52" text-anchor="middle" font-size="10.5" fill="#5F6368">附近行情帶 ${Math.round(o.band[0]).toLocaleString('en-US')}–${wan(o.band[1])}</text></svg>`;}
 function stripChart(V){const e=V.est,ups=e.comps.map(x=>x[1].up),mine=e.q(.5)*(1+e.poi),lo=Math.min(...ups,mine),hi=Math.max(...ups,mine),X=v=>14+(v-lo)/((hi-lo)||1)*292,now=VALDATA.v.now_ym;
   return `<svg class="vchart" viewBox="0 0 320 62" role="img" aria-label="可比案例單價分佈"><line x1="14" x2="306" y1="34" y2="34" stroke="#dadce0"/>${e.comps.map((x,i)=>`<circle cx="${X(x[1].up).toFixed(1)}" cy="${28-(i%3)*5}" r="3.6" fill="#123B8A" fill-opacity="${(.85-.55*(now-x[1].ym)/24).toFixed(2)}"/>`).join('')}<line x1="${X(mine)}" x2="${X(mine)}" y1="8" y2="40" stroke="#F7931E" stroke-width="2"/><text x="${Math.max(40,Math.min(280,X(mine)))}" y="54" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1D1D1F">這間估 ${mine.toFixed(1)} 萬／坪</text><text x="14" y="54" font-size="10" fill="#5F6368">${lo.toFixed(0)}</text><text x="306" y="54" text-anchor="end" font-size="10" fill="#5F6368">${hi.toFixed(0)}</text></svg>`;}
 function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
@@ -1287,13 +1304,13 @@ function valTab(V){const e=V.est,f=V.form,D=VALDATA,T=D.types;
     return `<svg class="vchart" viewBox="0 0 320 50" role="img" aria-label="市場燈號"><defs><linearGradient id="vg" x1="0" x2="1"><stop offset="0" stop-color="#137333"/><stop offset=".5" stop-color="#f9a825"/><stop offset="1" stop-color="#d93025"/></linearGradient></defs><rect x="20" y="18" width="280" height="8" rx="4" fill="url(#vg)"/><circle cx="${x}" cy="22" r="8" fill="#fff" stroke="#1D1D1F" stroke-width="2"/><text x="20" y="44" font-size="10.5" fill="#5F6368">買方市場</text><text x="160" y="44" text-anchor="middle" font-size="10.5" fill="#5F6368">平衡</text><text x="300" y="44" text-anchor="end" font-size="10.5" fill="#5F6368">賣方市場</text></svg>
       ${M.parts.map(p=>`<div class="vrow"><div>${p.name}・${p.h<=-.15?'偏買方':p.h>=.15?'偏賣方':'中性'}<small>${esc(p.txt)}</small></div><span class="r">${p.spark?spark(p.spark,72,24,'#5F6368'):''} ${p.val}</span></div>`).join('')}
       <div class="note">燈號用公開資料估算大方向：成交量、品質調整後的單價變化、全市議價率。分區議價率、銷售天數與在售庫存目前沒有公開資料。</div>`;}
-  if(V.tab==='fin'){const price=V.off.out[1],L=valLoan(V,price),R=valRent(V),F=V.fin,Y=D.fin.youth_loan,mg=+F.mgmt||0,inc=+F.income||0,bur=inc?(L.peak+mg)/inc:null,bc=bur==null?'':bur<=.3?'g':bur<=.4?'y':'r',mx=Math.max(L.peak+mg,R?R.rent:0,L.stress+mg),W=v=>Math.max(2,v/mx*100),num=v=>Math.round(v).toLocaleString('en-US');
+  if(V.tab==='fin'){const price=loanPrice(V),L=valLoan(V,price),R=valRent(V),F=V.fin,Y=D.fin.youth_loan,mg=+F.mgmt||0,inc=+F.income||0,bur=inc?(L.peak+mg)/inc:null,bc=bur==null?'':bur<=.3?'g':bur<=.4?'y':'r',mx=Math.max(L.peak+mg,R?R.rent:0,L.stress+mg),W=v=>Math.max(2,v/mx*100),num=v=>Math.round(v).toLocaleString('en-US');
     const yo=L.youth,segs=yo&&L.ok?paySegs(L.sched):[];
     return `${Y?`<div class="seg vmode" role="group" aria-label="貸款方案"><button type="button" data-fmode="std" aria-pressed="${!yo}">一般房貸</button><button type="button" data-fmode="youth" aria-pressed="${yo}">青安 3.0</button></div>`:''}
       ${yo?`<div class="seg vfam" role="group" aria-label="青安身分">${Y.caps.map((c,i)=>`<button type="button" data-ffam="${i}" aria-pressed="${(+F.fam||0)===i}">${c[0]}<small>${num(c[1])} 萬</small></button>`).join('')}</div>`:''}
       <div class="vfin"><label>自備款（萬）<input data-fin="down" inputmode="decimal" placeholder="${Math.round(L.down)}" value="${esc(F.down)}"></label><label>貸款年限<input data-fin="years" inputmode="numeric" value="${esc(F.years)}"></label>${yo?`<label>寬限期（年）<input data-fin="grace" inputmode="numeric" placeholder="0～${Y.max_grace}" value="${esc(F.grace)}"></label>`:''}<label>${yo?'超額部分利率（首購，%）':'利率（%）'}<input data-fin="rate" inputmode="decimal" value="${esc(F.rate)}"></label><label>家庭月收入（元）<input data-fin="income" inputmode="numeric" placeholder="不會儲存" value="${esc(F.income)}"></label><label>管理費（元／月）<input data-fin="mgmt" inputmode="numeric" placeholder="0" value="${esc(F.mgmt)}"></label></div>
-      ${yo&&!L.ok?`<div class="vline" id="youthNo"><span class="vdot" style="background:#d93025"></span><div>合理出價 ${wan(price)} 超過臺北市青安房價上限 <b>${num(Y.price_cap)} 萬</b>（銀行鑑價和買賣總價都不能超過），不適用青安；以下用一般房貸試算。</div></div>`:''}
-      <div class="vrow"><div>以合理出價 ${wan(price)} 試算<small>貸款 ${wan(L.L)}（${Math.round(L.L/price*100)}%）${L.LY?`＝青安 ${wan(L.LY)}${L.LG?'＋首購房貸 '+wan(L.LG):''}`:''}・${F.years} 年${L.grace?'・寬限期 '+L.grace+' 年':''}・本息平均攤還</small></div></div>
+      ${yo&&!L.ok?`<div class="vline" id="youthNo"><span class="vdot" style="background:#d93025"></span><div>${loanLbl(V)} ${wan(price)} 超過臺北市青安房價上限 <b>${num(Y.price_cap)} 萬</b>（銀行鑑價和買賣總價都不能超過），不適用青安；以下用一般房貸試算。</div></div>`:''}
+      <div class="vrow"><div>以${loanLbl(V)} ${wan(price)} 試算<small>貸款 ${wan(L.L)}（${Math.round(L.L/price*100)}%）${L.LY?`＝青安 ${wan(L.LY)}${L.LG?'＋首購房貸 '+wan(L.LG):''}`:''}・${F.years} 年${L.grace?'・寬限期 '+L.grace+' 年':''}・本息平均攤還</small></div></div>
       <div class="vrow"><div>${segs.length>1?'第 1 年每月房貸':'每月房貸'}${mg?'＋管理費':''}<small><i style="display:block;height:8px;width:${W(L.pay+mg)}%;background:#123B8A;border-radius:4px;margin-top:4px"></i>${L.grace?'寬限期只繳利息':''}</small></div><span class="r">${num(L.pay+mg)} 元</span></div>
       ${segs.length>1?`<div class="vsched" id="youthSched">${segs.map(x=>`<div class="vrow"><div>${x.label}${x.from<L.grace?'<small>寬限期・只繳利息</small>':`<small>青安利率 ${Y.rates[Math.min(x.from,Y.rates.length-1)]}%${L.LG?'；超額部分 '+F.rate+'%':''}</small>`}</div><span class="r">${num(x.v+mg)} 元</span></div>`).join('')}</div>`:''}
       ${L.peak>L.pay+1?`<div class="vrow"><div>最高月付${mg?'＋管理費':''}<small>${L.grace?'寬限期結束後本金開始攤還，月付會跳升':'利率補貼退場後'}</small></div><span class="r">${num(L.peak+mg)} 元</span></div>`:''}
@@ -1330,11 +1347,15 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   let h=`<div class="vtop"><button type="button" class="vedit" id="valEdit">‹ 修改房屋條件</button>${e.ok?`<button type="button" class="vsave" id="valSave" aria-pressed="${saved}">${categoryIcon('star')}${saved?'已儲存':'儲存物件'}</button>`:''}</div>`;
   if(!e.ok){$('resultBtn').innerHTML=`<span>附近成交太少，無法估價</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
     h+=`<div class="note" id="valNo">附近 1.2 公里內只有 ${e.n} 筆同型態、屋齡與坪數相近的成交，資料不足，不提供出價建議。可以改選其他型態或屋齡再試。</div>${light}`;V.tab='place';}
-  else{const o=V.off,L=valLoan(V,o.out[1]),inc=+V.fin.income||0,bur=inc?(L.peak+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
-    $('resultBtn').innerHTML=`<span class="dot"></span><b>合理 ${wan(o.out[1])}</b><span>${M.label.slice(0,2)}${bur!=null?'・負擔 '+Math.round(bur*100)+'%':''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
-    h+=`<div class="vsum" id="valSum"><div><small>保守</small><b>${wan(o.out[0])}</b></div><div class="mid"><small>合理出價</small><b>${wan(o.out[1])}</b></div><div><small>積極</small><b>${wan(o.out[2])}</b></div></div>${offerBar(V)}
+  else{const o=V.off,L=valLoan(V,loanPrice(V)),inc=+V.fin.income||0,bur=inc?(L.peak+(+V.fin.mgmt||0))/inc:null,over=f.ask?(+f.ask/o.mid-1):null;
+    $('resultBtn').innerHTML=`<span class="dot"></span><b>${dealOf(V)?'談判 '+wan(dealOf(V)):'合理 '+wan(o.out[1])}</b><span>${M.label.slice(0,2)}${bur!=null?'・負擔 '+Math.round(bur*100)+'%':''}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+    h+=`<div class="vsum" id="valSum"><div><small>保守</small><b>${wan(o.out[0])}</b></div><div class="mid"><small>合理出價</small><b>${wan(o.out[1])}</b></div><div><small>積極</small><b>${wan(o.out[2])}</b></div></div><div id="valBar">${offerBar(V)}</div>
+      <div class="vdeal" id="valDeal"><div class="vd-h"><b>談判價</b><small>市場上實際談到的價格；房貸用這個試算</small></div>
+        <div class="vd-row"><button type="button" class="vd-st" data-dstep="-10" aria-label="減 10 萬">−10</button><label class="vd-in"><input id="dealIn" inputmode="decimal" placeholder="${Math.round(o.out[1])}" value="${esc(f.deal||'')}" aria-label="談判價（萬）"><span>萬</span></label><button type="button" class="vd-st" data-dstep="10" aria-label="加 10 萬">＋10</button></div>
+        <div class="vd-chips">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].concat(f.ask?[['開價',+f.ask]]:[]).map(([n,v])=>`<button type="button" data-dset="${Math.round(v)}">${n} ${Math.round(v).toLocaleString('en-US')}</button>`).join('')}${dealOf(V)?'<button type="button" data-dset="" class="clr">清除</button>':''}</div>
+        <div id="dealInfo">${dealInfoHTML(V)}</div></div>
       ${over!=null?`<div class="vline"><span class="vdot" style="background:#F7931E"></span><div>開價比行情中間值${over>=0?'高':'低'} <b>${Math.abs(over*100).toFixed(0)}%</b>；依全市平均議價率推算，這個開價的預期成交價約 <b>${wan(o.expect)}</b>${o.out[2]>=o.cap-1e-6?'（出價不會超過開價）':''}</div></div>`:''}
-      ${light}<div class="vline"><span class="vdot" style="background:#123B8A"></span><div>以合理出價貸款 ${Math.round(L.L/o.out[1]*100)}%${L.youth&&L.ok?'（青安）':''}：${L.peak>L.pay+1?'第 1 年':''}每月約 <b>${Math.round(L.pay).toLocaleString('en-US')} 元</b>${bur!=null?`，負擔率 <span class="vburden ${bur<=.3?'g':bur<=.4?'y':'r'}">${Math.round(bur*100)}%</span>`:''}</div></div>`;}
+      ${light}<div class="vline" id="valLoan">${loanLine(V)}</div>`;}
   h+=`<div class="seg vtabs" role="tablist">${[['price','價格'],['market','市場'],['fin','財務'],['place','位置']].filter(t=>e.ok||t[0]==='market'||t[0]==='place').map(([k,n])=>`<button type="button" role="tab" data-vtab="${k}" aria-pressed="${V.tab===k}">${n}</button>`).join('')}</div><div id="valTab">${valTab(V)}</div>
     <div class="note">依公開資料的統計估算（實價登錄至 ${esc(VALDATA.through)}；回測中位數誤差 ${(VALDATA.v.backtest.mdape*100).toFixed(0)}%、約 ${(VALDATA.v.backtest.hit_10_90*100).toFixed(0)}% 的實際成交落在保守～積極之間）。不含車位，不是不動產估價師鑑價，也不是投資或貸款建議。</div>`;
   Bd.innerHTML=h+foot();
@@ -1346,11 +1367,19 @@ function renderVal(){const V=state.val,f=V.form,T=VALDATA.types,Bd=$('body');
   Bd.querySelectorAll('[data-vtab]').forEach(b=>b.onclick=()=>{V.tab=b.dataset.vtab;const y=Bd.scrollTop;render();Bd.scrollTop=y;if(isMob()&&snap!=='full')setSheet('full');});
   Bd.querySelectorAll('[data-comp]').forEach(el=>el.onclick=()=>{const c=e.comps[+el.dataset.comp][1];if(isMob())setSheet('half');map.setView(c.pt,Math.max(map.getZoom(),17));if(V.hl)selLayer.removeLayer(V.hl);V.hl=L.circleMarker(c.pt,{radius:12,color:'#F7931E',weight:3,fill:false,interactive:false}).addTo(selLayer);});
   const keep=()=>{const y=Bd.scrollTop;render();Bd.scrollTop=y;},Y=VALDATA.fin.youth_loan;
+  const saveDeal=()=>{if(V.homeId)setHome(V.homeId,h=>{h.form.deal=f.deal;});};
+  const updDeal=()=>{if(!V.off)return;$('dealInfo').innerHTML=dealInfoHTML(V);$('valBar').innerHTML=offerBar(V);$('valLoan').innerHTML=loanLine(V);
+    $('resultBtn').querySelector('b').textContent=dealOf(V)?'談判 '+wan(dealOf(V)):'合理 '+wan(V.off.out[1]);if(V.tab==='fin'){$('valTab').innerHTML=valTab(V);bindFin();}};
+  const di=$('dealIn');if(di){di.oninput=()=>{const v=parseFloat(di.value);f.deal=v>=100?Math.round(v*10)/10:'';updDeal();};di.onchange=()=>{saveDeal();if(di.value&&!(parseFloat(di.value)>=100))toast('談判價單位是「萬」，例如 2650');keep();};
+    Bd.querySelectorAll('[data-dstep]').forEach(b=>b.onclick=()=>{f.deal=Math.max(100,(dealOf(V)||Math.round(V.off.out[1]))+ +b.dataset.dstep);saveDeal();keep();});
+    Bd.querySelectorAll('[data-dset]').forEach(b=>b.onclick=()=>{f.deal=b.dataset.dset?+b.dataset.dset:'';saveDeal();keep();});}
+  function bindFin(){
   Bd.querySelectorAll('[data-fin]').forEach(i=>i.onchange=()=>{const F=V.fin;F[i.dataset.fin]=i.value.trim();if(!(+F.years>=1))F.years=F.mode==='youth'?Y.max_years:VALDATA.fin.years;if(!(+F.rate>=0)||F.rate==='')F.rate=F.mode==='youth'?exRate():VALDATA.fin.mortgage_rate.value;
     if(F.mode==='youth'){if(+F.years>Y.max_years){F.years=Y.max_years;toast('青安貸款年限最長 '+Y.max_years+' 年');}F.grace=Math.max(0,Math.min(Y.max_grace,Math.round(+F.grace||0)));if(i.dataset.fin==='grace'&&+i.value>Y.max_grace)toast('青安寬限期最長 '+Y.max_grace+' 年');finSave(F);}keep();});
   Bd.querySelectorAll('[data-fmode]').forEach(b=>b.onclick=()=>{const F=V.fin,m=b.dataset.fmode;if(F.mode===m)return;
     if(m==='youth'&&+F.years===+VALDATA.fin.years)F.years=Y.max_years;if(m==='std'&&+F.years===+Y.max_years)F.years=VALDATA.fin.years;if(m==='youth'&&+F.rate===+VALDATA.fin.mortgage_rate.value)F.rate=exRate();if(m==='std'&&+F.rate===+exRate())F.rate=VALDATA.fin.mortgage_rate.value;if(m==='std')F.grace=0;F.mode=m;finSave(F);keep();});
   Bd.querySelectorAll('[data-ffam]').forEach(b=>b.onclick=()=>{V.fin.fam=+b.dataset.ffam;finSave(V.fin);keep();});}
+  bindFin();}
 // ---------- 土地價值：各地段（小段）的公告土地現值（data/land.json，build-land 每月更新）；勾選才下載 ----------
 // 公告土地現值是政府每年 1/1 公告、課土地增值稅用的參考價，通常低於市價；這裡取小段內地號的中位數
 const PING_M2=3.305785;let LAND=null,LANDLOAD=null,landLayer=null,landSeq=0;
@@ -1875,8 +1904,8 @@ function futureRow(pt){const f=nearestFuture(pt);if(!f||f.d>2500)return '';retur
 const homeLayer=L.layerGroup().addTo(map);
 function loadHomes(){try{return JSON.parse(localStorage.getItem('tlm.homes')||'[]');}catch(e){return [];}}
 function saveHomes(a){try{localStorage.setItem('tlm.homes',JSON.stringify(a));}catch(e){}}
-function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno};}
-function sameHome(h,V){return JSON.stringify(h.form)===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
+function homeForm(f){return{t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,ask:f.ask,cond:f.cond,reno:f.reno,deal:f.deal||''};}
+function sameHome(h,V){return JSON.stringify(homeForm(h.form))===JSON.stringify(homeForm(V.form))&&h.pt[0]===V.pt[0]&&h.pt[1]===V.pt[1];}
 function homeRecord(V){const f=V.form,T=VALDATA.types;return{id:'h'+Date.now().toString(36),name:`${V.dist.replace('區','')} ${T[f.t]} ${f.ping} 坪`,pt:V.pt,dist:V.dist,form:homeForm(f),st:'todo',saved:new Date().toISOString().slice(0,10),mid:V.off?Math.round(V.off.out[1]):null};}
 function homeVal(h){const V={pt:h.pt,dist:h.dist,form:Object.assign({},h.form),fin:finInit()};
   V.s=poiScore(V.pt);V.est=estimate({pt:V.pt,dist:V.dist,t:V.form.t,ping:V.form.ping,age:V.form.age,fl:V.form.fl,tot:V.form.tot,s:V.s});V.mk=marketH(V.dist,V.form.t);V.off=V.est.ok?valOffers(V):null;return V;}
@@ -1913,17 +1942,33 @@ async function openCmp(ids){busy(true);try{await loadVal();}catch(e){busy(false)
   state.view={type:'cmp',items:hs.map(h=>({h,V:homeVal(h)}))};drawPins();selLayer.clearLayers();const b=L.latLngBounds(hs[0].pt,hs[0].pt);
   state.view.items.forEach((x,i)=>{b.extend(x.h.pt);L.marker(x.h.pt,{icon:L.divIcon({className:'val-pin',html:`<span style="font-weight:700;color:#fff;font-size:16px">${i+1}</span>`,iconSize:[38,38],iconAnchor:[19,19]}),interactive:false,zIndexOffset:1000}).addTo(selLayer);});
   render();fitSheet('full');fit(b,{maxZoom:16});}
+// 比較物件的模型排名：四項各 0–100 分，依選的重點加權（存在 tlm.cmpW）
+const RANK_K=[['price','價格划算','#188038'],['life','生活機能','#1A56DB'],['pay','月付負擔','#E8710A'],['age','屋齡','#8E24AA']];
+const RANK_W={bal:['均衡',[.35,.3,.2,.15]],price:['重價格',[.6,.15,.15,.1]],life:['重生活',[.2,.55,.15,.1]],pay:['重月付',[.2,.2,.5,.1]]};
+let cmpW='bal';try{const w=localStorage.getItem('tlm.cmpW');if(w&&RANK_W[w])cmpW=w;}catch(e){}
+const cmpPrice=(V,h)=>dealOf(V)||(h.form.ask&&V.off?V.off.expect:null)||(V.off?V.off.out[1]:null);
+function cmpRank(its){const cl=v=>Math.max(0,Math.min(100,v));
+  const raw=its.map(x=>{const V=x.V,p=cmpPrice(V,x.h),pay=V.off&&p?valLoan(V,p).pay:null;return {p,pay,price:V.off&&p?cl(50+(V.off.mid/p-1)*250):null,life:cl(V.s*100),age:cl(100-(+x.h.form.age||0)*2)};});
+  const pays=raw.map(r=>r.pay).filter(v=>v>0),mn=pays.length?Math.min(...pays):null,W=RANK_W[cmpW][1];
+  return raw.map((r,i)=>{const sc={price:r.price,life:r.life,pay:r.pay&&mn?cl(mn/r.pay*100):null,age:r.age};let tot=0,ws=0;const parts=RANK_K.map(([k],j)=>{const v=sc[k];if(v==null)return 0;tot+=v*W[j];ws+=W[j];return v*W[j];});
+    return {i,sc,parts:parts.map(x=>ws?x/ws:0),total:ws?tot/ws:0};}).sort((a,b)=>b.total-a.total);}
+function rankHTML(its){const R=cmpRank(its);
+  return `<div class="rk-card" id="cmpRank"><div class="rk-h"><b>模型排名</b><div class="seg sm" role="group" aria-label="排名重點">${Object.entries(RANK_W).map(([k,[n]])=>`<button type="button" data-rkw="${k}" aria-pressed="${cmpW===k}">${n}</button>`).join('')}</div></div>
+    ${R.map((r,j)=>`<div class="rk-row${j===0?' top':''}" data-rk="${r.i}"><span class="rk-n">${j+1}</span><div class="rk-m"><div class="rk-t"><b>${esc(its[r.i].h.name)}</b><span class="rk-s">${Math.round(r.total)}<small> 分</small></span></div><div class="rk-bar">${r.parts.map((v,k)=>v?`<i style="width:${v.toFixed(1)}%;background:${RANK_K[k][2]}" title="${RANK_K[k][1]} ${Math.round(r.sc[RANK_K[k][0]])}"></i>`:'').join('')}</div></div></div>`).join('')}
+    <div class="rk-leg">${RANK_K.map(([k,n,c])=>`<span><i style="background:${c}"></i>${n}</span>`).join('')}</div>
+    <details class="mk-det"><summary>分數怎麼算</summary>價格划算：用來比較的價格（有談判價用談判價，有開價用預期成交價，否則用合理出價）比行情中間值每便宜 1% 加 2.5 分，50 分是剛好等於行情；生活機能：六類設施步行分數；月付負擔：月付最低的那間 100 分，其他按比例；屋齡：每年扣 2 分。依上方選的重點加權。統計估算，只供參考。</details></div>`;}
 function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=its[0].V.fin,Y=VALDATA.fin.youth_loan;headDetail(`比較 ${n} 間物件`,`同一套資料與假設（貸 8 成、${F0.mode==='youth'?`青安 3.0 ${Y.caps[F0.fam][0]}戶、${F0.years} 年${F0.grace?'、寬限 '+F0.grace+' 年':''}`:F0.years+' 年、目前利率'}）；綠字是該列最好的`,{name:'我的物件',color:'#9C5200',icon:categoryIcon('compare')});
   $('resultBtn').innerHTML=`<span>比較 ${n} 間物件</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
   const val=(fn)=>its.map(x=>{try{return fn(x.V,x.h);}catch(e){return null;}});
   const row=(label,vals,fmt,better)=>{const ok=vals.filter(v=>v!=null&&isFinite(v));const best=better&&ok.length>1?(better==='low'?Math.min(...ok):Math.max(...ok)):null;
     return `<tr><td>${label}</td>${vals.map(v=>`<td class="${best!=null&&v===best&&ok.filter(x=>x===best).length===1?'best':''}">${v==null?'—':fmt(v)}</td>`).join('')}</tr>`;};
   const txt=(label,vals)=>`<tr><td>${label}</td>${vals.map(v=>`<td>${v}</td>`).join('')}</tr>`;
-  const pay=V=>V.off?valLoan(V,V.off.out[1]).pay:null,rent=V=>{const r=V.est.ok?valRent(V):null;return r?r.rent:null;};
-  let h=`<table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
+  const pay=V=>V.off?valLoan(V,loanPrice(V)).pay:null,rent=V=>{const r=V.est.ok?valRent(V):null;return r?r.rent:null;};
+  let h=rankHTML(its)+`<table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
     txt('狀態',its.map(x=>stName(x.h.st||'todo')))+
     txt('條件',its.map(x=>`${T[x.h.form.t]}<small>屋齡 ${x.h.form.age} 年・${x.h.form.fl}/${x.h.form.tot} 樓</small>`))+
     row('開價',val((V,hh)=>hh.form.ask?+hh.form.ask:null),wan)+
+    row('談判價',val(V=>dealOf(V)),wan)+
     row('合理出價',val(V=>V.off?V.off.out[1]:null),wan)+
     txt('保守～積極',its.map(x=>x.V.off?`${Math.round(x.V.off.out[0]).toLocaleString('en-US')}～${wan(x.V.off.out[2])}`:'資料不足'))+
     row('估計單價',val(V=>V.est.ok?V.est.q(.5)*(1+V.est.poi):null),v=>v.toFixed(1)+' 萬／坪')+
@@ -1936,7 +1981,10 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=
     row('生活機能分數',val(V=>V.s*100),v=>v.toFixed(0),'high')+
     VALDATA.v.poi_layers.map(id=>row('步行到'+LAYER[id].name,val(V=>Math.max(1,Math.ceil(poiNear(id,V.pt).d*1.25/80))),v=>v+' 分','low')).join('')+
     `</tbody></table><div class="note">生活機能分數：六類設施各以步行 10 分鐘內滿分、20 分鐘為 0 平均而成。估價與房貸都是統計估算，不是鑑價或貸款建議。</div>`;
-  $('body').innerHTML=h+foot();}
+  $('body').innerHTML=h+foot();
+  function renderCmpBind(){$('body').querySelectorAll('[data-rkw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.rkw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}$('cmpRank').outerHTML=rankHTML(its);renderCmpBind();});
+    $('body').querySelectorAll('[data-rk]').forEach(el=>el.onclick=()=>{const x=its[+el.dataset.rk];map.setView(x.V.pt,Math.max(map.getZoom(),16));if(isMob())setSheet('half');});}
+  renderCmpBind();}
 // ---------- 單價熱圖：每筆成交換算成同一個標準物件（住宅大樓、屋齡 20 年、30 坪、中間樓層）的單價，取附近 400 公尺的中位數 ----------
 const PH_STD={t:0,age:20,ping:30,fl:6,tot:12};let PH=null,phLayer=null;
 function priceGrid(){if(PH)return PH;const {v,sales}=VALDATA,b=v.model.b,poiI=v.feats.indexOf('poi'),xs=modelX(Object.assign({s:0},PH_STD)),G=.0025,R=400,bins=new Map(),key=(i,j)=>i+','+j;
