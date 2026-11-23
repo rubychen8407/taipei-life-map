@@ -55,7 +55,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes bar{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
 #fabs{position:absolute;z-index:900;right:12px;bottom:calc(var(--sheetvis,300px) + 14px);display:flex;flex-direction:column;gap:10px;transition:bottom .25s}
 .fab[hidden]{display:none!important}.fab{width:46px;height:46px;border-radius:50%;border:none;background:#fff;box-shadow:var(--shadow);font-size:20px;display:flex;align-items:center;justify-content:center}
-#toast{position:absolute;z-index:1100;left:50%;transform:translateX(-50%);bottom:calc(max(var(--sheetvis,300px),68px) + 14px + env(safe-area-inset-bottom));max-width:80%;background:#323232;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;display:none;text-align:center}
+#toast{position:absolute;z-index:1300;pointer-events:none;left:50%;transform:translateX(-50%);bottom:calc(max(var(--sheetvis,300px),68px) + 14px + env(safe-area-inset-bottom));max-width:80%;background:#323232;color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;display:none;text-align:center}
 #toast.err{background:#b3261e}
 #sheet{position:absolute;z-index:1000;left:0;right:0;bottom:0;height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -1px 3px rgba(60,64,67,.3),0 -4px 8px 3px rgba(60,64,67,.12);transform:translateY(calc(100% - var(--vis,300px)));transition:transform .25s cubic-bezier(.2,.8,.2,1);will-change:transform}
 #grab{flex:none;touch-action:none;padding:0 16px 10px;cursor:grab}
@@ -364,6 +364,7 @@ body.placing #map{cursor:crosshair}
 .fl-min{display:flex;align-items:center;gap:6px}.fl-min b{font-size:24px;font-weight:800;min-width:36px;text-align:right;font-variant-numeric:tabular-nums}.fl-min span{font-size:13px;color:var(--sub)}.fl-min input{flex:1;height:32px}.fl-ed.like .fl-min input{accent-color:#188038}.fl-ed.dislike .fl-min input{accent-color:#D93025}
 .fl-q{margin:4px 0 8px}.fl-q button{background:#F1F3F4}.fl-sum{padding:10px 12px;border-radius:12px;font-size:14px;line-height:1.5}.fl-ed.like .fl-sum{background:#E6F4EA}.fl-ed.dislike .fl-sum{background:#FCE8E6}.fl-imp{font-size:13px;color:#3C4043;margin:8px 0}
 .fl-act{display:flex;gap:8px;margin:10px 0}.fl-act button{flex:1;height:44px;border-radius:12px;border:0;font-size:15px;font-weight:700}.fl-move{background:var(--bluebg);color:var(--D)}.fl-del{background:#FCE8E6;color:#B3261E}
+.plog{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:8px 0 4px;font-size:13px;font-weight:600;color:#3C4043}.plog .seg button{min-height:36px}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -869,9 +870,9 @@ function bindFlagDrag(el){const type=el.dataset.flagNew;el.addEventListener('poi
 const flagRule=f=>`${modeName(f.mode)} ${f.mins} 分${f.type==='like'?'內':'以上'}`;
 function renderFlagsPop(){const el=$('flagsPop');
   el.innerHTML=`<h3>插旗<small>${FLAGS.length}/${FLAG_MAX}</small></h3><div class="fl-new">${['like','dislike'].map(t=>`<button type="button" class="fl-chip ${t}" data-flag-new="${t}" aria-label="拖曳${FLAG_N[t]}到地圖上，或點一下再點地圖">${categoryIcon('flag')}<span><b>${FLAG_N[t]}</b><small>${t==='like'?'要住近一點':'要離遠一點'}</small></span></button>`).join('')}</div>
-    <div class="hint2 fl-hint">拖到地圖上放下，或點一下再點地圖；長按地圖也可以插旗</div>
+    <div class="hint2 fl-hint">拖到地圖上放下，或點一下再點地圖；長按地圖也可以插旗</div>${logicHTML()}
     ${FLAGS.map(f=>`<div class="lrow fl-row"><span class="flag-ic ${f.type}">${categoryIcon('flag')}</span><button type="button" class="fl-open" data-flag-open="${f.id}"><b>${esc(f.label)}</b><small>${flagRule(f)}</small></button><button type="button" class="switch" data-flag-on="${f.id}" aria-label="套用${esc(f.label)}" aria-pressed="${f.on!==false}"></button></div>`).join('')}`;
-  el.querySelectorAll('[data-flag-new]').forEach(bindFlagDrag);
+  el.querySelectorAll('[data-flag-new]').forEach(bindFlagDrag);bindLogic(el);
   el.querySelectorAll('[data-flag-open]').forEach(b=>b.onclick=()=>{closePops();openFlag(b.dataset.flagOpen);});
   el.querySelectorAll('[data-flag-on]').forEach(b=>b.onclick=()=>{const f=FLAGS.find(x=>x.id===b.dataset.flagOn);f.on=f.on===false;saveFlags();flagChanged(true);});}
 function openFlag(id){const f=FLAGS.find(x=>x.id===id);if(!f)return;closePops();if(state.view.type==='list'||state.view.type==='flag')state.backStack=[];state.view={type:'flag',id};render();if(isMob())fitTight();keepInView(f.center);}
@@ -900,10 +901,14 @@ function renderFlag(){const f=FLAGS.find(x=>x.id===state.view.id);if(!f){closeDe
   $('flDel').onclick=()=>{FLAGS.splice(FLAGS.indexOf(f),1);saveFlags();closeDetail();flagChanged(true);toast('已刪除「'+f.label+'」');};}
 let flagMoveRec=null;
 function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id),FL=activeFlags();if(!act.length&&!FL.length){state.res=null;state.zones=[];return;}
-  const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),FD=FL.map(flagDist),n=act.length+FL.length,worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
+  const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),FD=FL.map(flagDist),worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
+  // 常去點（生活圈地點）和喜愛點可以選「或」：兩者合成一組，任一個在時間內就算這組符合；設施類別、嫌惡點永遠是「且」
+  const li=act.indexOf('life'),gOr=state.pointOr&&(li>=0?(D[li].each||[0]).length:0)+FL.filter(f=>f.type==='like').length>=2,n=gOr?act.length-(li>=0?1:0)+FL.filter(f=>f.type!=='like').length+1:act.length+FL.length;
   const dstat=DISTRICTS.map(()=>({t:0,g:0})),goodIdx=[];
-  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k],act[i]);if(t<=thresholds[i])o++;if(t>w)w=t;}
-    for(let q=0;q<FL.length;q++){const f=FL[q],t=flagT(FD[q][k],f);if(f.type==='like'){if(t<=f.mins)o++;if(t>w)w=t;}else if(t>f.mins)o++;}
+  for(const k of cells){let w=0,o=0,g=false;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k],act[i]);
+      if(gOr&&i===li){if((D[i].each||[D[i]]).some(E=>tmin(E.d[k],'life')<=thresholds[i]))g=true;continue;}if(t<=thresholds[i])o++;if(t>w)w=t;}
+    for(let q=0;q<FL.length;q++){const f=FL[q],t=flagT(FD[q][k],f);if(f.type==='like'){if(gOr){if(t<=f.mins)g=true;continue;}if(t<=f.mins)o++;if(t>w)w=t;}else if(t>f.mins)o++;}
+    if(g)o++;
     worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
     if(o===n){good++;goodIdx.push(k);dstat[CELLS[k].d].g++;}}
   // 符合條件的區域：地圖上「符合條件的邊界」圈起來的每一塊（相鄰的符合格子連成一區），依面積排序
@@ -917,7 +922,7 @@ function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&d
     const inZ=new Set(comp),st=[];for(const f of mrt){const kk=cellAtLatLng(f.center[0],f.center[1]);const nm=f.name&&f.name.replace(/站$/,'')+'站';if(kk>=0&&inZ.has(kk)&&nm&&!st.includes(nm))st.push(nm);}
     zones.push({comp,avg:sum/comp.length,best,area:comp.length*CELL*CELL/1e4,district:ds[0],districts:ds,mrt:mname,stations:st,label:mname?mname+'附近':ds[0]});}
   zones.sort((a,b)=>b.comp.length-a.comp.length);state.zones=zones;state.showAllZones=false;
-  state.res={act,thresholds,D,flags:FL,FD,n,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
+  state.res={act,thresholds,D,flags:FL,FD,n,gOr,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
 // 熱圖色帶：依「在目前範圍內的排名」上色（0＝最差、1＝最好），色階拉到最開：淡黃 → 橘 → 紅 → 紫紅 → 寶藍
@@ -1025,7 +1030,7 @@ function render(){const v=state.view;document.body.classList.toggle('vlist',list
   if(!state.active.size){H.innerHTML='<h1>選擇你在意的設施</h1><div class="sub">點上方的類別（可複選），找出全部都走得到的地方</div>';Bd.innerHTML='';return;}
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';if(state.err)setSheet(isMob()&&state.sheetVis<5?'half':snap,false);return;}
-  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.n} 項都符合</span></div>`;
+  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.gOr?'符合條件（常去點／喜愛點任一）':R.n+' 項都符合'}</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(!state.zones.length)h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(!(state.scope===''||state.scope.startsWith('m:')))h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
@@ -1085,9 +1090,11 @@ function bindGmKey(root){const sv=root.querySelector('#gmSave');if(!sv)return;sv
   const d=root.querySelector('#gmDel');if(d)d.onclick=()=>{GMKEY='';try{localStorage.removeItem('tlm.gmkey');}catch(e){}toast('已移除 Google 金鑰');render();};}
 function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.n,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
-  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]).map(id=>LAYER[id].name).concat(R.flags.filter((f,q)=>!flagOk(f,R.FD[q][k])).map(f=>f.label));
+  let failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]).map(id=>LAYER[id].name).concat(R.flags.filter((f,q)=>!flagOk(f,R.FD[q][k])).map(f=>f.label));
+  if(R.gOr){const li=R.act.indexOf('life'),gOk=(li>=0&&(R.D[li].each||[R.D[li]]).some(E=>tmin(E.d[k],'life')<=R.thresholds[li]))||R.flags.some((f,q)=>f.type==='like'&&flagOk(f,R.FD[q][k])),gn=new Set([LAYER.life.name,...R.flags.filter(f=>f.type==='like').map(f=>f.label)]);
+    failed=failed.filter(x=>!gn.has(x));if(!gOk)failed.push('常去點／喜愛點（任一）');}
   const nOk=n-failed.length,ring=n?`<svg class="vring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" stroke="#ECEEF1" stroke-width="6" fill="none"/><circle cx="22" cy="22" r="18" stroke="${ok?'#188038':'#E8710A'}" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${(113.1*nOk/n).toFixed(1)} 200" transform="rotate(-90 22 22)"/></svg>`:'';
-  let h=`<div class="verdict v2 ${ok?'ok':'no'}">${ring}<div><b>${ok?'全部符合':nOk+' / '+n+' 項符合'}</b><span>${ok?'每一類都在你設定的時間內':failed.join('、')+' 不符合'}</span></div></div>
+  let h=`<div class="verdict v2 ${ok?'ok':'no'}">${ring}<div><b>${ok?(R.gOr?'符合條件':'全部符合'):nOk+' / '+n+' 項符合'}</b><span>${ok?(R.gOr?'常去點和喜愛點只要任一個到得了':'每一類都在你設定的時間內'):failed.join('、')+' 不符合'}</span></div></div>
   <div class="pacts"><button type="button" class="pa main" data-pa="value">${categoryIcon('value')}估價這裡</button><button type="button" class="pa" data-pa="life" aria-label="加入生活圈">${categoryIcon('life')}生活圈</button><button type="button" class="pa" data-pa="transit" aria-label="附近的大眾運輸">${categoryIcon('mrt')}交通</button></div>${svEmbedHTML(c.la,c.lo)}${svLink(c.la,c.lo,'svl cell-sv')}`;
   const tbar=(t,thr)=>t===Infinity?'':`<span class="tbar" aria-hidden="true"><i style="width:${Math.min(100,t/(thr*1.5)*100).toFixed(0)}%;background:${t<=thr?'#34A853':'#F29900'}"></i><em style="left:${(100/1.5).toFixed(1)}%"></em></span>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i];
@@ -1132,9 +1139,14 @@ function lifeChanged(){if(state.distanceCloseTimer)clearTimeout(state.distanceCl
 function drawLifeCenters(){lifeLayer.clearLayers();if(!state.active.has('life'))return;
   state.lifeCenters.forEach((c,i)=>L.marker(c.center,{icon:L.divIcon({className:'',html:'<div class="life-center-marker" style="background:'+LIFE_COLORS[i]+'">'+String.fromCharCode(65+i)+'</div>',iconSize:[30,30],iconAnchor:[15,15]}),zIndexOffset:1200,interactive:false})
     .bindTooltip(esc(c.label),{permanent:true,direction:'top',offset:[0,-16],className:'life-label'}).addTo(lifeLayer));}
+// 「且／或」切換（只給常去點＋喜愛點這一組）；組內至少 2 個才顯示
+const pointCount=()=>(state.active.has('life')?state.lifeCenters.length:0)+activeFlags().filter(f=>f.type==='like').length;
+function logicHTML(){if(pointCount()<2)return '';return `<div class="plog"><span>常去點和喜愛點</span><div class="seg sm" role="group" aria-label="常去點和喜愛點的關係"><button type="button" data-plog="and" aria-pressed="${!state.pointOr}">且・都要到</button><button type="button" data-plog="or" aria-pressed="${!!state.pointOr}">或・任一個</button></div></div>`;}
+function bindLogic(el){el.querySelectorAll('[data-plog]').forEach(b=>b.onclick=()=>{const v=b.dataset.plog==='or';if(!!state.pointOr===v)return;state.pointOr=v;el.querySelectorAll('[data-plog]').forEach(x=>x.setAttribute('aria-pressed',String((x.dataset.plog==='or')===v)));
+  toast(v?'常去點和喜愛點：任一個到得了就算符合':'常去點和喜愛點：每一個都要到得了');if(!$('flagsPop').hidden)renderFlagsPop();renderCategorySettings();run();});}
 function lifeCentersHTML(){const rows=state.lifeCenters.map((c,i)=>`<div class="life-center-row"><b style="color:${LIFE_COLORS[i]}">${String.fromCharCode(65+i)}</b><input data-life-label="${i}" maxlength="18" value="${esc(c.label)}" aria-label="地點 ${String.fromCharCode(65+i)} 名稱"><button type="button" data-life-move="${i}">${state.lifeMoving===i?'點地圖…':'移動'}</button><button type="button" data-life-delete="${i}" aria-label="刪除地點 ${String.fromCharCode(65+i)}">刪除</button></div>`).join('');
-  return `<div class="life-card life-centers">${rows}<div class="distance-hint">${state.lifeCenters.length<3?'點地圖或長按地圖新增地點（'+state.lifeCenters.length+'/3）。':''}每個地點都要在時間內才算符合（且）。</div><button type="button" class="life-done" data-life-done>完成</button></div>`;}
-function bindLifeCenters(el){
+  return `<div class="life-card life-centers">${rows}<div class="distance-hint">${state.lifeCenters.length<3?'點地圖或長按地圖新增地點（'+state.lifeCenters.length+'/3）。':''}${state.pointOr&&pointCount()>=2?'任一個地點在時間內就算符合（或）。':'每個地點都要在時間內才算符合（且）。'}</div>${logicHTML()}<button type="button" class="life-done" data-life-done>完成</button></div>`;}
+function bindLifeCenters(el){bindLogic(el);
   el.querySelectorAll('[data-life-label]').forEach(input=>input.onchange=()=>{state.lifeCenters[+input.dataset.lifeLabel].label=input.value.trim()||'地點';drawLifeCenters();render();});
   el.querySelectorAll('[data-life-move]').forEach(btn=>btn.onclick=()=>{state.lifeMoving=+btn.dataset.lifeMove;toast('請在地圖上點新的位置');renderCategorySettings();});
   const done=el.querySelector('[data-life-done]');if(done)done.onclick=()=>{state.openDistanceLayer=null;state.lifeMoving=-1;renderCategorySettings();};
@@ -1233,8 +1245,8 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-open-settings]'
 // 圖層開關：自動記住上次的設定（不另外提供儲存組合）
 try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
 // ---------- 我的篩選（smart filter）：目前的類別、交通方式、分鐘、範圍、生活圈地點；重新整理自動保留上次條件，也可以命名儲存多組 ----------
-function filterSnap(){return{active:CATS.map(l=>l.id).filter(id=>state.active.has(id)),mins:Object.assign({},state.minsByLayer),modes:Object.assign({},state.modeByLayer),scope:state.scope,custom:state.scope==='custom'?state.custom:null,life:state.lifeCenters.map(c=>({label:c.label,center:c.center}))};}
-function filterKey(f){return JSON.stringify([f.active,f.active.map(id=>[f.mins[id],f.modes[id]]),f.scope,f.custom,f.life]);}
+function filterSnap(){return{active:CATS.map(l=>l.id).filter(id=>state.active.has(id)),mins:Object.assign({},state.minsByLayer),modes:Object.assign({},state.modeByLayer),scope:state.scope,custom:state.scope==='custom'?state.custom:null,life:state.lifeCenters.map(c=>({label:c.label,center:c.center})),por:!!state.pointOr};}
+function filterKey(f){return JSON.stringify([f.active,f.active.map(id=>[f.mins[id],f.modes[id]]),f.scope,f.custom,f.life,!!f.por]);}
 function filterSummary(f){const sc=f.scope===''?'全臺北市':f.scope==='custom'?'自選範圍':f.scope.startsWith('m:')?f.scope.slice(2).split(',').map(i=>(DISTRICTS[+i]||{}).name||'').join('、'):(DISTRICTS[+f.scope]||{}).name||'';
   return sc+'｜'+(f.active.map(id=>LAYER[id]?LAYER[id].name+(f.mins[id]||10)+'分':'').filter(Boolean).join('・')||'沒有選類別');}
 function loadFilters(){try{return JSON.parse(localStorage.getItem('tlm.filters')||'[]');}catch(e){return [];}}
@@ -1243,7 +1255,7 @@ function saveLast(){if(state.restoring)return;try{localStorage.setItem('tlm.last
 function setFilterState(f){if(!f||!Array.isArray(f.active))return false;state.active=new Set(f.active.filter(id=>LAYER[id]));
   Object.keys(state.minsByLayer).forEach(id=>{const m=f.mins&&+f.mins[id];if(m>=1&&m<=60)state.minsByLayer[id]=m;});
   Object.keys(state.modeByLayer).forEach(id=>{const m=f.modes&&f.modes[id];if(MODE_INFO[m])state.modeByLayer[id]=m;});
-  state.lifeCenters=(f.life||[]).filter(c=>c&&Array.isArray(c.center)).slice(0,3).map(c=>({label:String(c.label||'地點'),center:c.center}));
+  state.lifeCenters=(f.life||[]).filter(c=>c&&Array.isArray(c.center)).slice(0,3).map(c=>({label:String(c.label||'地點'),center:c.center}));state.pointOr=!!f.por;
   const sc=typeof f.scope==='string'?f.scope:'';if(sc==='custom'&&!(f.custom&&f.custom.length))state.scope='';else{state.scope=sc;if(sc==='custom')state.custom=f.custom;}return true;}
 function applyFilter(f,name){closeDetail(true);state.openDistanceLayer=null;state.modeMenu=false;if(!setFilterState(f))return;renderCategorySettings();fillScope();drawScope(true);if(isMob())setSheet('peek');run();if(!$('filterPop').hidden)renderFilterPop();if(name)toast('已套用「'+name+'」');}
 function renderFilterPop(){renderSavedRow();const el=$('filterPop'),fs=loadFilters(),cur=filterKey(filterSnap());

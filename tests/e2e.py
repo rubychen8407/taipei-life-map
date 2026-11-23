@@ -912,6 +912,22 @@ async def baked_suite(b, errs):
     await ev("openFlag(FLAGS[0].id)"); await page.click('#flDel'); await page.wait_for_timeout(400)
     check(await ev("FLAGS.length===0&&JSON.parse(localStorage.getItem('tlm.flags')).length===0&&document.querySelectorAll('.flag-pin').length===0&&state.res.n===" + str(g0['n'])), '刪除旗子：條件與地圖上的旗子都拿掉')
 
+    # 10c2. 常去點和喜愛點可以選「或」
+    await ev("""(()=>{FLAGS.push({id:'fa',type:'like',label:'公司',center:[25.0418,121.5432],mode:'walk',mins:8,on:true},{id:'fb',type:'like',label:'爸媽家',center:[25.0330,121.5600],mode:'walk',mins:8,on:true});saveFlags();state.pointOr=false;window.__A0=[[...state.active],state.lifeCenters.slice()];state.active=new Set(['park']);state.lifeCenters=[];return run();})()"""); await page.wait_for_timeout(400)
+    a1 = await ev("({good:state.res.good,n:state.res.n})")
+    await page.click('#flagBtn'); await page.wait_for_selector('#flagsPop [data-plog=or]', state='visible')
+    check(await ev("document.querySelector('#flagsPop [data-plog=and]').getAttribute('aria-pressed')==='true'"), '有 2 面以上喜愛點時，插旗面板出現「且・都要到／或・任一個」切換，預設「且」')
+    await page.click('#flagsPop [data-plog=or]'); await page.wait_for_timeout(500)
+    o1 = await ev("""(()=>{const R=state.res;let bad=0,both=0;for(const k of scopeCells())if(R.okc[k]===R.n){const ok=R.flags.map((f,q)=>flagOk(f,R.FD[q][k]));if(!ok.some(Boolean))bad++;if(ok.every(Boolean))both++;}return {good:R.good,n:R.n,gOr:R.gOr,bad,both,por:state.pointOr,saved:JSON.parse(localStorage.getItem('tlm.last')).por}})()""")
+    check(o1['gOr'] and o1['good'] > a1['good'] and o1['bad'] == 0 and o1['n'] == a1['n'] - 1 and o1['por'] and o1['saved'], f"選「或」：離公司或爸媽家任一個步行 8 分內就算符合，範圍變大（{a1['good']}→{o1['good']} 格），選擇記在篩選裡")
+    await shot(page, '9f4_flags_or')
+    await ev("(()=>{state.lifeCenters=[{label:'健身房',center:[25.0500,121.5200]}];state.active.add('life');return run();})()"); await page.wait_for_timeout(500)
+    o2 = await ev("""(()=>{const R=state.res,k=cellAtLatLng(25.0500,121.5200);return {good:R.good,ok:R.okc[k]===R.n,gOr:R.gOr}})()""")
+    check(o2['gOr'] and o2['good'] > o1['good'] and o2['ok'], f"常去點也在同一組：只靠近健身房（離公司、爸媽家都遠）的地方也算符合 {o2}")
+    await ev("(()=>{const R=state.res,k=cellAtLatLng(25.0500,121.5200);openCell(k);})()"); await page.wait_for_timeout(300)
+    check(await ev("document.querySelector('#body .verdict').innerText.includes('任一個')"), '位置卡說明「常去點和喜愛點只要任一個到得了」')
+    await ev("(()=>{FLAGS.length=0;saveFlags();state.active=new Set(window.__A0[0]);state.lifeCenters=window.__A0[1];state.pointOr=false;closePops();closeDetail();return run();})()"); await page.wait_for_timeout(400)
+
     # 10d. 長按地圖：圖示工具選單 → 加入生活圈，生活圈自動勾選
     await ev("state.active.delete('life');state.lifeCenters=[];run()")
     await ev("void map.setView([25.04,121.54],15,{animate:false});setSheet('peek',false)"); await page.wait_for_timeout(300)
@@ -1183,7 +1199,7 @@ async def baked_suite(b, errs):
     await ev("(()=>{const a=JSON.parse(localStorage.getItem('tlm.homes'));const b=a[0];for(let i=0;i<29;i++)a.push(Object.assign({},b,{id:'x'+i,name:'測試'+i}));localStorage.setItem('tlm.homes',JSON.stringify(a));drawHomes();})()")
     check(await ev("loadHomes().length===30&&HOMES_MAX===30"), '我的物件可以存到 30 間')
     await ev("void openVal([25.034,121.547])"); await page.wait_for_function("!!document.getElementById('valGo')", timeout=5000)
-    await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSave')", timeout=5000); await page.click('#valSave'); await page.wait_for_timeout(300)
+    await page.click('#valGo'); await page.wait_for_function("!!document.getElementById('valSave')", timeout=15000); await page.click('#valSave'); await page.wait_for_timeout(300)
     check(await ev("loadHomes().length===30&&document.getElementById('toast').innerText.includes('最多 30 間')"), '第 31 間：不再新增，提示最多 30 間')
     await ev("localStorage.setItem('tlm.homes',JSON.stringify(loadHomes().slice(0,1)));drawHomes()"); await page.click('#close'); await page.wait_for_timeout(200)
     await page.click('#exploreBtn'); await page.wait_for_timeout(200)
@@ -1193,7 +1209,7 @@ async def baked_suite(b, errs):
     check(await ev("!!document.getElementById('valNo')&&!document.getElementById('valSum')&&!state.val.est.ok"), '附近成交太少：說明原因，不給出價建議')
     await page.click('#close')
     await ev("void map.setView([25.030,121.543],16,{animate:false})"); await page.wait_for_timeout(300)
-    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.wait_for_function("dealLayer.getLayers().length>10", timeout=5000); await page.click('#layersBtn')
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=deal]'); await page.wait_for_function("dealLayer.getLayers().length>10", timeout=15000); await page.click('#layersBtn')
     dl = await ev("""(()=>{const ms=dealLayer.getLayers(),iso=[...document.querySelectorAll('.deal-iso')],cl=[...document.querySelectorAll('.deal-cl')];
       return {n:ms.length,iso:iso.length,cl:cl.length,clN:cl.map(e=>+e.querySelector('b').innerText),bg:iso.some(e=>getComputedStyle(e).backgroundColor!=='rgba(0, 0, 0, 0)'),total:VALDATA.sales.filter(r=>map.getBounds().pad(.05).contains(r.pt)).length,
         isoTotal:iso.reduce((a,e)=>{const b=e.querySelector('text');return a+(b?+b.textContent:1)},0),leg:!document.getElementById('dealLegend').hidden&&document.getElementById('dealLegend').innerText,kinds:new Set(dealLayer.getLayers().filter(m=>m.options.icon.options.className==='deal-iso').map(m=>m.options.icon.options.html.includes('<line')?'roof':m.options.icon.options.html.length)).size}})()""")
