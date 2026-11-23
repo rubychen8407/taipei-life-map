@@ -188,6 +188,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;font-family:-appl
 .fab svg{width:19px;height:19px}
 .fab[aria-expanded=true]{color:var(--D);box-shadow:inset 0 0 0 1.5px var(--D),0 0 0 3px var(--A)}
 .pop{position:absolute;z-index:1150;right:66px;bottom:calc(var(--sheetvis,76px) + 14px);border-radius:24px;border:.5px solid rgba(255,255,255,.7);box-shadow:0 8px 28px rgba(0,0,0,.16);animation:pop .18s ease-out}
+/* 面板拉高時，右側圖層／定位按鈕會被推到上方標題列：先藏起來 */
+body.sheettall #fabs{opacity:0;pointer-events:none}
+/* 浮動面板用不透明白底：疊在地圖或其他面板上時，底下的字不會透出來 */
+#homesPop,#filterPop,#layersPop,#regionPop{background:#FFFFFF}
 .pop[hidden],#regionPop[hidden],#layersPop[hidden],#filterPop[hidden],#homesPop[hidden],#pressMenu[hidden],#scopeTag[hidden]{display:none!important}
 #regionPop{width:228px;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #regionPop button{height:40px;border-radius:16px;border:0;background:rgba(255,255,255,.75);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08);font-size:13px;color:var(--ink);padding:0}
@@ -579,7 +583,7 @@ function navH(){const n=$('navbar');return n?n.offsetHeight:0;}
 // 主畫面不顯示分析結果清單；只有「先選行政區」與下載失敗這類需要使用者處理的提示仍會出現
 function listHidden(){return !!(state.view&&state.view.type==='list')&&!(!state.loading&&!state.baked&&state.scope==='')&&!(!state.res&&state.err);}
 function setSheet(s,anim=true){snap=s;const noList=listHidden();document.body.classList.toggle('vlist',noList);const v=noList?0:Math.max(0,Math.min(snapPx(s),Math.round(window.innerHeight*.88)-navH()-8));state.sheetVis=isMob()?v:0;
-  sheet.style.transition=anim?'':'none';sheet.style.setProperty('--vis',v+'px');document.documentElement.style.setProperty('--sheetvis',v+'px');
+  sheet.style.transition=anim?'':'none';sheet.style.setProperty('--vis',v+'px');document.documentElement.style.setProperty('--sheetvis',v+'px');document.body.classList.toggle('sheettall',isMob()&&v>window.innerHeight*.55);
   $('body').style.maxHeight=isMob()?Math.max(0,v-$('grab').offsetHeight)+'px':'';
   sheet.classList.toggle('closed',isMob()&&v<=4);
   const rb=$('resultBtn');if(rb)rb.hidden=noList||!(isMob()&&v<=4&&!state.drawing&&!state.editing);syncListBtn();}
@@ -1063,7 +1067,8 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
 $('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('exportBtn').innerHTML=categoryIcon('import')+'<span>找房</span>';$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('savedBtn').innerHTML=categoryIcon('star')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('homesBtn').onclick=()=>togglePop('homesPop','homesBtn');$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
 function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','savedBtn'],['homesPop','homesBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;if($(b))$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
-function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();$(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}if(open&&p==='homesPop')renderHomesPop();}
+function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();if(open&&p==='homesPop'&&state.view.type!=='list')closeDetail(); // 我的物件不疊在房市、估價等面板上
+  $(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}if(open&&p==='homesPop')renderHomesPop();}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
 function renderSavedRow(){}
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');$('setBtn').innerHTML=categoryIcon('gear');$('setBtn').onclick=openSettings;
@@ -1698,7 +1703,7 @@ function bindExport(v){if($('exRange'))$('exRange').onclick=saveRange;
 // ---------- 整體房市：指標、燈號、未來 12 個月房價方向機率（data/market.json，build-market 每月更新）----------
 let MARKET=null,MKLOAD=null;
 function loadMarket(){if(!MKLOAD)MKLOAD=getJSON('data/market.json').then(d=>{MARKET=d;return d;}).catch(e=>{MKLOAD=null;throw e;});return MKLOAD;}
-async function openMarket(){busy(true);try{await loadMarket();}catch(e){busy(false);toast('整體房市資料還沒建好，暫時無法顯示',true);return;}busy(false);
+async function openMarket(){closePops();busy(true);try{await loadMarket();}catch(e){busy(false);toast('整體房市資料還沒建好，暫時無法顯示',true);return;}busy(false);
   closePops();closeDetail(true);state.view={type:'market'};render();fitSheet('full');}
 const MK_LIGHT_C=['#1A73E8','#7BAAF7','#34A853','#F6AE2D','#E8453C'],MK_SIG=['壓力','中性','支撐房價'],MK_GROUPS=[['price','價格與估值'],['volume','交易量'],['supply','供給與庫存'],['credit','信貸、成本與政策']];
 const MK_CALL={up:'上漲',flat:'持平',down:'下跌'},MK_PC={up:'#E8453C',flat:'#9AA0A6',down:'#1A73E8'};
