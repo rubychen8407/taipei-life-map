@@ -14,11 +14,17 @@ async def main():
                                   record_video_dir=OUT, record_video_size={'width': 780, 'height': 1688}, locale='zh-TW')
         await ctx.add_init_script(TAP)
         page = await ctx.new_page(); ev = page.evaluate; T0 = time.time()
+        page.on('pageerror', lambda e: print('PAGEERR', e, flush=True)); page.on('console', lambda m: m.type in ('error','warning') and print('CONSOLE', m.text[:200], flush=True))
+        page.on('requestfailed', lambda r: print('REQFAIL', r.url[:120], r.failure, flush=True))
         def mark(n): marks.append((n, round(time.time() - T0, 2))); print('MARK', n, marks[-1][1], flush=True)
         async def shot(n): await page.screenshot(path=f'{OUT}/{n}.png')
         async def tapxy(x, y): await page.mouse.click(x, y)
         async def tapsel(sel): await page.click(sel)
-        await page.goto(URL); await page.wait_for_function(READY, timeout=90000); await page.wait_for_timeout(2500)
+        await page.goto(URL)
+        try: await page.wait_for_function(READY, timeout=60000)
+        except Exception:
+            print('NOTREADY', await ev("JSON.stringify({st:!!window.state,res:!!(window.state&&state.res),head:document.getElementById('head')&&document.getElementById('head').innerText.slice(0,200),L:typeof L})")); await page.screenshot(path=f'{OUT}/fail.png'); raise
+        await page.wait_for_timeout(2500)
         mark('home'); await shot('s_home')
         await page.wait_for_timeout(1500)
         # 加條件：超市
