@@ -18,7 +18,7 @@ async def main():
         async def on_frame(f):
             n = len(frames); open(f'{OUT}/fr/{n:05d}.jpg', 'wb').write(__import__('base64').b64decode(f['data']))
             frames.append((n, f['metadata']['timestamp']))
-            try: await cdp.send('Page.screencastAck', {'sessionId': f['sessionId']})
+            try: await cdp.send('Page.screencastFrameAck', {'sessionId': f['sessionId']})
             except Exception: pass
         cdp.on('Page.screencastFrame', lambda f: asyncio.ensure_future(on_frame(f)))
         await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': 780, 'maxHeight': 1688, 'everyNthFrame': 1})
