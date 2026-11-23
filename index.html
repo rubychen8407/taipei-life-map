@@ -795,6 +795,12 @@ let outlineSig=null;function drawOutline(){if(!state.res||state.transit||!state.
   const rs=matchRings();state.outlineRings=rs.length;
   rs.forEach(r=>{L.polygon(r,{color:'#fff',weight:5,opacity:.85,fill:false,interactive:false}).addTo(outlineLayer);L.polygon(r,{color:'#123B8A',weight:2,opacity:1,fill:false,interactive:false,dashArray:null}).addTo(outlineLayer);});}
 let heatRank=null;
+const HeatGrid=L.GridLayer.extend({createTile(c){const sz=this.getTileSize(),t=document.createElement('canvas');t.width=sz.x;t.height=sz.y;const m=this._map,src=this.options.src;
+  const nw=m.unproject([c.x*sz.x,c.y*sz.y],c.z),se=m.unproject([(c.x+1)*sz.x,(c.y+1)*sz.y],c.z);
+  const sx0=(nw.lng-CITY[1])/dLon,sx1=(se.lng-CITY[1])/dLon,sy0=NJ-(nw.lat-CITY[0])/dLat,sy1=NJ-(se.lat-CITY[0])/dLat;
+  const cx0=Math.max(0,sx0),cx1=Math.min(NI,sx1),cy0=Math.max(0,sy0),cy1=Math.min(NJ,sy1);if(cx1<=cx0||cy1<=cy0)return t;
+  const kx=sz.x/(sx1-sx0),ky=sz.y/(sy1-sy0),ctx=t.getContext('2d');ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(src,cx0,cy0,cx1-cx0,cy1-cy0,(cx0-sx0)*kx,(cy0-sy0)*ky,(cx1-cx0)*kx,(cy1-cy0)*ky);return t;}});
 let heatAll=[];function clearHeat(){heatAll.forEach(o=>map.removeLayer(o));heatAll=[];heat=null;}
 function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||(!state.layers.heat&&!state.layers.outline)){clearHeat();return;}
   const flags=(state.layers.heat?'h':'')+(state.layers.outline?'o':'');
@@ -813,9 +819,9 @@ function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||(!stat
     p[o]=parseInt(hex.slice(0,2),16);p[o+1]=parseInt(hex.slice(2,4),16);p[o+2]=parseInt(hex.slice(4,6),16);p[o+3]=Math.round(70+t*175);});
   ctx.putImageData(img,0,0);const url=cv.toDataURL(),bounds=[[CITY[0],CITY[1]],[CITY[0]+NJ*dLat,CITY[1]+NI*dLon]];
   // 雙緩衝：新圖載好才換掉舊圖，換圖時不會先變成空白
-  const nh=L.imageOverlay(url,bounds,{pane:'analysis',interactive:false,opacity:heat?0:heatOpacity()}).addTo(map);nh._sig=R;nh._scope=scopeKey();nh._flags=flags;heatAll.push(nh);heat=nh;
-  const swap=()=>{if(heat!==nh){map.removeLayer(nh);heatAll=heatAll.filter(o=>o!==nh);return;}nh.setOpacity(heatOpacity());heatAll.filter(o=>o!==nh).forEach(o=>map.removeLayer(o));heatAll=[nh];};
-  const el=nh.getElement();if(el&&el.complete&&el.naturalWidth)swap();else{nh.once('load',swap);setTimeout(swap,400);}}
+  // 用 256 格的圖磚畫（只畫畫面上看得到的部分）。整張圖片放大到街區層級會變成上萬像素寬，手機拖地圖時會卡
+  const nh=new HeatGrid({src:cv,pane:'analysis',opacity:heatOpacity(),bounds:L.latLngBounds(bounds),updateWhenZooming:false,keepBuffer:1}).addTo(map);nh._url=url;nh._sig=R;nh._scope=scopeKey();nh._flags=flags;
+  heatAll.filter(o=>o!==nh).forEach(o=>map.removeLayer(o));heatAll=[nh];heat=nh;}
 function heatOpacity(){const z=map.getZoom();return z<=13?0.9:z>=16?0.3:0.9-(z-13)/3*0.6;} // 放大到街區：熱圖淡出，讓設施圖示浮現
 function drawPins(){pinLayer.clearLayers();}   // 推薦區域圖釘已移除（改看「符合條件的邊界」）
 let facCache=new Map();
@@ -828,7 +834,11 @@ function drawFacilities(){if(state.transit||!state.res||!state.layers.fac){facLa
       next.set(key,lyr);cnt++;if(facCache.has(key)){if(!facLayer.hasLayer(lyr))facLayer.addLayer(lyr);continue;}
       lyr.on('click',ev=>{L.DomEvent.stopPropagation(ev);if(handleLifeMapPoint(ev.latlng))return;if(state.drawing){addDrawPt(ev.latlng);return;}openPlace(f,l);});facLayer.addLayer(lyr);}}
   facCache.forEach((ly,k)=>{if(!next.has(k))facLayer.removeLayer(ly);});facCache=next;}
-map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());drawFacilities();syncLabels();drawDeals();drawTrees();});
+// 拖完地圖後稍等一下再重畫設施、成交、行道樹、房子：連續滑好幾下時不會每次停下都卡一下
+const mvQ=new Set();let mvT=0;
+function afterMove(f){mvQ.add(f);clearTimeout(mvT);mvT=setTimeout(()=>{const fs=[...mvQ];mvQ.clear();fs.forEach(g=>g());},140);}
+map.on('movestart',()=>clearTimeout(mvT));
+map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();afterMove(drawFacilities);afterMove(drawDeals);afterMove(drawTrees);});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();}); // zoomend 之後一定還有 moveend，設施只在 moveend 重畫一次
 map.on('click',e=>{if(state.editing)return;if(state.view.type==='val'){closePops();return;}if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
@@ -1504,12 +1514,20 @@ function bindSaleSub(root){const mn=root.querySelector('#sfMin');if(!mn)return;c
   root.querySelectorAll('[data-sfby]').forEach(x=>x.onclick=()=>{SALEF.by=x.dataset.sfby;root.querySelectorAll('[data-sfby]').forEach(y=>y.setAttribute('aria-pressed',String(y===x)));saveSaleF();updSaleSub();drawSale();});
   root.querySelectorAll('[data-sfseen]').forEach(x=>x.onclick=()=>{SALEF.seen=x.dataset.sfseen;root.querySelectorAll('[data-sfseen]').forEach(y=>y.setAttribute('aria-pressed',String(y===x)));saveSaleF();updSaleSub();drawSale();});
   updSaleSub();}
-function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.transit||state.drawing||state.editing)return;
+// 房子圖釘只增減有變的（不整批清掉重建），拖地圖時比較順
+const saleMk=new Map();let saleCl=[];
+const saleSig=(l,i)=>[i,l.lat,l.lng,l.price,l.prec,isSeen(l)?1:0,l.isNew?1:0,saleColor(l)].join('|');
+function drawSale(fit){if(!state.layers.sale||state.transit||state.drawing||state.editing){saleLayer.clearLayers();saleMk.clear();saleCl=[];return;}
   const all=[];LISTINGS.forEach((l,i)=>{if(l.lat&&saleOk(l))all.push({l,i});});
   let fb=null;if(fit&&all.length){fb=L.latLngBounds(all.map(o=>[o.l.lat,o.l.lng])).pad(.15);map.fitBounds(fb,{maxZoom:15});} // 移動中先以目標範圍畫，moveend 再依實際畫面重畫
   const vb=(fb||map.getBounds()).pad(.05),vis=all.filter(o=>vb.contains([o.l.lat,o.l.lng]));
-  if(vis.length<=SALE_MAX){vis.forEach(o=>salePin(o.l,o.i));return;}
-  vis.sort(saleCmp);vis.slice(0,SALE_MAX).forEach(o=>salePin(o.l,o.i));
+  saleCl.forEach(m=>saleLayer.removeLayer(m));saleCl=[];
+  const pins=vis.length<=SALE_MAX?vis:(vis.sort(saleCmp),vis.slice(0,SALE_MAX)),keep=new Set();
+  for(const o of pins){const sig=saleSig(o.l,o.i),c=saleMk.get(o.l);keep.add(o.l);
+    if(c&&c.sig===sig){if(!saleLayer.hasLayer(c.m))c.m.addTo(saleLayer);continue;}
+    if(c)saleLayer.removeLayer(c.m);saleMk.set(o.l,{m:salePin(o.l,o.i),sig});}
+  saleMk.forEach((c,l)=>{if(!keep.has(l)){saleLayer.removeLayer(c.m);saleMk.delete(l);}});
+  if(vis.length<=SALE_MAX)return;
   const cells=new Map();for(const o of vis.slice(SALE_MAX)){const p=map.latLngToLayerPoint([o.l.lat,o.l.lng]),k=Math.floor(p.x/SALE_CELL)+','+Math.floor(p.y/SALE_CELL);if(!cells.has(k))cells.set(k,[]);cells.get(k).push(o);}
   for(const g of cells.values()){const lat=g.reduce((s,o)=>s+o.l.lat,0)/g.length,lng=g.reduce((s,o)=>s+o.l.lng,0)/g.length,nw=g.some(o=>o.l.isNew),sz=g.length<10?26:g.length<100?32:38;
     const m=L.marker([lat,lng],{icon:L.divIcon({className:'sale-cl'+(nw?' nw':''),html:`<b style="width:${sz}px;height:${sz}px;line-height:${sz}px">${g.length}</b>`,iconSize:[0,0]}),zIndexOffset:500,bubblingMouseEvents:false,title:`${g.length} 間`});
@@ -1517,8 +1535,8 @@ function drawSale(fit){saleLayer.clearLayers();if(!state.layers.sale||state.tran
     m.on('click',()=>{const b=L.latLngBounds(g.map(o=>[o.l.lat,o.l.lng])),z=Math.min(map.getBoundsZoom(b.pad(.3)),map.getMaxZoom());
       if(z>map.getZoom()&&b.getNorthEast().distanceTo(b.getSouthWest())>15)map.fitBounds(b.pad(.3));
       else{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([lat,lng]).setContent(saleListHtml(g)).openOn(map).on('remove',()=>salePop=false);}});
-    m.addTo(saleLayer);}}
-map.on('moveend',()=>{if(!salePop)drawSale();}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
+    m.addTo(saleLayer);saleCl.push(m);}}
+map.on('moveend',()=>{if(!salePop)afterMove(drawSale);}); // 房子的資訊框開著時不重畫，免得自動平移把它關掉
 map.on('popupopen',e=>{const el=e.popup.getElement();if(!el)return;el.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const i=+a.dataset.sopen,l=LISTINGS[i];if(!l)return;
   setTimeout(()=>{salePop=true;L.popup({closeButton:true,maxWidth:280}).setLatLng([l.lat,l.lng]).setContent(saleInfo(l,i)).openOn(map).on('remove',()=>salePop=false);},0);});});
 map.on('popupopen',e=>{const pe=e.popup.getElement();if(pe&&pe.querySelector('.sv-embed'))fillStreetViews(pe).then(()=>{if(e.popup.isOpen()){e.popup._updateLayout();e.popup._updatePosition();}});else if(pe)snapLinks(pe);});
