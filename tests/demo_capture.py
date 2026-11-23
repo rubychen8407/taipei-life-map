@@ -33,7 +33,7 @@ async def main():
         await tapsel('.chip[data-id=market]'); await page.wait_for_timeout(1500)
         # 放大到松山：設施圖示
         mark('zoom')
-        await ev("map.flyTo([25.0535,121.5565],15,{duration:2.2})"); await page.wait_for_timeout(3800); await shot('s_zoom')
+        await ev("void map.flyTo([25.0535,121.5565],15,{duration:2.2})"); await page.wait_for_timeout(3800); await shot('s_zoom')
         # 點捷運站：路線
         mark('transit')
         pt = await ev("(()=>{const m=data('mrt').find(f=>/南京三民/.test(f.name))||data('mrt').find(f=>/小巨蛋/.test(f.name));map.panTo(m.center,{animate:true,duration:.8});return m.name})()")
@@ -45,18 +45,18 @@ async def main():
         await tapsel('#close'); await page.wait_for_timeout(800)
         # 估價：點一間房
         mark('val')
-        await ev("map.flyTo([25.0478,121.5502],16,{duration:1.2})"); await page.wait_for_timeout(1700)
+        await ev("void map.flyTo([25.0478,121.5502],16,{duration:1.2})"); await page.wait_for_timeout(1700)
         await ev("__tap(195,470)"); await ev("void openVal([25.0478,121.5502])"); await page.wait_for_function("!!document.getElementById('valGo')", timeout=30000); await page.wait_for_timeout(900)
         for k, v_ in (('ping', '30'), ('age', '32'), ('fl', '4'), ('tot', '5'), ('ask', '2680')):
             await page.click(f'#body [data-vf={k}]'); await page.fill(f'#body [data-vf={k}]', ''); await page.type(f'#body [data-vf={k}]', v_, delay=90)
         await tapsel('#body [data-vt="0"]'); await page.wait_for_timeout(400)
         await tapsel('#valGo'); await page.wait_for_function("!!document.getElementById('valSum')||!!document.getElementById('valNo')", timeout=8000); await page.wait_for_timeout(2600); await shot('s_val')
-        await ev("setSheet('full')"); await page.wait_for_timeout(1500); await shot('s_val_full')
+        await ev("void setSheet('full')"); await page.wait_for_timeout(1500); await shot('s_val_full')
         await ev("document.querySelector('#body [data-vtab=fin]')&&document.querySelector('#body [data-vtab=fin]').click()"); await page.wait_for_timeout(2200); await shot('s_val_fin')
         await tapsel('#close'); await page.wait_for_timeout(700)
         # 單價熱圖
         mark('heat')
-        await ev("map.flyTo([25.05,121.545],12,{duration:1.6})"); await page.wait_for_timeout(2000)
+        await ev("void map.flyTo([25.05,121.545],12,{duration:1.6})"); await page.wait_for_timeout(2000)
         await tapsel('#layersBtn'); await page.wait_for_selector('#layersPop [data-layer=priceheat]', state='visible'); await page.wait_for_timeout(600)
         await tapsel('#layersPop [data-layer=priceheat]'); await page.wait_for_function("typeof phLayer!=='undefined'&&!!phLayer", timeout=20000); await page.wait_for_timeout(500)
         await tapsel('#layersBtn'); await page.wait_for_timeout(2600); await shot('s_heat')
@@ -64,7 +64,7 @@ async def main():
         # 整體房市
         mark('market')
         await tapsel('#marketBtn'); await page.wait_for_function("state.view.type==='market'", timeout=30000); await page.wait_for_timeout(1500)
-        await ev("setSheet('full')"); await page.wait_for_timeout(1600); await shot('s_market')
+        await ev("void setSheet('full')"); await page.wait_for_timeout(1600); await shot('s_market')
         await ev("document.querySelector('#mkFc').scrollIntoView({behavior:'smooth'})"); await page.wait_for_timeout(2400); await shot('s_market_fc')
         await page.wait_for_timeout(800)
         mark('end')
