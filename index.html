@@ -240,7 +240,7 @@ body.sheettall #fabs{opacity:0;pointer-events:none}
 .lgroup-h button{height:26px;padding:0 10px;border-radius:12px;border:0;background:rgba(255,255,255,.6);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08);color:var(--D);font-size:12px}
 .lgroup{background:rgba(255,255,255,.7);border-radius:12px;padding:0 12px}
 .lrow{display:flex;align-items:center;gap:12px;height:46px;border-top:.5px solid var(--line)}.lrow:first-child{border-top:0}
-.lrow svg{width:19px;height:19px;flex:none}.lrow span{flex:1;font-size:15px}
+.lrow svg{width:19px;height:19px;flex:none}.lrow span{flex:1;font-size:15px}.lrow .flag-ic{flex:0 0 32px}.fl-row{height:auto;min-height:56px}
 .switch{flex:none;width:51px;height:31px;border-radius:16px;border:0;background:rgba(120,120,128,.16);position:relative;padding:0;transition:background .2s}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:12px;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:left .2s}
 .switch[aria-pressed=true]{background:var(--D)}.switch[aria-pressed=true]::after{left:22px}
@@ -339,11 +339,31 @@ html,body{background:#e8eaed}
 @media (prefers-reduced-motion:reduce){.rk-bar i{transition:none}}
 .aff{margin:4px 0 14px;padding:12px;border-radius:16px;background:#F7F8FA}.aff-h b{font-size:17px}.aff-h small{display:block;font-size:12px;color:var(--sub)}
 .aff-b{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}.aff-in{flex:1 1 150px;border-color:#D2D6DC}.aff-in .pre{font-size:13px;font-weight:600;color:var(--sub)}.aff-in input{font-size:17px}
+.aff-sc{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px}.aff-scn{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--D)}.aff-scn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7}
+.aff-good{border:1px solid #D2D6DC;background:#fff;border-radius:16px;min-height:32px;padding:0 12px;font-size:13px;font-weight:600;color:#3C4043;position:relative}.aff-good::after{content:'';position:absolute;inset:-6px 0}.aff-good[aria-pressed=true]{background:var(--D);border-color:var(--D);color:#fff}
 .aff-sum{font-size:13px;color:#3C4043;margin:2px 0 4px}.aff-sum b{font-size:17px}.aff-sum span{color:var(--sub)}
 .aff-row{display:flex;gap:10px;width:100%;border:0;background:none;text-align:left;padding:10px 0;border-top:1px solid var(--line);color:inherit;font:inherit}.aff-row.top .rk-n{background:#F7931E;color:#fff}
 .aff-m{flex:1;min-width:0;display:block}.aff-t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.aff-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
 .aff-p{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;margin:2px 0 4px}.aff-p .fair{font-weight:800;color:#137333;font-size:15px;font-variant-numeric:tabular-nums}.aff-p .ask{color:var(--sub)}.aff-p em{font-style:normal;color:#137333;font-weight:700}.aff-p .pay{color:#3C4043}
 .aff-c{display:block;font-size:12px;color:var(--sub);margin-top:4px}
+.flag-pin{position:relative}.flag-pin span{position:absolute;left:0;top:2px;width:36px;height:36px;display:flex}.flag-pin svg{width:34px;height:34px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.45))}
+.flag-pin.like svg{stroke:#188038}.flag-pin.like svg path:last-child{fill:#34A853}.flag-pin.dislike svg{stroke:#B3261E}.flag-pin.dislike svg path:last-child{fill:#EA4335}.flag-pin.off{opacity:.45}
+.flag-pin b{position:absolute;left:30px;top:2px;white-space:nowrap;font-size:12px;font-weight:700;background:#fff;border-radius:8px;padding:1px 6px;box-shadow:0 1px 3px rgba(0,0,0,.25);color:#202124;pointer-events:none}
+.flag-ic{flex:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center}.flag-ic svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.flag-ic.like{background:#188038}.flag-ic.dislike{background:#D93025}
+#flagsPop{width:min(300px,calc(100vw - 24px));padding:14px;box-sizing:border-box}#flagsPop h3{margin:0 0 8px;font-size:17px;display:flex;justify-content:space-between;align-items:baseline}#flagsPop h3 small{font-size:12px;color:var(--sub);font-weight:500}
+#flagsPop.dragging{opacity:.25;pointer-events:none}
+.fl-new{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fl-chip{display:flex;align-items:center;gap:8px;min-height:56px;border-radius:16px;border:1.5px dashed;padding:6px 10px;text-align:left;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.fl-chip svg{width:26px;height:26px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.fl-chip b{display:block;font-size:15px}.fl-chip small{font-size:12px;color:var(--sub)}
+.fl-chip.like{color:#137333;background:#E6F4EA;border-color:#81C995}.fl-chip.dislike{color:#B3261E;background:#FCE8E6;border-color:#F28B82}.fl-hint{margin:6px 0 4px;font-size:12px}
+.fl-row{gap:8px}.fl-open{flex:1;min-width:0;border:0;background:none;text-align:left;padding:4px 0;min-height:44px}.fl-open b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl-open small{font-size:12px;color:var(--sub)}
+.flag-ghost{position:fixed;z-index:3000;width:40px;height:40px;transform:translate(-8px,-38px);pointer-events:none}.flag-ghost svg{width:40px;height:40px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}.flag-ghost.like svg{stroke:#188038}.flag-ghost.like svg path:last-child{fill:#34A853}.flag-ghost.dislike svg{stroke:#B3261E}.flag-ghost.dislike svg path:last-child{fill:#EA4335}
+body.placing #map{cursor:crosshair}
+#pressMenu .pf svg{stroke-width:2}#pressMenu .pf.like{color:#188038}#pressMenu .pf.dislike{color:#D93025}
+.fl-ed .fl-name{display:block;font-size:13px;font-weight:600;color:var(--sub)}.fl-ed .fl-name input{display:block;width:100%;box-sizing:border-box;margin-top:4px;height:44px;border-radius:12px;border:1px solid #D2D6DC;padding:0 12px;font-size:16px}
+.fl-type{margin:10px 0}.fl-ed.like .fl-type [aria-pressed=true]{color:#137333}.fl-ed.dislike .fl-type [aria-pressed=true]{color:#B3261E}.fl-lbl{font-size:13px;font-weight:600;color:var(--sub);margin:10px 0 4px}
+.fl-mode button{flex-direction:column;gap:2px;min-height:52px;font-size:12px;display:flex;align-items:center;justify-content:center}.fl-mode svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.fl-min{display:flex;align-items:center;gap:6px}.fl-min b{font-size:24px;font-weight:800;min-width:36px;text-align:right;font-variant-numeric:tabular-nums}.fl-min span{font-size:13px;color:var(--sub)}.fl-min input{flex:1;height:32px}.fl-ed.like .fl-min input{accent-color:#188038}.fl-ed.dislike .fl-min input{accent-color:#D93025}
+.fl-q{margin:4px 0 8px}.fl-q button{background:#F1F3F4}.fl-sum{padding:10px 12px;border-radius:12px;font-size:14px;line-height:1.5}.fl-ed.like .fl-sum{background:#E6F4EA}.fl-ed.dislike .fl-sum{background:#FCE8E6}.fl-imp{font-size:13px;color:#3C4043;margin:8px 0}
+.fl-act{display:flex;gap:8px;margin:10px 0}.fl-act button{flex:1;height:44px;border-radius:12px;border:0;font-size:15px;font-weight:700}.fl-move{background:var(--bluebg);color:var(--D)}.fl-del{background:#FCE8E6;color:#B3261E}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -500,9 +520,10 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
     <div class="btns"><button class="btn primary" id="editDone">完成</button><button class="btn" id="editReset">重設</button><button class="btn" id="editCancel">取消</button></div></div>
 </div>
 <div id="navbar" class="glass" role="tablist" aria-label="主要功能"><button class="nb" id="exploreBtn" role="tab" aria-label="探索地圖"></button><button class="nb" id="exportBtn" role="tab" aria-label="房源：篩選、找房、匯入"></button><button class="nb" id="homesBtn" role="tab" aria-label="我的物件"></button><button class="nb" id="marketBtn" role="tab" aria-label="整體房市"></button></div>
-<div id="fabs"><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
+<div id="fabs"><button class="fab" id="flagBtn" aria-label="插旗：喜愛點、嫌惡點" aria-expanded="false"></button><button class="fab" id="layersBtn" aria-label="圖層" aria-expanded="false"></button><button class="fab" id="locate" aria-label="我的位置"></button></div>
 <div id="regionPop" class="pop glass" hidden role="dialog" aria-label="選區域"></div>
 <div id="layersPop" class="pop glass" hidden role="dialog" aria-label="圖層"></div>
+<div id="flagsPop" class="pop glass" hidden role="dialog" aria-label="插旗"></div>
 <div id="filterPop" class="pop glass" hidden role="dialog" aria-label="我的篩選"></div>
 <div id="phLegend" class="ph-legend glass" hidden></div><div id="landLegend" class="ph-legend glass" hidden></div>
 <div id="dealLegend" class="deal-legend glass" hidden></div>
@@ -535,6 +556,7 @@ function categoryIcon(id){const paths={
  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/>',
  house:'<path d="M4 20V9.5L12 4l8 5.5V20M4 20h16M9.5 20v-5.5h5V20"/>',
  star:'<path d="m12 4 2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>',
+ flag:'<path d="M6 21V3.5"/><path d="M6 4h11.5l-2.6 4.2L17.5 12.5H6"/>',
  bookmark:'<path d="M7 3.8h10a1 1 0 0 1 1 1v15.4l-6-4-6 4V4.8a1 1 0 0 1 1-1Z"/>',
  explore:'<circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
@@ -814,11 +836,76 @@ const MRTN={};function mrtNear(){const key=srcKey();if(MRTN[key])return MRTN[key
   return MRTN[key]=a;}
 const MODE_INFO={walk:{label:'步行',speed:80,icon:'<circle cx="13" cy="4.5" r="1.6"/><path d="m10 21 2-6-2.5-2.5L11 8l3 3 3 1M11 8 8 10l-1 3M12 15l2.5 2L15 21"/>'},bike:{label:'腳踏車',speed:220,icon:'<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5 9 9h6l3.5 7.5M9 9 12 16.5 15 9M8 6.5h3"/>'},scooter:{label:'機車',speed:350,icon:'<circle cx="6" cy="17.5" r="2.5"/><circle cx="18" cy="17.5" r="2.5"/><path d="M8.5 17.5H15l2-5h-3.5M14 6h2.5l1 6.5M4 13h6l1.5 4.5"/>'},transit:{label:'大眾運輸',speed:180,icon:'<rect x="5" y="3" width="14" height="14" rx="3.5"/><path d="M5 10h14M9 13.5h.01M15 13.5h.01M8 21l1.5-4M16 21l-1.5-4"/>'},car:{label:'開車',speed:250,icon:'<path d="M5 16.5V12l1.8-5h10.4L19 12v4.5M5 12h14"/><circle cx="8" cy="16.5" r="1.6"/><circle cx="16" cy="16.5" r="1.6"/><path d="M5 16.5v2.5M19 16.5v2.5"/>'}};const modeIcon=id=>'<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+MODE_INFO[id].icon+'</svg>';const modeName=id=>MODE_INFO[id]?.label||'步行';const tmin=(d,id)=>d*DETOUR/(MODE_INFO[state.modeByLayer[id]||'walk']||MODE_INFO.walk).speed;
 
-function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id);if(!act.length){state.res=null;state.zones=[];return;}
-  const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
+// ---------- 喜愛點／嫌惡點（插旗）：喜愛點＝要在 N 分鐘內到得了；嫌惡點＝要離它超過 N 分鐘。每一面旗子都是一個條件 ----------
+const FLAG_MAX=10,FLAG_C={like:'#188038',dislike:'#D93025'},FLAG_N={like:'喜愛點',dislike:'嫌惡點'};
+function loadFlags(){try{return (JSON.parse(localStorage.getItem('tlm.flags')||'[]')||[]).filter(f=>f&&Array.isArray(f.center)&&(f.type==='like'||f.type==='dislike'));}catch(e){return [];}}
+let FLAGS=loadFlags(),flagPlacing=null;const FLAGD={};
+function saveFlags(){try{localStorage.setItem('tlm.flags',JSON.stringify(FLAGS));}catch(e){}}
+const activeFlags=()=>FLAGS.filter(f=>f.on!==false);
+const flagSpeed=f=>(MODE_INFO[f.mode]||MODE_INFO.walk).speed,flagT=(d,f)=>d*DETOUR/flagSpeed(f),flagOk=(f,d)=>{const t=flagT(d,f);return f.type==='like'?t<=f.mins:t>f.mins;};
+function flagDist(f){const key=(state.baked?'all':scopeKey())+'|'+f.center[0].toFixed(5)+','+f.center[1].toFixed(5);if(FLAGD[key])return FLAGD[key];
+  return FLAGD[key]=computeLayer([{name:f.label,center:f.center,polys:null}],state.baked?ALL:scopeCells()).d;}
+const flagLayer=L.layerGroup().addTo(map);
+function flagIcon(f){return L.divIcon({className:'flag-pin '+f.type+(f.on===false?' off':''),html:`<span>${categoryIcon('flag')}</span><b>${esc(f.label)}</b>`,iconSize:[36,40],iconAnchor:[10,38]});}
+function drawFlags(){flagLayer.clearLayers();if(state.transit||state.drawing||state.editing)return;
+  FLAGS.forEach(f=>{if(f.on!==false){const r=f.mins*flagSpeed(f)/DETOUR;L.circle(f.center,{radius:r,color:FLAG_C[f.type],weight:1.5,dashArray:'5 6',fillColor:FLAG_C[f.type],fillOpacity:f.type==='dislike'?.10:.05,interactive:false,className:'flag-ring'}).addTo(flagLayer);}
+    const m=L.marker(f.center,{icon:flagIcon(f),draggable:true,zIndexOffset:1200,bubblingMouseEvents:false,title:f.label,keyboard:true});
+    m.on('dragend',()=>{const ll=m.getLatLng();f.center=[+ll.lat.toFixed(6),+ll.lng.toFixed(6)];saveFlags();toast('已移動「'+f.label+'」');flagChanged();}).on('click',()=>openFlag(f.id)).addTo(flagLayer);});}
+let flagRunT=0;function flagChanged(now){drawFlags();if(!$('flagsPop').hidden)renderFlagsPop();clearTimeout(flagRunT);flagRunT=setTimeout(()=>{run().then(()=>{if(state.view.type==='flag')renderFlagImpact();});},now?0:200);}
+function placeFlag(type,ll){flagPlacing=null;document.body.classList.remove('placing');if(FLAGS.length>=FLAG_MAX){toast('最多 '+FLAG_MAX+' 面旗子，請先刪除一面');return;}
+  if(flagMoveRec){const f=flagMoveRec;flagMoveRec=null;f.center=[+ll.lat.toFixed(6),+ll.lng.toFixed(6)];FLAGS.push(f);saveFlags();flagChanged(true);openFlag(f.id);toast('已移動「'+f.label+'」');return;}
+  const n=FLAGS.filter(f=>f.type===type).length+1,f={id:'f'+Date.now().toString(36),type,label:FLAG_N[type]+' '+n,center:[+ll.lat.toFixed(6),+ll.lng.toFixed(6)],mode:'walk',mins:type==='like'?10:5,on:true};
+  FLAGS.push(f);saveFlags();closePops();flagChanged(true);openFlag(f.id);toast(type==='like'?'已插喜愛點：地圖只留下 10 分鐘內走得到的地方':'已插嫌惡點：地圖排除 5 分鐘內走得到的地方');}
+function startPlacing(type){flagPlacing=type;closePops();document.body.classList.add('placing');toast('點地圖放'+FLAG_N[type]+'（按 Esc 取消）');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&flagPlacing){flagPlacing=null;document.body.classList.remove('placing');toast('已取消插旗');}});
+// 從「插旗」面板把旗子拖到地圖上；沒有拖動就當成點一下（進入點地圖放置）
+function bindFlagDrag(el){const type=el.dataset.flagNew;el.addEventListener('pointerdown',e=>{if(e.button>0)return;e.preventDefault();const sx=e.clientX,sy=e.clientY,pop=$('flagsPop');let ghost=null;try{el.setPointerCapture(e.pointerId);}catch(_){}
+  const mv=ev=>{if(!ghost&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;if(!ghost){ghost=document.createElement('div');ghost.className='flag-ghost '+type;ghost.innerHTML=categoryIcon('flag');document.body.appendChild(ghost);pop.classList.add('dragging');}ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';};
+  const up=ev=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);
+    if(!ghost){if(ev.type==='pointerup')startPlacing(type);return;}ghost.remove();const hit=document.elementFromPoint(ev.clientX,ev.clientY);pop.classList.remove('dragging');
+    if(ev.type==='pointerup'&&hit&&hit.closest('#map')&&!hit.closest('.leaflet-control,.leaflet-marker-icon')){const r=map.getContainer().getBoundingClientRect();placeFlag(type,map.containerPointToLatLng(L.point(ev.clientX-r.left,ev.clientY-r.top)));}else toast('放到地圖上才會插旗');};
+  el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startPlacing(type);}});}
+const flagRule=f=>`${modeName(f.mode)} ${f.mins} 分${f.type==='like'?'內':'以上'}`;
+function renderFlagsPop(){const el=$('flagsPop');
+  el.innerHTML=`<h3>插旗<small>${FLAGS.length}/${FLAG_MAX}</small></h3><div class="fl-new">${['like','dislike'].map(t=>`<button type="button" class="fl-chip ${t}" data-flag-new="${t}" aria-label="拖曳${FLAG_N[t]}到地圖上，或點一下再點地圖">${categoryIcon('flag')}<span><b>${FLAG_N[t]}</b><small>${t==='like'?'要住近一點':'要離遠一點'}</small></span></button>`).join('')}</div>
+    <div class="hint2 fl-hint">拖到地圖上放下，或點一下再點地圖；長按地圖也可以插旗</div>
+    ${FLAGS.map(f=>`<div class="lrow fl-row"><span class="flag-ic ${f.type}">${categoryIcon('flag')}</span><button type="button" class="fl-open" data-flag-open="${f.id}"><b>${esc(f.label)}</b><small>${flagRule(f)}</small></button><button type="button" class="switch" data-flag-on="${f.id}" aria-label="套用${esc(f.label)}" aria-pressed="${f.on!==false}"></button></div>`).join('')}`;
+  el.querySelectorAll('[data-flag-new]').forEach(bindFlagDrag);
+  el.querySelectorAll('[data-flag-open]').forEach(b=>b.onclick=()=>{closePops();openFlag(b.dataset.flagOpen);});
+  el.querySelectorAll('[data-flag-on]').forEach(b=>b.onclick=()=>{const f=FLAGS.find(x=>x.id===b.dataset.flagOn);f.on=f.on===false;saveFlags();flagChanged(true);});}
+function openFlag(id){const f=FLAGS.find(x=>x.id===id);if(!f)return;closePops();if(state.view.type==='list'||state.view.type==='flag')state.backStack=[];state.view={type:'flag',id};render();if(isMob())fitTight();keepInView(f.center);}
+function renderFlagImpact(){const e=$('flImpact'),R=state.res;if(!e)return;e.innerHTML=R?`符合所有條件的範圍：<b>${Math.round(R.good*CELL*CELL/1e4).toLocaleString()} 公頃</b>（共 ${R.n} 個條件）`:'';}
+function renderFlag(){const f=FLAGS.find(x=>x.id===state.view.id);if(!f){closeDetail();return;}const lk=f.type==='like';
+  headDetail(f.label,lk?'只留下從這裡 '+flagRule(f).replace(/內$/,'')+'內到得了的地方':'排除離這裡 '+f.mins+' 分鐘內（'+modeName(f.mode)+'）的地方',{name:FLAG_N[f.type],color:FLAG_C[f.type],icon:categoryIcon('flag')});
+  $('resultBtn').innerHTML=`<span>${esc(f.label)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`;
+  $('body').innerHTML=`<div class="fl-ed ${f.type}"><label class="fl-name">名稱<input id="flName" maxlength="16" value="${esc(f.label)}" placeholder="例如：公司、加油站"></label>
+    <div class="seg fl-type" role="group" aria-label="類型"><button type="button" data-flt="like" aria-pressed="${lk}">喜愛點・要近</button><button type="button" data-flt="dislike" aria-pressed="${!lk}">嫌惡點・要遠</button></div>
+    <div class="fl-lbl">交通方式</div><div class="seg fl-mode" role="group" aria-label="交通方式">${Object.keys(MODE_INFO).map(m=>`<button type="button" data-flm="${m}" aria-pressed="${(f.mode||'walk')===m}" aria-label="${MODE_INFO[m].label}">${modeIcon(m)}<span>${MODE_INFO[m].label}</span></button>`).join('')}</div>
+    <div class="fl-lbl">${lk?'幾分鐘內要到得了':'要離它超過幾分鐘'}</div><div class="fl-min"><b id="flMinV">${f.mins}</b><span>分鐘</span><input type="range" id="flMin" min="1" max="60" step="1" value="${f.mins}" aria-label="分鐘"></div>
+    <div class="vd-chips fl-q">${[3,5,10,15,20,30].map(m=>`<button type="button" data-flq="${m}">${m} 分</button>`).join('')}</div>
+    <div class="fl-sum" id="flSum">${lk?'地圖只留下':'地圖排除'}從這裡${modeName(f.mode)} <b>${f.mins} 分鐘</b>${lk?'內到得了的地方':'內的地方'}（約 ${Math.round(f.mins*flagSpeed(f)/DETOUR).toLocaleString()} 公尺）</div>
+    <div class="fl-imp" id="flImpact"></div>
+    <div class="lrow"><span>套用這面旗子</span><button type="button" class="switch" id="flOn" aria-label="套用" aria-pressed="${f.on!==false}"></button></div>
+    <div class="fl-act"><button type="button" class="fl-move" id="flMove">移動位置</button><button type="button" class="fl-del" id="flDel">刪除</button></div>
+    <div class="hint2">在地圖上直接拖旗子也可以移動。距離用直線距離與各交通方式平均速度估算。</div></div>`+foot();
+  renderFlagImpact();const upd=(k,v)=>{f[k]=v;saveFlags();renderFlag();flagChanged();};
+  $('flName').onchange=()=>{f.label=$('flName').value.trim()||FLAG_N[f.type];saveFlags();drawFlags();renderFlag();};
+  $('body').querySelectorAll('[data-flt]').forEach(b=>b.onclick=()=>{if(f.type===b.dataset.flt)return;const def=f.label.startsWith(FLAG_N[f.type]);f.type=b.dataset.flt;if(def)f.label=FLAG_N[f.type]+f.label.slice(3);saveFlags();renderFlag();flagChanged(true);});
+  $('body').querySelectorAll('[data-flm]').forEach(b=>b.onclick=()=>upd('mode',b.dataset.flm));
+  $('body').querySelectorAll('[data-flq]').forEach(b=>b.onclick=()=>upd('mins',+b.dataset.flq));
+  const r=$('flMin');r.oninput=()=>{f.mins=+r.value;$('flMinV').textContent=r.value;saveFlags();drawFlags();flagChanged();};r.onchange=()=>renderFlag();
+  $('flOn').onclick=()=>{f.on=f.on===false;saveFlags();renderFlag();flagChanged(true);};
+  $('flMove').onclick=()=>{FLAGS.splice(FLAGS.indexOf(f),1);saveFlags();closeDetail(true);drawFlags();startPlacing(f.type);flagMoveRec=f;};
+  $('flDel').onclick=()=>{FLAGS.splice(FLAGS.indexOf(f),1);saveFlags();closeDetail();flagChanged(true);toast('已刪除「'+f.label+'」');};}
+let flagMoveRec=null;
+function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id),FL=activeFlags();if(!act.length&&!FL.length){state.res=null;state.zones=[];return;}
+  const thresholds=act.map(id=>state.minsByLayer[id]||10),cells=scopeCells(),D=act.map(layerDist),FD=FL.map(flagDist),n=act.length+FL.length,worst=new Float32Array(N).fill(NaN),okc=new Uint8Array(N);let good=0;
   const dstat=DISTRICTS.map(()=>({t:0,g:0})),goodIdx=[];
-  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k],act[i]);if(t<=thresholds[i])o++;if(t>w)w=t;}worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
-    if(o===act.length){good++;goodIdx.push(k);dstat[CELLS[k].d].g++;}}
+  for(const k of cells){let w=0,o=0;for(let i=0;i<D.length;i++){const t=tmin(D[i].d[k],act[i]);if(t<=thresholds[i])o++;if(t>w)w=t;}
+    for(let q=0;q<FL.length;q++){const f=FL[q],t=flagT(FD[q][k],f);if(f.type==='like'){if(t<=f.mins)o++;if(t>w)w=t;}else if(t>f.mins)o++;}
+    worst[k]=w;okc[k]=o;dstat[CELLS[k].d].t++;
+    if(o===n){good++;goodIdx.push(k);dstat[CELLS[k].d].g++;}}
   // 符合條件的區域：地圖上「符合條件的邊界」圈起來的每一塊（相鄰的符合格子連成一區），依面積排序
   const isOk=new Uint8Array(CELLS.length),seen=new Uint8Array(CELLS.length),zones=[],mrt=data('mrt')||[];for(const k of goodIdx)isOk[k]=1;
   for(const k0 of goodIdx){if(seen[k0])continue;const comp=[k0];seen[k0]=1;
@@ -830,7 +917,7 @@ function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&d
     const inZ=new Set(comp),st=[];for(const f of mrt){const kk=cellAtLatLng(f.center[0],f.center[1]);const nm=f.name&&f.name.replace(/站$/,'')+'站';if(kk>=0&&inZ.has(kk)&&nm&&!st.includes(nm))st.push(nm);}
     zones.push({comp,avg:sum/comp.length,best,area:comp.length*CELL*CELL/1e4,district:ds[0],districts:ds,mrt:mname,stations:st,label:mname?mname+'附近':ds[0]});}
   zones.sort((a,b)=>b.comp.length-a.comp.length);state.zones=zones;state.showAllZones=false;
-  state.res={act,thresholds,D,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
+  state.res={act,thresholds,D,flags:FL,FD,n,worst,okc,good,total:cells.length,dstat,key:scopeKey()};}
 
 // ---------- map rendering ----------
 // 熱圖色帶：依「在目前範圍內的排名」上色（0＝最差、1＝最好），色階拉到最開：淡黃 → 橘 → 紅 → 紫紅 → 寶藍
@@ -839,7 +926,7 @@ function densityColor(t){t=Math.max(0,Math.min(1,t));let i=1;while(i<DENSITY_STO
 
 // ---------- 完全符合條件的範圍：用等值線（marching squares）畫出邊界 ----------
 const outlineLayer=L.layerGroup().addTo(map);
-function matchRings(){const R=state.res;if(!R)return [];const W=NI+2,H=NJ+2,g=new Uint8Array(W*H),n=R.act.length;
+function matchRings(){const R=state.res;if(!R)return [];const W=NI+2,H=NJ+2,g=new Uint8Array(W*H),n=R.n;
   for(const k of scopeCells())if(R.okc[k]===n){const c=CELLS[k];g[(c.j+1)*W+c.i+1]=1;}
   const segs=[],P=(x,y)=>[CITY[0]+(y-.5)*dLat,CITY[1]+(x-.5)*dLon]; // 格點 (x,y) 為補邊後的格子中心
   for(let y=0;y<H-1;y++)for(let x=0;x<W-1;x++){const a=g[y*W+x],b=g[y*W+x+1],c=g[(y+1)*W+x+1],d=g[(y+1)*W+x],idx=a|b<<1|c<<2|d<<3;if(idx===0||idx===15)continue;
@@ -868,12 +955,13 @@ let heatAll=[];function clearHeat(){heatAll.forEach(o=>map.removeLayer(o));heatA
 function drawHeat(){drawOutline();const R=state.res;if(!R||state.transit||(!state.layers.heat&&!state.layers.outline)){clearHeat();return;}
   const flags=(state.layers.heat?'h':'')+(state.layers.outline?'o':'');
   if(heat&&heat._sig===R&&heat._scope===scopeKey()&&heat._flags===flags){heat.setOpacity(heatOpacity());return;} // 結果沒變就不重畫，避免閃爍
-  const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.act.length;
+  const cv=document.createElement('canvas');cv.width=NI;cv.height=NJ;const ctx=cv.getContext('2d'),img=ctx.createImageData(NI,NJ),p=img.data,n=R.n,na=R.act.length;
   const ks=[],ds=[];
   // 只有「完全符合所有條件」的地方上熱圖色；不符合的地方反灰（開著「符合條件的邊界」時）
   for(const k of scopeCells()){if(R.okc[k]!==n){if(state.layers.outline){const c=CELLS[k],o=((NJ-1-c.j)*NI+c.i)*4;p[o]=70;p[o+1]=74;p[o+2]=80;p[o+3]=125;}continue;}
     if(!state.layers.heat)continue;let density=0;
-    for(let i=0;i<n;i++){const t=tmin(R.D[i].d[k],R.act[i]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
+    for(let i=0;i<na;i++){const t=tmin(R.D[i].d[k],R.act[i]),limit=R.thresholds[i];if(t<=limit){const ratio=Math.max(0,t/limit);density+=Math.exp(-2.2*ratio);}}
+    R.flags.forEach((f,q)=>{if(f.type!=='like')return;const t=flagT(R.FD[q][k],f);if(t<=f.mins)density+=Math.exp(-2.2*Math.max(0,t/f.mins));});
     ks.push(k);ds.push(density);}
   const sorted=Float64Array.from(ds).sort(),N=sorted.length;
   const rank=v=>{let lo=0,hi=N-1;while(lo<hi){const m=(lo+hi+1)>>1;if(sorted[m]<=v)lo=m;else hi=m-1;}return N>1?lo/(N-1):1;};
@@ -903,7 +991,7 @@ function afterMove(f){mvQ.add(f);clearTimeout(mvT);mvT=setTimeout(()=>{const fs=
 map.on('movestart',()=>clearTimeout(mvT));
 map.on('moveend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();afterMove(drawFacilities);afterMove(drawDeals);afterMove(drawTrees);});
 map.on('zoomend',()=>{if(heat)heat.setOpacity(heatOpacity());syncLabels();}); // zoomend 之後一定還有 moveend，設施只在 moveend 重畫一次
-map.on('click',e=>{if(state.editing)return;if(state.view.type==='val'){closePops();return;}if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
+map.on('click',e=>{if(state.editing)return;if(flagPlacing){placeFlag(flagPlacing,e.latlng);return;}if(state.view.type==='val'){closePops();return;}if(Date.now()-pressAt<700)return;if(closePops())return;if(handleLifeMapPoint(e.latlng))return;if(state.openDistanceLayer&&closeTune())return;if(state.drawing){addDrawPt(e.latlng);return;}if(state.transit){closeDetail();return;}
   const k=cellAtLatLng(e.latlng.lat,e.latlng.lng);if(k<0||!state.res||isNaN(state.res.worst[k])){if(state.view.type!=='list')closeDetail();return;}openCell(k);});
 
 // ---------- sheet rendering ----------
@@ -927,7 +1015,7 @@ let recalcRaf=0;function scheduleRecalc(now){cancelAnimationFrame(recalcRaf);rec
   recalcRaf=requestAnimationFrame(()=>{recalcRaf=0;if(state.res){analyze();drawHeat();}});}
 function setLayerMins(id,m){state.minsByLayer[id]=m;if(state.res){analyze();drawHeat();drawPins();}renderCategorySettings();render();}
 function foot(){return `<div class="foot">各交通方式時間為直線距離 ×1.25，再依平均速度估算（非實際道路導航、班次或即時路況）；公園綠地算到邊界。<br>資料：© OpenStreetMap 貢獻者、交通部 TDX、內政部人行道資料${state.built?'（'+state.built+' 更新）':''}</div>`;}
-function render(){const v=state.view;document.body.classList.toggle('vlist',listHidden());syncTabs();syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='homes')return renderHomes();if(v.type==='settings')return renderSettings();
+function render(){const v=state.view;document.body.classList.toggle('vlist',listHidden());syncTabs();syncListBtn();if(v.type==='cell')return renderCell();if(v.type==='place')return renderPlace();if(v.type==='poi')return renderPoi();if(v.type==='val')return renderVal();if(v.type==='cmp')return renderCmp();if(v.type==='market')return renderMarket();if(v.type==='export')return renderExport();if(v.type==='homes')return renderHomes();if(v.type==='flag')return renderFlag();if(v.type==='settings')return renderSettings();
   const H=$('head'),Bd=$('body'),R=state.res;
   $('resultBtn').innerHTML='';syncListBtn(); // 地圖主畫面不放左下角按鈕，清單改由右側「清單」按鈕打開
   if(state.loading){H.innerHTML='<h1>載入中…</h1><div class="sub">正在讀取臺北市資料</div>';Bd.innerHTML='<div class="skel" style="width:70%"></div><div class="skel"></div><div class="skel" style="width:85%"></div>';return;}
@@ -937,7 +1025,7 @@ function render(){const v=state.view;document.body.classList.toggle('vlist',list
   if(!state.active.size){H.innerHTML='<h1>選擇你在意的設施</h1><div class="sub">點上方的類別（可複選），找出全部都走得到的地方</div>';Bd.innerHTML='';return;}
   if(!R){H.innerHTML=state.err?'<h1>資料下載失敗</h1><div class="sub">伺服器忙碌，請再點一次上方的類別重試</div>':'<h1>載入中…</h1><div class="sub">正在下載'+scopeName()+'的資料</div>';
     Bd.innerHTML=state.err?'':'<div class="skel" style="width:70%"></div><div class="skel"></div>';if(state.err)setSheet(isMob()&&state.sheetVis<5?'half':snap,false);return;}
-  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.act.length} 項都到得了</span></div>`;
+  H.innerHTML=`<div class="sumline"><span class="dot"></span><span class="t">${scopeName()}・${R.n} 項都符合</span></div>`;
   let h='<div class="legend"><span style="font-weight:700">整體設施密度</span><span>低</span><i class="grad" style="background:linear-gradient(90deg,#FFF6CC,#FFD670,#F7931E,#E54C2E,#A02868,#123B8A)"></i><span>高</span></div>';
   if(!state.zones.length)h+=`<div class="note">這個範圍沒有同時符合所有類別個別步行距離的地方。可調整各類別距離，或減少選取類別。</div>`;
   if(!(state.scope===''||state.scope.startsWith('m:')))h+=`<div style="margin-top:14px"><button class="btn" id="toCity">‹ 看全臺北市</button></div>`;
@@ -995,11 +1083,11 @@ function gmKeyBox(open){return `<details class="gm-key"${open?' open':''}><summa
 function bindGmKey(root){const sv=root.querySelector('#gmSave');if(!sv)return;sv.onclick=()=>{const v=root.querySelector('#gmKey').value.trim();if(!/^AIza[\w-]{20,}$/.test(v)){toast('金鑰格式不對（應該是 AIza 開頭）',true);return;}
     GMKEY=v;try{localStorage.setItem('tlm.gmkey',v);}catch(e){}gmP=null;for(const k in SVC)delete SVC[k];toast('已儲存 Google 金鑰');render();};
   const d=root.querySelector('#gmDel');if(d)d.onclick=()=>{GMKEY='';try{localStorage.removeItem('tlm.gmkey');}catch(e){}toast('已移除 Google 金鑰');render();};}
-function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.length,ok=R.okc[k]===n;
+function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.n,ok=R.okc[k]===n;
   headDetail(v.title||DISTRICTS[c.d].name+'・這個位置',v.sub||'從這裡走到最近的每一類設施',v.category);
-  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]);
+  const failed=R.act.filter((id,i)=>tmin(R.D[i].d[k],id)>R.thresholds[i]).map(id=>LAYER[id].name).concat(R.flags.filter((f,q)=>!flagOk(f,R.FD[q][k])).map(f=>f.label));
   const nOk=n-failed.length,ring=n?`<svg class="vring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" stroke="#ECEEF1" stroke-width="6" fill="none"/><circle cx="22" cy="22" r="18" stroke="${ok?'#188038':'#E8710A'}" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${(113.1*nOk/n).toFixed(1)} 200" transform="rotate(-90 22 22)"/></svg>`:'';
-  let h=`<div class="verdict v2 ${ok?'ok':'no'}">${ring}<div><b>${ok?'全部符合':nOk+' / '+n+' 項符合'}</b><span>${ok?'每一類都在你設定的時間內':failed.map(id=>LAYER[id].name).join('、')+' 太遠'}</span></div></div>
+  let h=`<div class="verdict v2 ${ok?'ok':'no'}">${ring}<div><b>${ok?'全部符合':nOk+' / '+n+' 項符合'}</b><span>${ok?'每一類都在你設定的時間內':failed.join('、')+' 不符合'}</span></div></div>
   <div class="pacts"><button type="button" class="pa main" data-pa="value">${categoryIcon('value')}估價這裡</button><button type="button" class="pa" data-pa="life" aria-label="加入生活圈">${categoryIcon('life')}生活圈</button><button type="button" class="pa" data-pa="transit" aria-label="附近的大眾運輸">${categoryIcon('mrt')}交通</button></div>${svEmbedHTML(c.la,c.lo)}${svLink(c.la,c.lo,'svl cell-sv')}`;
   const tbar=(t,thr)=>t===Infinity?'':`<span class="tbar" aria-hidden="true"><i style="width:${Math.min(100,t/(thr*1.5)*100).toFixed(0)}%;background:${t<=thr?'#34A853':'#F29900'}"></i><em style="left:${(100/1.5).toFixed(1)}%"></em></span>`;
   R.act.forEach((id,i)=>{const l=LAYER[id],D=R.D[i];
@@ -1008,7 +1096,10 @@ function renderCell(){const v=state.view,R=state.res,k=v.k,c=CELLS[k],n=R.act.le
     const t=tmin(D.d[k],id),f=D.nf[k]>=0?data(id)[D.nf[k]]:null,good=t<=R.thresholds[i];
     const tap=f&&id!=='life'&&t!==Infinity;
     h+=`<div class="row${tap?' tap':''}"${tap?` data-poi="${id}:${D.nf[k]}" data-ok="${good?1:0}"`:''}><span class="ic" style="background:${l.bg};color:${l.color}">${l.icon}</span><div><div class="t">${f&&f.name?esc(f.name):'最近的'+esc(l.name)}</div><div class="m">${l.name}</div>${tbar(t,R.thresholds[i])}</div><span class="time ${good?'ok':'no'}">${t===Infinity?'超出分析範圍':modeName(state.modeByLayer[id])+' '+Math.max(1,Math.ceil(t))+' 分'}</span>${tap?'<span class="go">›</span>':''}</div>`;});
+  R.flags.forEach((f,q)=>{const t=flagT(R.FD[q][k],f),good=flagOk(f,R.FD[q][k]);
+    h+=`<div class="row tap" data-flag-open="${f.id}"><span class="ic flag-ic ${f.type}">${categoryIcon('flag')}</span><div><div class="t">${esc(f.label)}</div><div class="m">${f.type==='like'?'喜愛點・要在 '+f.mins+' 分內':'嫌惡點・要超過 '+f.mins+' 分'}</div>${f.type==='like'?`<span class="tbar" aria-hidden="true"><i style="width:${Math.min(100,t/(f.mins*1.5)*100).toFixed(0)}%;background:${good?'#34A853':'#F29900'}"></i><em style="left:66.7%"></em></span>`:''}</div><span class="time ${good?'ok':'no'}">${t===Infinity?'很遠':modeName(f.mode)+' '+Math.max(1,Math.ceil(t))+' 分'}</span><span class="go">›</span></div>`;});
   $('body').innerHTML=h+(GMKEY?'':'<button type="button" class="to-set" data-open-settings>在 app 內看 360° 街景：到「設定」加入 Google 金鑰 ›</button>')+foot();fillStreetViews($('body'));
+  $('body').querySelectorAll('[data-flag-open]').forEach(el=>el.onclick=()=>{pushBack();openFlag(el.dataset.flagOpen);});
   $('body').querySelectorAll('[data-poi]').forEach(el=>el.onclick=()=>{const [id,i]=el.dataset.poi.split(':'),f=data(id)[+i];pushBack();openPoi(f,LAYER[id],{pt:[c.la,c.lo],txt:el.querySelector('.time').textContent,ok:el.dataset.ok==='1'});});
   $('body').querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>placeAct(b.dataset.pa,{lat:c.la,lng:c.lo}));}
 function nearPt(D,k){return[CITY[0]+D.ny[k]/KY,CITY[1]+D.nx[k]/KX];}
@@ -1128,13 +1219,13 @@ let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now()
 // 長按放開手指時，瀏覽器會補一個「點擊」打在手指下的東西（區名、圖釘…），造成誤選區域：吃掉這一下
 ['touchend','pointerup','mouseup'].forEach(t=>document.addEventListener(t,()=>{if(pressActive){pressActive=false;swallowUntil=Date.now()+500;}},true));
 document.addEventListener('click',e=>{if(Date.now()<swallowUntil&&!(e.target.closest&&e.target.closest('#pressMenu'))){e.stopImmediatePropagation();e.preventDefault();swallowUntil=0;}},true);
-$('exploreBtn').innerHTML=categoryIcon('explore')+'<span>探索</span>';$('exportBtn').innerHTML=categoryIcon('house')+'<span>房源</span>';$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('savedBtn').innerHTML=categoryIcon('bookmark')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('exploreBtn').onclick=()=>{closePops();if(state.view.type!=='list')closeDetail();else syncTabs();};$('homesBtn').onclick=()=>openHomes();$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('locate').innerHTML=categoryIcon('locate');
+$('exploreBtn').innerHTML=categoryIcon('explore')+'<span>探索</span>';$('exportBtn').innerHTML=categoryIcon('house')+'<span>房源</span>';$('homesBtn').innerHTML=categoryIcon('star')+'<span>物件</span>';$('marketBtn').innerHTML=categoryIcon('trend')+'<span>房市</span>';$('savedBtn').innerHTML=categoryIcon('bookmark')+'<span>我的篩選</span>';$('savedBtn').onclick=()=>togglePop('filterPop','savedBtn');document.querySelector('#regionBtn .rg-ic').innerHTML=categoryIcon('region');$('exploreBtn').onclick=()=>{closePops();if(state.view.type!=='list')closeDetail();else syncTabs();};$('homesBtn').onclick=()=>openHomes();$('exportBtn').onclick=()=>openExport();$('marketBtn').onclick=()=>openMarket();$('layersBtn').innerHTML=categoryIcon('layers');$('flagBtn').innerHTML=categoryIcon('flag');$('flagBtn').onclick=()=>togglePop('flagsPop','flagBtn');$('locate').innerHTML=categoryIcon('locate');
 // 底部 4 個分頁：探索（地圖本身與點地圖的詳細）、房源、物件、房市；目前所在的分頁高亮
 function tabOf(t){return t==='export'?'exportBtn':t==='homes'||t==='cmp'?'homesBtn':t==='market'?'marketBtn':t==='settings'?'':'exploreBtn';}
 function syncTabs(){const on=tabOf(state.view&&state.view.type);['exploreBtn','exportBtn','homesBtn','marketBtn'].forEach(id=>{const b=$(id);if(b){b.setAttribute('aria-selected',String(id===on));b.classList.toggle('on',id===on);}});}
-function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','savedBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;if($(b))$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
+function closePops(except){let any=false;[['regionPop','regionBtn'],['layersPop','layersBtn'],['filterPop','savedBtn'],['flagsPop','flagBtn']].forEach(([p,b])=>{if(p===except)return;if(!$(p).hidden)any=true;$(p).hidden=true;if($(b))$(b).setAttribute('aria-expanded','false');});if(except!=='press')any=closePress()||any;return any;}
 function togglePop(p,b){const open=$(p).hidden;closePops(p);closeTune();
-  $(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}}
+  $(p).hidden=!open;if($(b))$(b).setAttribute('aria-expanded',String(open));if(open&&p==='layersPop')renderLayersPop();if(open&&p==='flagsPop')renderFlagsPop();if(open&&p==='regionPop')renderRegionPop();if(open&&p==='filterPop')renderFilterPop();if(open&&(p==='filterPop'||p==='regionPop')){const c=$('filterCard').getBoundingClientRect(),el=$(p);el.style.top=(c.bottom+8)+'px';el.style.maxHeight=Math.max(200,innerHeight-c.bottom-navH()-24)+'px';}}
 $('regionBtn').onclick=()=>togglePop('regionPop','regionBtn');
 function renderSavedRow(){}
 $('layersBtn').onclick=()=>togglePop('layersPop','layersBtn');$('setBtn').innerHTML=categoryIcon('gear');$('setBtn').onclick=openSettings;syncTabs();
@@ -1187,11 +1278,11 @@ let pressActive=false,swallowUntil=0;
 function openPress(ll,fromTouch){if(state.drawing||state.editing)return;pressActive=!!fromTouch;closePops('press');closeTune();pressAt=Date.now();pressLL=ll;pressLayer.clearLayers();
   L.marker(ll,{icon:L.divIcon({className:'press-dot',iconSize:[16,16]}),interactive:false,zIndexOffset:1500}).addTo(pressLayer);
   const p=map.latLngToContainerPoint(ll),m=$('pressMenu');
-  m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button><button type="button" data-press="value" aria-label="評估這裡的房子" title="評估這裡的房子">${categoryIcon('value')}</button>`;
+  m.innerHTML=`<button type="button" class="hi" data-press="life" aria-label="加入生活圈" title="加入生活圈">${categoryIcon('life')}</button><button type="button" data-press="info" aria-label="這裡的生活機能" title="這裡的生活機能">${categoryIcon('info')}</button><button type="button" data-press="transit" aria-label="附近的大眾運輸" title="附近的大眾運輸">${categoryIcon('mrt')}</button><button type="button" data-press="value" aria-label="評估這裡的房子" title="評估這裡的房子">${categoryIcon('value')}</button><button type="button" class="pf like" data-press="like" aria-label="在這裡插喜愛點" title="喜愛點">${categoryIcon('flag')}</button><button type="button" class="pf dislike" data-press="dislike" aria-label="在這裡插嫌惡點" title="嫌惡點">${categoryIcon('flag')}</button>`;
   m.hidden=false;const w=m.offsetWidth;m.style.left=Math.max(w/2+8,Math.min(innerWidth-w/2-8,p.x))+'px';m.style.top=Math.max(130,p.y-18)+'px';
   m.querySelectorAll('[data-press]').forEach(b=>b.onclick=()=>pressAction(b.dataset.press));}
 function pressAction(a){const ll=pressLL;closePress();if(!ll)return;placeAct(a,ll);}
-function placeAct(a,ll){const pt=[ll.lat,ll.lng];
+function placeAct(a,ll){const pt=[ll.lat,ll.lng];if(a==='like'||a==='dislike'){placeFlag(a,ll);return;}
   if(a==='life'){if(state.lifeCenters.length>=3){toast('生活圈最多 3 個地點，請先刪除一個');return;}
     state.lifeCenters.push({label:['住家','公司','常去地點'][state.lifeCenters.length]||'地點',center:pt});state.active.add('life');toast('已加入生活圈「'+state.lifeCenters[state.lifeCenters.length-1].label+'」');lifeChanged();return;}
   if(a==='value'){openVal(pt);return;}
@@ -1418,7 +1509,7 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
 // ---------- 雲端同步（Supabase）：個人資料跨裝置；用 email 登入連結，每個帳號只讀得到自己的資料（資料表 user_data 有 RLS） ----------
 const SB_URL='https://exugellewviuiwnohsfo.supabase.co',SB_KEY='sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4';
 // 同步的個人資料（裝置上只留一份副本，雲端為準）；金鑰、token、快取、暫存不同步
-const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW'];
+const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW','tlm.flags'];
 let SBA=null,CMETA={},cloudApplying=false,cloudTimer=null,cloudBusy=false,cloudErr='';
 try{SBA=JSON.parse(localStorage.getItem('tlm.auth')||'null');CMETA=JSON.parse(localStorage.getItem('tlm.cloudmeta')||'{}');}catch(e){}
 const saveSBA=()=>{try{SBA?localStorage.setItem('tlm.auth',JSON.stringify(SBA)):localStorage.removeItem('tlm.auth');}catch(e){}};
@@ -1476,7 +1567,8 @@ function applyPersonal(changed){if(!changed.length)return;
   try{const sl=JSON.parse(localStorage.getItem('tlm.layers')||'null');if(sl)for(const k in state.layers)if(k in sl)state.layers[k]=!!sl[k];}catch(e){}
   try{SEEN=JSON.parse(localStorage.getItem('tlm.seen')||'{}');}catch(e){}
   try{SALEF=Object.assign({by:'ping',min:null,max:null,seen:'all',pby:'total',pmin:null,pmax:null},JSON.parse(localStorage.getItem('tlm.salef')||'{}'));}catch(e){}
-  try{const man=JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>!l.sync);LISTINGS=LISTINGS.filter(l=>l.sync).concat(man);}catch(e){}}
+  try{const man=JSON.parse(localStorage.getItem('tlm.listings')||'[]').filter(l=>!l.sync);LISTINGS=LISTINGS.filter(l=>l.sync).concat(man);}catch(e){}
+  if(changed.includes('tlm.flags')){FLAGS=loadFlags();if(typeof run==='function'&&!state.loading)run();}}
 function cloudBox(){const d=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
   return `<div class="im-box" id="cloudBox"><h3>雲端同步</h3>${SBA?`<div class="hint" style="margin:0">已登入 <b>${esc(SBA.email||'')}</b>。我的物件、篩選、圖層、看過的房源會自動同步，其他裝置登入同一個 email 就看得到。${SBA.at?`上次同步 ${d(SBA.at)}`:''}</div>${cloudErr?`<div class="hint bad" style="margin:6px 0 0">${esc(cloudErr)}</div>`:''}<div class="im-row"><button type="button" class="s" id="cloudNow">立即同步</button><button type="button" class="s" id="cloudOut">登出</button></div>`
     :`<div class="hint" style="margin:0">用 email 登入，個人資料就會存在雲端，換手機或電腦都看得到。</div>${cloudErr?`<div class="hint bad" style="margin:6px 0 0">${esc(cloudErr)}</div>`:''}<div class="vform"><label class="wide">Email<input id="cloudEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@example.com"></label></div><div class="im-row"><button type="button" id="cloudSend">寄登入連結</button></div><div class="im-st" id="cloudSent"></div>`}</div>`;}
@@ -1816,17 +1908,20 @@ function listingVal(l){const f=listingForm(l);if(!f)return null;const key=listin
   if(k>=0){V={pt,dist:DISTRICTS[CELLS[k].d].name,form:f,fin:finInit()};V.s=poiScore(pt);V.est=estimate({pt,dist:V.dist,t:f.t,ping:f.ping,age:f.age,fl:f.fl,tot:f.tot,s:V.s});V.mk=marketH(V.dist,f.t);V.off=V.est.ok?valOffers(V):null;if(!V.off)V=null;}
   LVAL.set(key,V);return V;}
 // 分批計算（每批約 12ms），不卡畫面；房源多時顯示進度
-async function affCompute(){const seq=++affSeq,B=affBudget(),sv={...SALEF};const pool=saleAll().map(l=>({l,i:LISTINGS.indexOf(l)})).filter(o=>{SALEF.pmin=SALEF.pmax=null;try{return saleOk(o.l);}finally{SALEF.pmin=sv.pmin;SALEF.pmax=sv.pmax;}}).filter(o=>!(o.l.price>0)||o.l.price<=B*1.6);
+// 只算目前選的範圍（上方「選區域」／框選）；勾「只看符合條件的地方」時再限縮到地圖上符合所有條件的格子
+function affInScope(l){const k=cellAtLatLng(l.lat,l.lng);if(k<0)return false;if(AFF.good){const R=state.res;if(!R||R.okc[k]!==R.n)return false;}if(state.scope==='')return true;if(!affInScope.set||affInScope.key!==scopeKey()){affInScope.set=new Set(scopeCells());affInScope.key=scopeKey();}return affInScope.set.has(k);}
+async function affCompute(){const seq=++affSeq,B=affBudget(),sv={...SALEF};const pool=saleAll().filter(affInScope).map(l=>({l,i:LISTINGS.indexOf(l)})).filter(o=>{SALEF.pmin=SALEF.pmax=null;try{return saleOk(o.l);}finally{SALEF.pmin=sv.pmin;SALEF.pmax=sv.pmax;}}).filter(o=>!(o.l.price>0)||o.l.price<=B*1.6);
   const out=[];let j=0,skip=0;
   while(j<pool.length){const t0=performance.now();while(j<pool.length&&performance.now()-t0<12){const o=pool[j++],V=listingVal(o.l);if(!V){skip++;continue;}if(V.off.out[1]<=B)out.push({l:o.l,i:o.i,V,h:{form:V.form,name:o.l.addr}});}
     if(j<pool.length){const p=$('affProg');if(p)p.textContent=`計算中 ${Math.round(j/pool.length*100)}%`;await new Promise(r=>setTimeout(r,0));if(seq!==affSeq)return;}}
   if(seq!==affSeq)return;const R=out.length?cmpRank(out):[];affRes={B,items:out,R,skip,pool:pool.length};renderAff();}
 function affHTML(){const B=affBudget();
   return `<div class="aff" id="affBox"><div class="aff-h"><div><b>負擔得起的推薦</b><small>合理出價在預算內，依推薦指數排序</small></div></div>
+    <div class="aff-sc"><span class="aff-scn">${categoryIcon('region')}${esc(scopeName())}</span><button type="button" class="aff-good" id="affGood" aria-pressed="${!!AFF.good}">只看符合條件的地方</button></div>
     <div class="aff-b"><label class="vd-in aff-in"><span class="pre">預算</span><input id="affIn" inputmode="decimal" value="${B}" aria-label="能負擔的總價（萬）"><span>萬</span></label><div class="seg sm" role="group" aria-label="推薦重點">${Object.entries(RANK_W).map(([k,[n]])=>`<button type="button" data-afw="${k}" aria-pressed="${cmpW===k}">${n}</button>`).join('')}</div></div>
     <div id="affList"><div class="hint2" id="affProg">計算中…</div></div></div>`;}
 function renderAff(){const el=$('affList');if(!el||!affRes)return;const {R,items,skip}=affRes,n=Math.min(AFF.n,R.length),num=v=>Math.round(v).toLocaleString('en-US');
-  if(!R.length){el.innerHTML=`<div class="hint2" id="affEmpty">沒有合理出價在 ${num(affRes.B)} 萬以內的房源${skip?`（${skip} 間缺坪數或屋齡，無法估價）`:''}</div>`;return;}
+  if(!R.length){el.innerHTML=`<div class="hint2" id="affEmpty">${esc(scopeName())}${AFF.good?'符合條件的地方':''}沒有合理出價在 ${num(affRes.B)} 萬以內的房源${skip?`（${skip} 間缺坪數或屋齡，無法估價）`:''}</div>`;return;}
   el.innerHTML=`<div class="aff-sum"><b>${R.length}</b> 間符合${skip?`<span>・${skip} 間缺坪數或屋齡沒算</span>`:''}</div>`+R.slice(0,n).map((r,j)=>{const x=items[r.i],V=x.V,o=V.off,l=x.l,ask=+l.price||null,pay=valLoan(V,o.out[1]).pay,cut=ask?(o.out[1]/ask-1)*100:null;
     return `<button type="button" class="aff-row${j<3?' top':''}" data-aff="${x.i}"><span class="rk-n">${j+1}</span><span class="aff-m"><span class="aff-t"><b>${esc(l.addr)}</b><span class="rk-s">${Math.round(r.total)}<small> 分</small></span></span>
       <span class="aff-p"><span class="fair">合理 ${num(o.out[1])} 萬</span>${ask?`<span class="ask">開價 ${num(ask)}${cut<=-.5?`・<em>${pcTxt(cut)}</em>`:''}</span>`:''}<span class="pay">月付約 ${num(pay)} 元</span></span>
@@ -1836,7 +1931,9 @@ function renderAff(){const el=$('affList');if(!el||!affRes)return;const {R,items
     `<div class="rk-leg">${RANK_K.map(([k,nm,c])=>`<span><i style="background:${c}"></i>${nm}</span>`).join('')}</div><details class="mk-det"><summary>怎麼算的</summary>每間房源用估價模型（附近相似成交）算出保守／合理／積極出價，合理出價不會高於開價；留下合理出價在預算內的。推薦指數同「比較物件」的模型排名：價格划算（預期成交價對比行情）、生活機能、月付負擔（相對最低那間）、屋齡，依上方重點加權。月付用合理出價、貸 8 成、目前利率試算。缺樓層時假設 4/7 樓。統計估算，只供參考。</details>`;
   el.querySelectorAll('[data-aff]').forEach(b=>b.onclick=()=>openSaleAt(+b.dataset.aff));const m=$('affMore');if(m)m.onclick=()=>{AFF.n+=20;renderAff();};}
 async function bindAff(){const box=$('affBox');if(!box)return;try{await loadVal();}catch(e){$('affList').innerHTML='<div class="hint2">估價資料還沒建好，暫時無法計算</div>';return;}
-  const inp=$('affIn');let tm=0;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=parseFloat(inp.value);if(v>=100){AFF.budget=v;AFF.n=20;try{localStorage.setItem('tlm.afford',JSON.stringify({budget:v}));}catch(e){}affCompute();}},350);};
+  const saveA=()=>{try{localStorage.setItem('tlm.afford',JSON.stringify({budget:AFF.budget,good:!!AFF.good}));}catch(e){}};
+  const inp=$('affIn');let tm=0;inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=parseFloat(inp.value);if(v>=100){AFF.budget=v;AFF.n=20;saveA();affCompute();}},350);};
+  $('affGood').onclick=()=>{AFF.good=!AFF.good;AFF.n=20;$('affGood').setAttribute('aria-pressed',String(AFF.good));saveA();affCompute();};
   box.querySelectorAll('[data-afw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.afw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}box.querySelectorAll('[data-afw]').forEach(y=>y.setAttribute('aria-pressed',String(y===b)));if(affRes){affRes.R=cmpRank(affRes.items);renderAff();}});
   affCompute();}
 function openSaleAt(i){const l=LISTINGS[i];if(!l||!l.lat)return;if(!state.layers.sale){state.layers.sale=true;applyLayers();}if(isMob())setSheet('peek');map.setView([l.lat,l.lng],Math.max(map.getZoom(),17),{animate:false});
@@ -2129,7 +2226,7 @@ function openDealPop(g){const T=VALDATA.types,r0=g[0],show=g.slice(0,5);
 
 // ---------- main flow ----------
 async function run(){const seq=++state.seq;state.err=null;saveLast();drawLifeCenters();
-  if((!state.baked&&state.scope==='')||!state.active.size){state.res=null;state.zones=[];drawHeat();drawPins();drawFacilities();render();return;}
+  drawFlags();if((!state.baked&&state.scope==='')||(!state.active.size&&!activeFlags().length)){state.res=null;state.zones=[];drawHeat();drawPins();drawFacilities();render();return;}
   if(!state.baked){const need=[...new Set([...state.active,'mrt'])];
     if(need.some(id=>!data(id))){state.res=null;drawHeat();drawPins();render();busy(true);
       try{await ensureLive(need);}catch(e){busy(false);if(seq===state.seq){state.err=e;render();toast('下載失敗：'+e.message,true);}return;}
