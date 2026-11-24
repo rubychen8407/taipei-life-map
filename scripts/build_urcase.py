@@ -2,8 +2,10 @@
 """都更案件：從財團法人都市更新研究發展基金會（URF）製作的 Google 我的地圖「臺北市都市更新地圖」
 （https://www.ur.org.tw/classroom/map_view/11 內嵌）匯出 KML，產生 data/urcase.json。
 
-只取「案件」：已核定重建更新事業（優先劃定／自行劃定／迅行劃定／都市計畫四個圖層）與「中央及市府主導」。
-更新地區範圍與自劃單元已由 build_urban.py 從臺北市都發局官方圖層提供，這裡不重複。
+三種資料：
+- cases：已核定重建更新事業（優先劃定／自行劃定／迅行劃定／都市計畫四個圖層）與「中央及市府主導」
+- units：自劃單元（只留「已核准」，已失效的只計數）——都發局官方圖層只有少數自劃單元，這裡補齊
+- areas：更新地區（優先劃定／迅行劃定／都市計畫）
 只當資訊顯示（圖層、估價位置分頁），不計入估價。資料來源標示：財團法人都市更新研究發展基金會。
 """
 import json, os, re, sys, time, urllib.request
@@ -124,17 +126,51 @@ def parse(kml_bytes):
     return cases
 
 
+def parse_more(kml_bytes):
+    """自劃單元（已核准）與更新地區"""
+    root = ET.fromstring(kml_bytes)
+    units, areas, lapsed = [], [], 0
+    for folder in root.iter(NS + 'Folder'):
+        fname = (folder.findtext(NS + 'name') or '').strip()
+        is_unit = '自劃單元' in fname
+        akind = next((k for key, k in FOLDERS if key in fname), None) if fname.startswith('更新地區') else None
+        if not is_unit and not akind:
+            continue
+        for pm in folder.findall(NS + 'Placemark'):
+            rings = rings_of(pm)
+            if not rings:
+                continue
+            d = {x.get('name'): (x.findtext(NS + 'value') or '').strip() for x in pm.iter(NS + 'Data')}
+            name = (pm.findtext(NS + 'name') or '').strip()
+            if is_unit:
+                if '失效' in d.get('失效與否', ''):
+                    lapsed += 1
+                    continue
+                u = {'n': re.sub(r'^(臺|台)北市', '', re.sub(r'為更新單元$', '', name)), 'd': ymd(d.get('核准日期', '')), 'a': num(d.get('基地面積', ''))}
+                u = {k: v for k, v in u.items() if v not in ('', None)}
+                u['r'] = rings
+                units.append(u)
+            else:
+                a = {'k': akind, 'n': name, 'd': ymd(d.get('公告日期', '')), 'c': d.get('計畫書名稱', ''), 'a': num(d.get('地區範圍面積', ''))}
+                a = {k: v for k, v in a.items() if v not in ('', None)}
+                a['r'] = rings
+                areas.append(a)
+    return units, areas, lapsed
+
+
 def build(kml_bytes, out_dir=os.path.join(B.ROOT, 'data'), built=None, min_cases=300, log=print):
     cases = parse(kml_bytes)
     if len(cases) < min_cases:
         raise SystemExit(f'都更案件只有 {len(cases)} 件（少於 {min_cases}），可能是來源異常，不更新')
+    units, areas, lapsed = parse_more(kml_bytes)
     cnt = {k: sum(c['s'] == k for c in cases) for k in STATUS}
+    cnt.update({'unit': len(units), 'unit_lapsed': lapsed, 'area': len(areas)})
     out = {'built': built or datetime.now(timezone.utc).strftime('%Y-%m-%d'), 'src': 'urf-mymaps', 'source': SRC_PAGE, 'credit': CREDIT,
-           'status': STATUS, 'basis': BASIS, 'count': cnt, 'cases': cases}
+           'status': STATUS, 'basis': BASIS, 'count': cnt, 'cases': cases, 'units': units, 'areas': areas}
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, 'urcase.json'), 'w', encoding='utf-8') as fh:
         json.dump(out, fh, ensure_ascii=False, separators=(',', ':'))
-    log(f'都更案件 {len(cases)} 件 {cnt}')
+    log(f'都更案件 {len(cases)} 件、自劃單元 {len(units)} 塊、更新地區 {len(areas)} 處 {cnt}')
     return out
 
 
