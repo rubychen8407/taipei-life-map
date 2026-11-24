@@ -2229,9 +2229,10 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   for(let it=0;it<40;it++)homes.forEach((a,i)=>homes.forEach((b,j)=>{if(j<=i)return;const A=POS[a.id],Bp=POS[b.id];let dx=Bp[0]-A[0],dz=Bp[1]-A[1],d=Math.hypot(dx,dz);if(d>=9)return;
     if(d<.01){const t=(hashStr(a.id+b.id)%628)/100;dx=Math.cos(t);dz=Math.sin(t);d=1;}const k=(9-d)/2/d;A[0]-=dx*k;A[1]-=dz*k;Bp[0]+=dx*k;Bp[1]+=dz*k;}));
   // 分區：每間物件歸到所在的行政區，同區的物件聚在一塊有底色的區域，區域裡放那一區的地標（物件增減時自動重排）
+  const DLM_N=new Set(['信義區','中山區','中正區','大同區','萬華區','大安區','松山區','士林區','北投區','內湖區','南港區','文山區']);
   const dOf=pt=>{let i=DISTRICTS.findIndex(d=>inPoly(d,pt[0],pt[1]));if(i<0){let bd=1e9;DISTRICTS.forEach((d,k)=>{const v=Math.hypot(d.ctr[0]-pt[0],d.ctr[1]-pt[1]);if(v<bd){bd=v;i=k;}});}return i;};
   const REGS=[];homes.forEach(h=>{const k=dOf(h.pt);let r=REGS.find(x=>x.k===k);if(!r)REGS.push(r={k,name:DISTRICTS[k].name,ids:[]});r.ids.push(h.id);});
-  REGS.forEach(r=>{r.c=[0,1].map(i=>r.ids.reduce((s2,id)=>s2+POS[id][i],0)/r.ids.length);r.r=Math.max(11,...r.ids.map(id=>Math.hypot(POS[id][0]-r.c[0],POS[id][1]-r.c[1])+8));});
+  REGS.forEach(r=>{r.c=[0,1].map(i=>r.ids.reduce((s2,id)=>s2+POS[id][i],0)/r.ids.length);r.r=Math.max(11,...r.ids.map(id=>Math.hypot(POS[id][0]-r.c[0],POS[id][1]-r.c[1])+8))+(DLM_N.has(r.name)?9:0);});
   const shiftReg=(r,dx,dz)=>{r.c[0]+=dx;r.c[1]+=dz;r.ids.forEach(id=>{POS[id][0]+=dx;POS[id][1]+=dz;});};
   for(let it=0;it<80;it++)REGS.forEach((a,i)=>REGS.forEach((b2,j)=>{if(j<=i)return;let dx=b2.c[0]-a.c[0],dz=b2.c[1]-a.c[1],d=Math.hypot(dx,dz);const need=a.r+b2.r+4;if(d>=need)return;
     if(d<.01){const t=(hashStr(a.name+b2.name)%628)/100;dx=Math.cos(t);dz=Math.sin(t);d=1;}const k=(need-d)/2/d;shiftReg(a,-dx*k,-dz*k);shiftReg(b2,dx*k,dz*k);}));
@@ -2284,28 +2285,48 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   // 樹（合併）
   const tree=(x,z,k,y0=0)=>{const c=['#5DBB63','#7FCB5C','#3FA45B','#9AD46A'][Math.floor(rnd()*4)];env.add(G.cyl6,'#9C6B45',x,y0+.55*k,z,0,0,0,.2*k,1.1*k,.2*k);env.add(G.ico,toon(c,{flatShading:true}),x,y0+1.65*k,z,0,rnd()*6,0,.95*k,1.05*k,.95*k);env.add(G.ico,toon(c,{flatShading:true}),x+.45*k,y0+1.25*k,z+.3*k,0,0,0,.6*k,.6*k,.6*k);};
   // 地標（造型認，不放字）
-  const LMB={'101':(x,z)=>{env.add(G.box,'#9FD3C7',x,1.1,z,0,0,0,4.4,2.2,4.4);let y=2.2,w=1.7;for(let k=0;k<8;k++){env.add(new T.CylinderGeometry(w,w*.76,1.75,4),'#7EC9B8',x,y+.88,z,0,Math.PI/4);y+=1.75;w*=.97;}env.add(G.box,'#7EC9B8',x,y+.6,z,0,0,0,1.8,1.2,1.8);env.add(G.cyl,'#E8EAED',x,y+3.2,z,0,0,0,.2,4,.2);},
-    wheel:(x,z)=>{const g=new T.Group();g.position.set(x,0,z);g.rotation.y=.6;scene.add(g);const b=bucket();b.add(new T.TorusGeometry(3.4,.22,8,40),'#F28C8C',0,5.4,0);for(let k=0;k<12;k++){b.add(G.box,'#FFFFFF',0,5.4,0,0,0,k/12*Math.PI,.08,6.8,.08);const a=k/12*Math.PI*2;b.add(G.box,['#FAC775','#85B7EB','#97C459','#F4C0D1'][k%4],Math.cos(a)*3.4,5.4+Math.sin(a)*3.4,0,0,0,0,.55,.55,.55);}
-      [-1,1].forEach(c=>b.add(G.box,'#E8EAED',c*1.2,2.6,0,0,0,-c*.22,.25,5.6,.25));b.add(G.box,'#F4E6CF',0,.8,-2.5,0,0,0,5,1.6,3);b.build(g);},
-    grand:(x,z)=>{env.add(G.box,'#F4E6CF',x,.8,z,0,0,0,6,1.6,2);for(let k=0;k<3;k++)env.add(G.box,'#C0392B',x,1.7+k*.6,z,0,0,0,6.4-k*.6,.15,2.3);env.add(new T.CylinderGeometry(.01,2.4,1.4,4),'#D9442C',x,3.6,z,0,Math.PI/4,0,1.9,1,.62);for(let k=0;k<6;k++)env.add(G.cyl,'#C0392B',x-2.5+k,.8,z+1.05,0,0,0,.12,1.6,.12);},
-    cks:(x,z)=>{env.add(G.box,'#F2F2F2',x,.3,z,0,0,0,6,.6,6);env.add(G.box,'#F2F2F2',x,.9,z,0,0,0,4,.6,4);env.add(G.box,'#FFFFFF',x,2.3,z,0,0,0,2.8,2.2,2.8);env.add(new T.ConeGeometry(2.4,1.8,8),'#2F5FA8',x,4.3,z);env.add(new T.ConeGeometry(1.4,1.1,8),'#2F5FA8',x,5.2,z);},
-    station:(x,z)=>{env.add(G.box,'#E9DCC4',x,.9,z,0,0,0,8,1.8,5);env.add(G.box,'#6B4B3A',x,2,z,0,0,0,8.6,.4,5.6);env.add(G.box,'#E9DCC4',x,2.45,z,0,0,0,6,.5,3.6);env.add(G.box,'#6B4B3A',x,2.85,z,0,0,0,6.6,.3,4.2);}};
-  const DLM={'信義區':LMB['101'],'中山區':LMB.wheel,'中正區':LMB.cks,
-    '大同區':(x,z)=>{['#B5553C','#C46A4A','#A84C36','#BF5E44'].forEach((c,k)=>{const dx=(k-1.5)*1.9;env.add(G.box,c,x+dx,1.6,z,0,0,0,1.8,3.2,2.4);env.add(G.box,'#F1E3CF',x+dx,3.45,z+1.21,0,0,0,1.5,.5,.1);for(const wy of [.9,2.2])env.add(G.box,'#5B4636',x+dx,wy,z+1.22,0,0,0,.6,.7,.05);env.add(G.box,'#E8D5B5',x+dx,.25,z+1.4,0,0,0,1.8,.08,.6);});},
-    '萬華區':(x,z)=>{env.add(G.box,'#D9C7A3',x,.3,z,0,0,0,6.4,.6,4.4);for(let k=0;k<6;k++)env.add(G.cyl,'#C0392B',x-2.5+k,1.6,z+1.6,0,0,0,.16,2,.16);env.add(G.box,'#F2E3C6',x,1.6,z-.2,0,0,0,5.4,2,3);
-      env.add(G.cone4,'#C0392B',x,3.4,z,0,Math.PI/4,0,5.2,1.6,3.4);env.add(G.cone4,'#C0392B',x,4.6,z,0,Math.PI/4,0,3.2,1.2,2.2);env.add(G.box,'#2E8B57',x,5.25,z,0,0,0,3.6,.18,.2);[-1,1].forEach(c=>env.add(G.cone4,'#2E8B57',x+c*1.9,5.45,z,0,Math.PI/4,c*.5,.25,.6,.25));},
-    '大安區':(x,z)=>{env.add(new T.CylinderGeometry(4.6,4.6,.06,32),'#7CC36B',x,.06,z);env.add(new T.CylinderGeometry(1.6,1.6,.05,24),'#5AB8E6',x+1.6,.1,z+1.2);for(let k=0;k<7;k++){const t=k/7*Math.PI*2;tree(x+Math.cos(t)*3.6,z+Math.sin(t)*3.6,1.25+rnd()*.3);}
-      env.add(new T.SphereGeometry(1.5,20,12,0,Math.PI,0,Math.PI/2),'#F4F1EA',x-1.4,.06,z-.6,0,Math.PI/2,0);},
-    '松山區':(x,z)=>{env.add(G.box,'#9A9DA3',x,.05,z,0,0,0,9,.1,2.4);for(let k=-4;k<=4;k+=2)env.add(G.box,'#FFFFFF',x+k,.12,z,0,0,0,1,.02,.15);env.add(G.cyl,'#E8EAED',x-3.6,2,z-2.6,0,0,0,.45,4,.45);env.add(G.cyl,'#7FB3D5',x-3.6,4.3,z-2.6,0,0,0,.8,.6,.8);
-      env.add(new T.CapsuleGeometry(.35,3,6,10),'#FFFFFF',x+1,.9,z,0,0,Math.PI/2);env.add(G.box,'#FFFFFF',x+1.2,.9,z,0,0,0,.8,.08,4.2);env.add(G.box,'#2F5FA8',x-.4,1.4,z,0,0,0,.6,.9,.08);env.add(G.box,'#2F5FA8',x+1,.92,z,0,0,0,3,.06,.72);},
-    '士林區':(x,z)=>{env.add(G.box,'#F2F2F2',x,.4,z,0,0,0,8,.8,4);env.add(G.box,'#F2F2F2',x,1,z,0,0,0,6.4,.4,3.2);env.add(G.box,'#F3DC9A',x,2,z,0,0,0,5.6,1.6,2.6);
-      env.add(G.cone4,'#3E8E5E',x,3.4,z,0,Math.PI/4,0,4.8,1.3,2.6);[-1,1].forEach(c=>{env.add(G.box,'#F3DC9A',x+c*3.6,1.6,z,0,0,0,1.6,1.2,2);env.add(G.cone4,'#3E8E5E',x+c*3.6,2.6,z,0,Math.PI/4,0,1.6,.9,1.6);});},
-    '北投區':(x,z)=>{env.add(new T.CylinderGeometry(2.6,2.6,.08,24),'#8FD3C9',x,.08,z);for(let k=0;k<12;k++){const t=k/12*Math.PI*2;env.add(G.ico,toon('#9A9590',{flatShading:true}),x+Math.cos(t)*2.7,.25,z+Math.sin(t)*2.7,0,t,0,.45,.35,.4);}
-      for(let k=0;k<5;k++)env.add(G.sph,toon('#FFFFFF',{transparent:true,opacity:.55}),x-1+k*.5,1+k*.45,z-.5+(k%2)*.6,0,0,0,.5+k*.08,.5+k*.08,.5+k*.08);env.add(G.box,'#9C7A54',x+4,1,z,0,0,0,2.6,2,2);env.add(G.box,'#5E8F5A',x+4,2.15,z,0,0,0,3,.3,2.4);},
-    '內湖區':(x,z)=>{env.add(new T.CylinderGeometry(3.4,3.4,.06,28),'#5AB8E6',x,.06,z);env.add(new T.TorusGeometry(2.6,.18,8,24,Math.PI),'#F4F1EA',x,0,z,0,0,0);for(let k=0;k<7;k++){const t=k/6*Math.PI;env.add(G.box,'#F4F1EA',x-Math.cos(t)*2.6,Math.sin(t)*2.6+.1,z,0,0,t-Math.PI/2,.9,.08,1.1);}tree(x-4,z+2,1);tree(x+4.2,z-1.5,1.1);},
-    '南港區':(x,z)=>{env.add(G.box,'#DDE3EA',x,1,z,0,0,0,8,2,4);for(let k=0;k<4;k++)env.add(new T.CylinderGeometry(1,1,4,16,1,false,0,Math.PI),'#A9C4DC',x-3+k*2,2,z,Math.PI/2,0,Math.PI/2);env.add(G.box,'#7FB3D5',x,.9,z+2.01,0,0,0,7.2,1.2,.05);},
-    '文山區':(x,z)=>{for(let k=0;k<4;k++)env.add(new T.CylinderGeometry(3.6-k*.8,3.8-k*.8,.7,20),k%2?'#6DBA62':'#86C96E',x,.35+k*.7,z);for(let k=0;k<6;k++){const t=k/6*Math.PI*2;env.add(G.sph,'#3F8F4A',x+Math.cos(t)*2.9,.85,z+Math.sin(t)*2.9,0,0,0,.35,.25,.35);}
-      env.add(G.cyl6,'#8A8F96',x-3.6,2.2,z+3.4,0,0,0,.1,4.4,.1);env.add(G.cyl6,'#8A8F96',x+.2,5,z,0,0,0,.1,4,.1);env.add(new T.TubeGeometry(new T.LineCurve3(new T.Vector3(x-3.6,4.4,z+3.4),new T.Vector3(x+.2,7,z)),2,.03,4),'#4A4640');env.add(G.box,'#E85D5D',x-1.7,5.2,z+1.7,0,.7,0,.7,.6,.6);}};
+  // 各區地標（放大、會動）：每個地標是一個 Group，靜態零件合併，會動的零件掛在 ANI（每格畫面呼叫，t＝秒）
+  const ANI=[],LS=1.8,mb=(c,o)=>new T.MeshToonMaterial(Object.assign({color:c,gradientMap:TG},o||{})),mesh=(g,geo,mat,x=0,y=0,z=0)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
+  const puffs=(g,n,x,y,z,spread,rise,size,col,per)=>{const ps=[];for(let k=0;k<n;k++){const m=mesh(g,G.sph,mb(col,{transparent:true,opacity:.6}),x,y,z);m.castShadow=false;m.userData.ph=k/n;ps.push(m);}
+    ANI.push(t=>ps.forEach((m,k)=>{const p=(t/per+m.userData.ph)%1;m.position.set(x+Math.sin(k*2.1+t*.7)*spread*p,y+p*rise,z+Math.cos(k*1.7)*spread*p);m.scale.setScalar(size*(.5+p));m.material.opacity=.65*(1-p);}));};
+  const birds=(g,n,y,r,col)=>{const bs=[];for(let k=0;k<n;k++){const b=new T.Group();g.add(b);mesh(b,G.box,mb(col),0,0,0).scale.set(.35,.18,.18);const w1=mesh(b,G.box,mb(col),0,0,.25),w2=mesh(b,G.box,mb(col),0,0,-.25);[w1,w2].forEach(w=>w.scale.set(.25,.04,.45));b.userData={w1,w2,ph:k/n};bs.push(b);}
+    ANI.push(t=>bs.forEach((b,k)=>{const a=t*.5+b.userData.ph*Math.PI*2;b.position.set(Math.cos(a)*r,y+Math.sin(t*1.3+k)*.6,Math.sin(a)*r);b.rotation.y=-a;const f=Math.sin(t*12+k)*.6;b.userData.w1.rotation.x=f;b.userData.w2.rotation.x=-f;}));};
+  const flag=(g,x,z,h,col)=>{mesh(g,G.cyl6,mb('#8A8F96'),x,h/2,z).scale.set(.05,h,.05);const f=mesh(g,new T.PlaneGeometry(1.2,.75,6,1),mb(col,{side:T.DoubleSide}),x+.6,h-.45,z);const pa=f.geometry.attributes.position,x0=Float32Array.from(pa.array);
+    ANI.push(t=>{for(let i=0;i<pa.count;i++){const u=x0[i*3]+.6;pa.setZ(i,Math.sin(t*5-u*4)*.15*u);}pa.needsUpdate=true;f.geometry.computeVertexNormals();f.rotation.y=Math.sin(t*1.3+x)*.15;});};
+  const DLM={
+    '信義區':(b,g)=>{b.add(G.box,'#9FD3C7',0,1.1,0,0,0,0,4.4,2.2,4.4);let y=2.2,w=1.7;for(let k=0;k<8;k++){b.add(new T.CylinderGeometry(w,w*.76,1.75,4),'#7EC9B8',0,y+.88,0,0,Math.PI/4);b.add(G.box,'#D8F0EA',0,y+.03,0,0,0,0,w*1.25,.06,w*1.25);y+=1.75;w*=.97;}
+      b.add(G.box,'#7EC9B8',0,y+.6,0,0,0,0,1.8,1.2,1.8);b.add(G.cyl,'#E8EAED',0,y+3.2,0,0,0,0,.2,4,.2);const top=y+5.3,bc=mesh(g,G.sph,new T.MeshBasicMaterial({color:'#FF5A4E'}),0,top,0);bc.scale.setScalar(.22);
+      const fw=[];['#FFD15C','#FF7AA2','#7FD4FF','#B6F08A'].forEach((c,j)=>{for(let k=0;k<14;k++){const m=mesh(g,G.sph,new T.MeshBasicMaterial({color:c,transparent:true}),0,top,0);m.castShadow=false;const a=k/14*Math.PI*2,e=(k%3-1)*.6;m.userData={d:new T.Vector3(Math.cos(a)*Math.cos(e),Math.sin(e)+.3,Math.sin(a)*Math.cos(e)),j};fw.push(m);}});
+      ANI.push(t=>{bc.visible=Math.sin(t*4)>0;fw.forEach(m=>{const u=m.userData,p=((t+u.j*1.3)%5.2)/1.6;m.visible=p<1;if(p<1){const c=new T.Vector3(((u.j*37)%7-3)*.8,top+2+u.j*.8,((u.j*53)%5-2)*.8);m.position.copy(c).addScaledVector(u.d,p*3.2);m.scale.setScalar(.16*(1-p*.6));m.material.opacity=1-p;}});});},
+    '中山區':(b,g)=>{b.add(G.box,'#F4E6CF',0,.8,-2.6,0,0,0,6,1.6,3);[-1,1].forEach(c=>b.add(G.box,'#E8EAED',c*1.3,2.8,0,0,0,-c*.22,.3,6,.3));const wh=new T.Group();wh.position.y=5.6;g.add(wh);const wb=bucket();wb.add(new T.TorusGeometry(3.6,.22,8,48),'#F28C8C');
+      for(let k=0;k<12;k++)wb.add(G.box,'#FFFFFF',0,0,0,0,0,k/12*Math.PI,.08,7.2,.08);wb.build(wh);const cabs=[];for(let k=0;k<12;k++){const a=k/12*Math.PI*2,c=new T.Group();c.position.set(Math.cos(a)*3.6,Math.sin(a)*3.6,0);wh.add(c);const m=mesh(c,G.box,mb(['#FAC775','#85B7EB','#97C459','#F4C0D1'][k%4]),0,-.45,0);m.scale.set(.6,.6,.6);cabs.push(c);}
+      ANI.push(t=>{wh.rotation.z=t*.25;cabs.forEach(c=>c.rotation.z=-wh.rotation.z);});},
+    '中正區':(b,g)=>{b.add(G.box,'#F2F2F2',0,.3,0,0,0,0,6,.6,6);b.add(G.box,'#F2F2F2',0,.9,0,0,0,0,4,.6,4);b.add(G.box,'#FFFFFF',0,2.3,0,0,0,0,2.8,2.2,2.8);b.add(new T.ConeGeometry(2.4,1.8,8),'#2F5FA8',0,4.3,0);b.add(new T.ConeGeometry(1.4,1.1,8),'#2F5FA8',0,5.2,0);
+      for(let k=0;k<5;k++)b.add(G.box,'#E8EAED',0,.12+k*.12,3.4+k*.35,0,0,0,2.4,.12,.4);birds(g,5,6.5,4.2,'#FFFFFF');},
+    '大同區':(b,g)=>{const lan=[];['#B5553C','#C46A4A','#A84C36','#BF5E44'].forEach((c,k)=>{const dx=(k-1.5)*1.9;b.add(G.box,c,dx,1.6,0,0,0,0,1.8,3.2,2.4);b.add(G.box,'#F1E3CF',dx,3.45,1.21,0,0,0,1.5,.5,.1);for(const wy of [.9,2.2])b.add(G.box,'#5B4636',dx,wy,1.22,0,0,0,.6,.7,.05);b.add(G.box,'#E8D5B5',dx,.25,1.4,0,0,0,1.8,.08,.6);
+      const p=new T.Group();p.position.set(dx,1.55,1.6);g.add(p);mesh(p,G.cyl6,mb('#5B4636'),0,-.15,0).scale.set(.015,.3,.015);const l=mesh(p,G.sph,mb('#E8402F',{emissive:'#B71C1C',emissiveIntensity:.4}),0,-.45,0);l.scale.set(.22,.28,.22);lan.push(p);});
+      ANI.push(t=>lan.forEach((p,k)=>p.rotation.z=Math.sin(t*1.8+k)*.18));},
+    '萬華區':(b,g)=>{b.add(G.box,'#D9C7A3',0,.3,0,0,0,0,6.4,.6,4.4);for(let k=0;k<6;k++)b.add(G.cyl,'#C0392B',-2.5+k,1.6,1.6,0,0,0,.16,2,.16);b.add(G.box,'#F2E3C6',0,1.6,-.2,0,0,0,5.4,2,3);
+      b.add(G.cone4,'#C0392B',0,3.4,0,0,Math.PI/4,0,5.2,1.6,3.4);b.add(G.cone4,'#C0392B',0,4.6,0,0,Math.PI/4,0,3.2,1.2,2.2);b.add(G.box,'#2E8B57',0,5.25,0,0,0,0,3.6,.18,.2);[-1,1].forEach(c=>b.add(G.cone4,'#2E8B57',c*1.9,5.45,0,0,Math.PI/4,c*.5,.25,.6,.25));
+      b.add(G.cyl,'#7A5C3A',0,.9,3.2,0,0,0,.5,.6,.5);puffs(g,7,0,1.3,3.2,.5,3.5,.35,'#EDEDED',3.2);},
+    '大安區':(b,g)=>{b.add(new T.CylinderGeometry(4.8,4.8,.06,32),'#7CC36B',0,.06,0);b.add(new T.CylinderGeometry(1.8,1.8,.05,24),'#5AB8E6',1.6,.1,1.2);for(let k=0;k<8;k++){const t=k/8*Math.PI*2,x=Math.cos(t)*3.9,z=Math.sin(t)*3.9;b.add(G.cyl6,'#9C6B45',x,.7,z,0,0,0,.25,1.4,.25);b.add(G.ico,toon(['#5DBB63','#3FA45B','#7FCB5C'][k%3],{flatShading:true}),x,2.2,z,0,k,0,1.2,1.3,1.2);}
+      b.add(new T.SphereGeometry(1.5,20,12,0,Math.PI,0,Math.PI/2),'#F4F1EA',-1.4,.06,-.6,0,Math.PI/2,0);const ducks=[];for(let k=0;k<2;k++){const d=new T.Group();g.add(d);mesh(d,G.sph,mb('#FFD54F'),0,.25,0).scale.set(.28,.2,.2);mesh(d,G.sph,mb('#FFD54F'),.22,.42,0).scale.setScalar(.12);mesh(d,G.box,mb('#F57C00'),.36,.4,0).scale.set(.1,.04,.06);ducks.push(d);}
+      const ft=mesh(g,G.cyl,mb('#BFE6F7',{transparent:true,opacity:.8}),1.6,.6,1.2);ft.scale.set(.15,1,.15);ANI.push(t=>{ducks.forEach((d,k)=>{const a=t*.5+k*Math.PI;d.position.set(1.6+Math.cos(a)*1.2,.05,1.2+Math.sin(a)*1.2);d.rotation.y=-a-Math.PI/2;});ft.scale.y=.6+Math.abs(Math.sin(t*3))*.8;ft.position.y=ft.scale.y/2+.1;});},
+    '松山區':(b,g)=>{b.add(G.box,'#9A9DA3',0,.05,0,0,0,0,10,.1,2.4);for(let k=-4;k<=4;k+=2)b.add(G.box,'#FFFFFF',k,.12,0,0,0,0,1,.02,.15);b.add(G.cyl,'#E8EAED',-3.8,2,-2.8,0,0,0,.45,4,.45);b.add(G.cyl,'#7FB3D5',-3.8,4.3,-2.8,0,0,0,.8,.6,.8);
+      const bc=mesh(g,G.sph,new T.MeshBasicMaterial({color:'#FF5A4E'}),-3.8,4.8,-2.8);bc.scale.setScalar(.15);const pl=new T.Group();g.add(pl);const pb=bucket();pb.add(new T.CapsuleGeometry(.35,3,6,10),'#FFFFFF',0,0,0,0,0,Math.PI/2);pb.add(G.box,'#FFFFFF',.2,0,0,0,0,0,.8,.08,4.2);pb.add(G.box,'#2F5FA8',-1.4,.5,0,0,0,0,.6,.9,.08);pb.add(G.box,'#2F5FA8',0,.02,0,0,0,0,3,.06,.72);pb.build(pl);
+      ANI.push(t=>{bc.visible=Math.sin(t*3)>0;const p=(t%14)/14;let x,y,a;if(p<.45){const q=p/.45;x=-4.5+q*q*9;y=.9;a=0;}else if(p<.8){const q=(p-.45)/.35;x=4.5+q*10;y=.9+q*q*9;a=.35;}else{x=-4.5;y=.9;a=0;}pl.position.set(x,y,0);pl.rotation.z=a;pl.visible=p<.8||p>.95;});},
+    '士林區':(b,g)=>{b.add(G.box,'#F2F2F2',0,.4,0,0,0,0,8,.8,4);b.add(G.box,'#F2F2F2',0,1,0,0,0,0,6.4,.4,3.2);b.add(G.box,'#F3DC9A',0,2,0,0,0,0,5.6,1.6,2.6);b.add(G.cone4,'#3E8E5E',0,3.4,0,0,Math.PI/4,0,4.8,1.3,2.6);
+      [-1,1].forEach(c=>{b.add(G.box,'#F3DC9A',c*3.6,1.6,0,0,0,0,1.6,1.2,2);b.add(G.cone4,'#3E8E5E',c*3.6,2.6,0,0,Math.PI/4,0,1.6,.9,1.6);});for(let k=0;k<6;k++)b.add(G.box,'#E8EAED',0,.1+k*.12,2.2+k*.35,0,0,0,3,.12,.4);flag(g,-3.4,3,3.4,'#C0392B');flag(g,3.4,3,3.4,'#2F5FA8');},
+    '北投區':(b,g)=>{b.add(new T.CylinderGeometry(2.8,2.8,.08,24),'#8FD3C9',0,.08,0);for(let k=0;k<12;k++){const t=k/12*Math.PI*2;b.add(G.ico,toon('#9A9590',{flatShading:true}),Math.cos(t)*2.9,.25,Math.sin(t)*2.9,0,t,0,.5,.38,.45);}
+      b.add(G.box,'#9C7A54',4.4,1,0,0,0,0,2.6,2,2);b.add(G.box,'#5E8F5A',4.4,2.15,0,0,0,0,3,.3,2.4);puffs(g,10,0,.3,0,1.6,4.5,.7,'#FFFFFF',4);},
+    '內湖區':(b,g)=>{b.add(new T.CylinderGeometry(3.8,3.8,.06,28),'#5AB8E6',0,.06,0);for(let k=0;k<9;k++){const t=k/8*Math.PI;b.add(G.box,'#F4F1EA',-Math.cos(t)*2.6,Math.sin(t)*2.6+.1,0,0,0,t-Math.PI/2,.95,.1,1.2);}
+      const bt=new T.Group();g.add(bt);mesh(bt,G.box,mb('#F2B33D'),0,.2,0).scale.set(1.2,.35,.55);mesh(bt,G.box,mb('#FFFFFF'),-.15,.5,0).scale.set(.5,.3,.45);ANI.push(t=>{bt.position.set(Math.sin(t*.35)*.6,Math.sin(t*2)*.04,Math.sin(t*.35+1.5)*2.6);bt.rotation.y=Math.PI/2+Math.cos(t*.35)*.3;});},
+    '南港區':(b,g)=>{b.add(G.box,'#DDE3EA',0,1,0,0,0,0,8,2,4);for(let k=0;k<4;k++)b.add(new T.CylinderGeometry(1,1,4,16,1,false,0,Math.PI),'#A9C4DC',-3+k*2,2,0,Math.PI/2,0,Math.PI/2);b.add(G.box,'#7FB3D5',0,.9,2.01,0,0,0,7.2,1.2,.05);
+      [-3,0,3].forEach((x,k)=>flag(g,x,3,3.2,['#F7931E','#1A73E8','#34A853'][k]));},
+    '文山區':(b,g)=>{for(let k=0;k<4;k++)b.add(new T.CylinderGeometry(3.6-k*.8,3.8-k*.8,.7,20),k%2?'#6DBA62':'#86C96E',0,.35+k*.7,0);for(let k=0;k<6;k++){const t=k/6*Math.PI*2;b.add(G.sph,'#3F8F4A',Math.cos(t)*2.9,.85,Math.sin(t)*2.9,0,0,0,.35,.25,.35);}
+      const A=new T.Vector3(-4,4.4,3.6),Bv=new T.Vector3(.2,7.4,0);b.add(G.cyl6,'#8A8F96',A.x,A.y/2,A.z,0,0,0,.12,A.y,.12);b.add(G.cyl6,'#8A8F96',Bv.x,Bv.y/2+1.4,Bv.z,0,0,0,.12,Bv.y-2.8,.12);b.add(new T.TubeGeometry(new T.LineCurve3(A,Bv),2,.03,4),'#4A4640');
+      const gs=[0,.5].map(o=>{const c=new T.Group();g.add(c);mesh(c,G.box,mb(o?'#85B7EB':'#E85D5D'),0,-.5,0).scale.set(.7,.6,.6);mesh(c,G.cyl6,mb('#4A4640'),0,-.1,0).scale.set(.03,.3,.03);c.userData.o=o;return c;});
+      ANI.push(t=>gs.forEach(c=>{const p=(t*.06+c.userData.o)%1,q=p<.5?p*2:2-p*2;c.position.lerpVectors(A,Bv,q);}));}};
   CITY_LM.filter(L=>L.k==='mtn').forEach(L=>{const [x,z]=P(L.pt);if(L.k==='mtn'){if(!inIsle(x,z,2)||busy.some(([a,b,r])=>Math.hypot(a-x,b-z)<r+L.r))return;const g=new T.ConeGeometry(L.r,L.h,10,4),p=g.attributes.position;
       for(let i=0;i<p.count;i++){const y=p.getY(i);if(y>-L.h/2+.01&&y<L.h/2-.01){p.setX(i,p.getX(i)*(.88+rnd()*.24));p.setZ(i,p.getZ(i)*(.88+rnd()*.24));}}g.computeVertexNormals();
       const m=new T.Mesh(g,toon('#5FB063',{flatShading:true}));m.position.set(x,L.h/2-.2,z);m.castShadow=m.receiveShadow=true;scene.add(m);busy.push([x,z,L.r]);for(let i=0;i<L.r*3;i++){const a=rnd()*7,rr=rnd()*L.r*.8;tree(x+Math.cos(a)*rr,z+Math.sin(a)*rr,.7+rnd()*.4,L.h*(1-rr/L.r)-.2);}return;}
@@ -2315,9 +2336,9 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   REGS.forEach((r,i)=>{const sh=new T.Shape();for(let a=0;a<=60;a++){const t=a/60*Math.PI*2,rr=r.r*(1+.05*Math.sin(t*3+i)),x=r.c[0]+Math.cos(t)*rr,y=-(r.c[1]+Math.sin(t)*rr);a?sh.lineTo(x,y):sh.moveTo(x,y);}
     const g=new T.ShapeGeometry(sh,24);g.rotateX(-Math.PI/2);const m=new T.Mesh(g,toon(TINT[r.k%TINT.length]));m.position.y=.03;m.receiveShadow=true;scene.add(m);
     const n=Math.round(r.r*1.6);for(let a=0;a<n;a++){const t=a/n*Math.PI*2,x=r.c[0]+Math.cos(t)*r.r,z=r.c[1]+Math.sin(t)*r.r;if(!nearRd(x,z,.4)&&inIsle(x,z,1))env.add(G.sph,'#4E9E58',x,.25,z,0,0,0,.6,.42,.6);}
-    const f=DLM[r.name];if(!f)return;let best=null;for(const dd of [r.r-4.5,r.r-6.5,r.r-3])for(let a=0;a<24;a++){const t=a/24*Math.PI*2,x=r.c[0]+Math.cos(t)*dd,z=r.c[1]+Math.sin(t)*dd;if(!inIsle(x,z,4)||nearRd(x,z,2.6)||nearR(x,z,1))continue;
-      const md=Math.min(...busy.map(([a2,b2])=>Math.hypot(a2-x,b2-z)));if(md<7.5)continue;const sc3=md-Math.hypot(x,z)*.05;if(!best||sc3>best[2])best=[x,z,sc3];}
-    if(!best)return;f(best[0],best[1]);busy.push([best[0],best[1],5]);LMS.push({name:r.name,x:best[0],z:best[1]});});
+    const f=DLM[r.name];if(!f)return;let best=null;for(const dd of [r.r-7,r.r-9,r.r-5.5])for(let a=0;a<24;a++){const t=a/24*Math.PI*2,x=r.c[0]+Math.cos(t)*dd,z=r.c[1]+Math.sin(t)*dd;if(!inIsle(x,z,7)||nearRd(x,z,5)||nearR(x,z,3))continue;
+      const md=Math.min(...busy.map(([a2,b2])=>Math.hypot(a2-x,b2-z)));if(md<10)continue;const sc3=md-Math.hypot(x,z)*.05;if(!best||sc3>best[2])best=[x,z,sc3];}
+    if(!best)return;const lg=new T.Group();lg.position.set(best[0],0,best[1]);lg.rotation.y=Math.atan2(r.c[0]-best[0],r.c[1]-best[1]);lg.scale.setScalar(LS);scene.add(lg);const lb=bucket();f(lb,lg);lb.build(lg);busy.push([best[0],best[1],8]);LMS.push({name:r.name,x:best[0],z:best[1],g:lg});});
   // 背景小房子與樹（避開物件、地標、河、路）
   const free=(x,z,m)=>inIsle(x,z,2)&&!nearR(x,z,m)&&!nearRd(x,z,m)&&busy.every(([a,b,r])=>Math.hypot(a-x,b-z)>r+m);
   const hc=['#F6E7D7','#F3D9C8','#E9E3F2','#DCEBE0','#F7EBC4','#E3ECF6'],rc=['#D98C6A','#7FA6C9','#9DBE8C','#C9A27E'];
@@ -2412,7 +2433,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
       const i=bld.findIndex(x=>x.userData.id===id),ng=makeB(loadHomes().find(x=>x.id===id));scene.remove(bld[i]);bld[i].traverse(o=>{o.geometry&&o.geometry!==G.sph&&o.geometry.dispose();});scene.add(ng);bld[i]=ng;stat();select(id);
       toast(v==='seen'?'「'+h.name+'」蓋好了':v==='nego'?'「'+h.name+'」亮燈了，議價中':'「'+h.name+'」回到鷹架');});
     $('ccOpen').onclick=()=>{closeCity();openHome(loadHomes().find(x=>x.id===id));};}
-  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
+  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,ANI,get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
   resize();setCam();stat();const ro=new ResizeObserver(resize);ro.observe(el);CITY3D.ro=ro;
   const v3=new T.Vector3();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;
@@ -2434,6 +2455,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
       u.drops.forEach(d=>{const p=((now/1400+d.userData.ph)%1);d.position.y=u.H*.85*(1-p)+.3;});
       if(!reduce){if(u.jib)u.jib.rotation.y=Math.sin(now/2200)*1.1;if(u.flag)u.flag.rotation.y=Math.sin(now/300)*.35;if(u.bulbs)u.bulbs.children.forEach((b,k)=>b.visible=Math.sin(now/260+k)>-.4);}});
     if(!reduce)clouds.forEach(c=>{c.position.x+=c.userData.v*dt;if(c.position.x>IR*3.5)c.position.x=-IR*3.5;});
+    if(!reduce)ANI.forEach(f=>f(now/1000,dt));
     if(selRing.visible)selRing.rotation.z+=dt*.6;renderer.render(scene,cam);CITY3D&&(CITY3D.raf=requestAnimationFrame(loop));};
   CITY3D.raf=requestAnimationFrame(loop);}
 // 我的物件的分數：所有物件一起用比較物件同一套模型排名（cmpRank）算分，清單可依分數排序
