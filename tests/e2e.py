@@ -1293,6 +1293,9 @@ async def baked_suite(b, errs):
     await ev("CITY3D.zoom(75,.55)"); await page.wait_for_timeout(1500)
     rg2 = await ev("({regs:CITY3D.REGS.map(r=>r.name+r.ids.length),lms:CITY3D.LMS.map(l=>l.name),sep:(()=>{const R=CITY3D.REGS;let m=1e9;R.forEach((a,i)=>R.forEach((b,j)=>{if(j>i)m=Math.min(m,Math.hypot(a.c[0]-b.c[0],a.c[1]-b.c[1])-a.r-b.r)}));return m})()})")
     check(len(rg2['regs']) == 6 and len(rg2['lms']) >= 5 and rg2['sep'] >= 3, f"物件增加到 7 間、分在 6 區：小島自動重排成 6 個不重疊的區域，各區放自己的地標（101、摩天輪、故宮、龍山寺…）{rg2}")
+    an = await ev("""(()=>{const f=()=>CITY3D.LMS.map(l=>{let s=0;l.g.traverse(o=>{s+=o.position.x*3+o.position.y*7+o.rotation.z*11+o.rotation.y*5+o.scale.x*2;});return s.toFixed(4)});const a=f();return new Promise(r=>setTimeout(()=>r({a,b:f(),names:CITY3D.LMS.map(l=>l.name),sc:CITY3D.LMS.map(l=>l.g.scale.x),ani:CITY3D.ANI.length}),800));})()""")
+    still = [n for n, x, y in zip(an['names'], an['a'], an['b']) if x == y]
+    check(not still and all(x >= 1.8 for x in an['sc']) and an['ani'] >= len(an['names']), f"地標放大（1.8 倍）而且會動：摩天輪轉、101 放煙火、龍山寺冒香煙、鴨子游泳、小船划過錦帶橋、故宮旗子飄… {an['names']} 沒動：{still}")
     await shot(page, '9c2_city_regions')
     await page.keyboard.press('Escape'); await page.wait_for_timeout(200)
     await ev(f"localStorage.setItem('tlm.homes',{json.dumps(saved)});renderHomes()"); await page.wait_for_timeout(200)
