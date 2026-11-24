@@ -815,6 +815,13 @@ function prep(list){return list.map(f=>{const o={name:f.n!=null?f.n:(f.name||'')
   if(o.polys){let a=90,b=-90,c=180,d=-180;o.polys.forEach(p=>p.forEach(([la,lo])=>{a=Math.min(a,la);b=Math.max(b,la);c=Math.min(c,lo);d=Math.max(d,lo);}));o.bb=[a,c,b,d];}return o;});}
 // 離線快取（sw.js）：資料檔第二次起直接用裝置上的版本；啟動後空閒時先把常用的資料抓好，第一次點估價、房市不用等下載
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!window.__noSW)navigator.serviceWorker.register('sw.js').catch(()=>{});
+// 背景更新後資料換了（service worker 傳 tlm-data）：圖層資料清掉重抓重畫，下次估價用新的
+function onDataUpdated(path){const f=(path||'').split('/').pop();let hit=false;
+  if(f==='urcase.json'){URC=null;URCLOAD=null;if(urcLayer){map.removeLayer(urcLayer);urcLayer=null;}drawUrc();hit=state.layers.urcase;}
+  else if(f==='urban.json'){URBAN=null;URBANLOAD=null;if(urbanLayer){map.removeLayer(urbanLayer);urbanLayer=null;}drawUrban();hit=state.layers.urban;}
+  else if(f==='land.json'){LAND=null;LANDLOAD=null;if(landLayer){map.removeLayer(landLayer);landLayer=null;}drawLand();hit=state.layers.land;}
+  if(hit)toast('地圖資料有新版，已更新');}
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='tlm-data')onDataUpdated(e.data.url);});
 function warmCache(){const c=navigator.connection;if(window.__noWarm||c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;
   const sw=!!(navigator.serviceWorker&&navigator.serviceWorker.controller),list=['data/valuation.json','data/realprice.json','config/finance.json','data/market.json','data/urban.json','data/land.json'].concat(sw?['data/routes.json']:[]);
   const one=u=>fetch(u).then(r=>{if(!r.ok)return;return sw&&r.body?r.body.cancel():r.blob();}).catch(()=>{});

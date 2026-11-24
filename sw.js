@@ -1,6 +1,6 @@
 // 離線快取：資料檔（data/*.json、config/*.json）與 Leaflet 先用裝置上的版本立刻顯示，
-// 超過 6 小時才在背景向伺服器更新；網頁本身（index.html）先抓網路、3 秒沒回應或離線才用快取。
-const CACHE = 'tlm-v1', TILES = 'tlm-tiles-v1', MAX_TILES = 3000, MAX_AGE = 6 * 3600e3;
+// 超過 10 分鐘就在背景向伺服器確認（有 ETag，沒變只回 304）；內容換了就通知網頁重畫（tlm-data 訊息）；網頁本身（index.html）先抓網路、3 秒沒回應或離線才用快取。
+const CACHE = 'tlm-v1', TILES = 'tlm-tiles-v1', MAX_TILES = 3000, MAX_AGE = 10 * 60e3;
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k !== CACHE && k !== TILES) await caches.delete(k);
@@ -15,10 +15,23 @@ async function refresh(req, c) {
   if (res.ok) await c.put(req, await stamp(res.clone()));
   return res;
 }
+const ver = r => r.headers.get('etag') || r.headers.get('last-modified') || '';
+// 有 ETag／Last-Modified 就比對它，沒有就比對內容大小
+async function changed(oldRes, newRes) {
+  const a = ver(oldRes), b = ver(newRes);
+  if (a && b) return a !== b;
+  return (await oldRes.blob()).size !== (await newRes.blob()).size;
+}
 async function dataFirst(e) {
   const c = await caches.open(CACHE), hit = await c.match(e.request);
   if (hit) {
-    if (Date.now() - (+hit.headers.get('sw-time') || 0) > MAX_AGE) e.waitUntil(refresh(e.request, c).catch(() => {}));
+    if (Date.now() - (+hit.headers.get('sw-time') || 0) > MAX_AGE) {
+      const old = hit.clone();
+      e.waitUntil(refresh(e.request, c).then(async res => {
+        if (!res.ok || !(await changed(old, res.clone()))) return;
+        for (const cl of await self.clients.matchAll({ type: 'window' })) cl.postMessage({ type: 'tlm-data', url: new URL(e.request.url).pathname });
+      }).catch(() => {}));
+    }
     return hit;
   }
   return refresh(e.request, c);

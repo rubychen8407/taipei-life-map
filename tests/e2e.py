@@ -224,6 +224,17 @@ async def sw_suite(b, errs):
     n1 = len(data_hits)
     await ev("void openVal([25.0335,121.5436])"); await page.wait_for_function("!!VALDATA", timeout=20000)
     check(not any(x in data_hits[n1:] for x in ('realprice.json', 'valuation.json')), f'啟動後空閒時已先抓好估價資料，點估價不用再等下載（{data_hits[n1:]}）')
+    # 裝置上的資料舊了（超過 10 分鐘）：service worker 先給舊的、背景確認，版本換了傳 tlm-data；網頁收到就清掉重抓重畫
+    swt = await ev("fetch('sw.js').then(r=>r.text())")
+    check('MAX_AGE = 10 * 60e3' in swt and "type: 'tlm-data'" in swt, 'service worker：資料檔超過 10 分鐘就背景確認，版本換了通知網頁')
+    await ev("""(async()=>{URC={built:'old',status:{ok:'已核定',review:'權變審議中',build:'施工中',done:'已完工'},count:{},cases:[],units:[],areas:[]};URCLOAD=Promise.resolve(URC);state.layers.urcase=true;await drawUrc();
+      navigator.serviceWorker.dispatchEvent(new MessageEvent('message',{data:{type:'tlm-data',url:'/taipei-life-map/data/urcase.json'}}));})()""")
+    for _ in range(40):
+        if await ev("!!URC&&URC.built!=='old'&&!!urcLayer"): break
+        await page.wait_for_timeout(250)
+    dm = await ev("({built:URC&&URC.built,n:urcLayer?urcLayer.getLayers().length:0,toast:document.getElementById('toast').innerText})")
+    check(dm['built'] != 'old' and dm['n'] > 0 and '新版' in dm['toast'], f"網頁收到「資料有新版」：都更圖層清掉舊資料、重抓重畫並提示 {dm}")
+    await ev("state.layers.urcase=false;drawUrc()")
     await ctx.close()
 
 
