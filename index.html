@@ -881,15 +881,16 @@ const flagLayer=L.layerGroup().addTo(map);
 function flagIcon(f){return L.divIcon({className:'flag-pin '+f.type+(f.on===false?' off':''),html:`<span>${categoryIcon('flag')}</span><b>${esc(f.label)}</b>`,iconSize:[36,40],iconAnchor:[10,38]});}
 function drawFlags(){flagLayer.clearLayers();if(state.transit||state.drawing||state.editing)return;
   FLAGS.forEach(f=>{if(f.on!==false){const r=f.mins*flagSpeed(f)/DETOUR;L.circle(f.center,{radius:r,color:FLAG_C[f.type],weight:1.5,dashArray:'5 6',fillColor:FLAG_C[f.type],fillOpacity:f.type==='dislike'?.10:.05,interactive:false,className:'flag-ring'}).addTo(flagLayer);}
-    const m=L.marker(f.center,{icon:flagIcon(f),draggable:true,zIndexOffset:1200,bubblingMouseEvents:false,title:f.label,keyboard:true});
+    const m=L.marker(f.center,{icon:flagIcon(f),draggable:false,zIndexOffset:1200,bubblingMouseEvents:false,title:f.label,keyboard:true});
     m.on('dragend',()=>{const ll=m.getLatLng();f.center=[+ll.lat.toFixed(6),+ll.lng.toFixed(6)];saveFlags();toast('已移動「'+f.label+'」');flagChanged();}).on('click',()=>openFlag(f.id)).addTo(flagLayer);});}
 let flagRunT=0;function flagChanged(now){drawFlags();if(!$('flagsPop').hidden)renderFlagsPop();clearTimeout(flagRunT);flagRunT=setTimeout(()=>{run().then(()=>{if(state.view.type==='flag')renderFlagImpact();});},now?0:200);}
-function placeFlag(type,ll){flagPlacing=null;document.body.classList.remove('placing');if(FLAGS.length>=FLAG_MAX){toast('最多 '+FLAG_MAX+' 面旗子，請先刪除一面');return;}
-  if(flagMoveRec){const f=flagMoveRec;flagMoveRec=null;f.center=[+ll.lat.toFixed(6),+ll.lng.toFixed(6)];FLAGS.push(f);saveFlags();flagChanged(true);openFlag(f.id);toast('已移動「'+f.label+'」');return;}
+function placeFlag(type,ll){flagPlacing=null;document.body.classList.remove('placing');
+  if(flagMoveRec){const f=flagMoveRec;flagMoveRec=null;if(!FLAGS.includes(f))return;f.center=[+ll.lat.toFixed(6),+ll.lng.toFixed(6)];saveFlags();flagChanged(true);openFlag(f.id);toast('已移動「'+f.label+'」');return;}
+  if(FLAGS.length>=FLAG_MAX){toast('最多 '+FLAG_MAX+' 面旗子，請先刪除一面');return;}
   const n=FLAGS.filter(f=>f.type===type).length+1,f={id:'f'+Date.now().toString(36),type,label:FLAG_N[type]+' '+n,center:[+ll.lat.toFixed(6),+ll.lng.toFixed(6)],mode:'walk',mins:type==='like'?10:5,on:true};
   FLAGS.push(f);saveFlags();closePops();flagChanged(true);openFlag(f.id);toast(type==='like'?'已插喜愛點：地圖只留下 10 分鐘內走得到的地方':'已插嫌惡點：地圖排除 5 分鐘內走得到的地方');}
 function startPlacing(type){flagPlacing=type;closePops();document.body.classList.add('placing');toast('點地圖放'+FLAG_N[type]+'（按 Esc 取消）');}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&flagPlacing){flagPlacing=null;document.body.classList.remove('placing');toast('已取消插旗');}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&flagPlacing){flagPlacing=null;document.body.classList.remove('placing');if(flagMoveRec){flagMoveRec=null;toast('已取消移動');}else toast('已取消插旗');}});
 // 從「插旗」面板把旗子拖到地圖上；沒有拖動就當成點一下（進入點地圖放置）
 function bindFlagDrag(el){const type=el.dataset.flagNew;el.addEventListener('pointerdown',e=>{if(e.button>0)return;e.preventDefault();const sx=e.clientX,sy=e.clientY,pop=$('flagsPop');let ghost=null;try{el.setPointerCapture(e.pointerId);}catch(_){}
   const mv=ev=>{if(!ghost&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;if(!ghost){ghost=document.createElement('div');ghost.className='flag-ghost '+type;ghost.innerHTML=categoryIcon('flag');document.body.appendChild(ghost);pop.classList.add('dragging');}ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';};
@@ -920,7 +921,7 @@ function renderFlag(){const f=FLAGS.find(x=>x.id===state.view.id);if(!f){closeDe
     <div class="fl-imp" id="flImpact"></div>
     <div class="lrow"><span>套用這面旗子</span><button type="button" class="switch" id="flOn" aria-label="套用" aria-pressed="${f.on!==false}"></button></div>
     <div class="fl-act"><button type="button" class="fl-move" id="flMove">移動位置</button><button type="button" class="fl-del" id="flDel">刪除</button></div>
-    <div class="hint2">在地圖上直接拖旗子也可以移動。距離用直線距離與各交通方式平均速度估算。</div></div>`+foot();
+    <div class="hint2">旗子固定在地圖上，拖地圖不會動到；要換位置按「移動位置」再點地圖。距離用直線距離與各交通方式平均速度估算。</div></div>`+foot();
   renderFlagImpact();const upd=(k,v)=>{f[k]=v;saveFlags();renderFlag();flagChanged();};
   $('flName').onchange=()=>{f.label=$('flName').value.trim()||FLAG_N[f.type];saveFlags();drawFlags();renderFlag();};
   $('body').querySelectorAll('[data-flt]').forEach(b=>b.onclick=()=>{if(f.type===b.dataset.flt)return;const def=f.label.startsWith(FLAG_N[f.type]);f.type=b.dataset.flt;if(def)f.label=FLAG_N[f.type]+f.label.slice(3);saveFlags();renderFlag();flagChanged(true);});
@@ -928,7 +929,7 @@ function renderFlag(){const f=FLAGS.find(x=>x.id===state.view.id);if(!f){closeDe
   $('body').querySelectorAll('[data-flq]').forEach(b=>b.onclick=()=>upd('mins',+b.dataset.flq));
   const r=$('flMin');r.oninput=()=>{f.mins=+r.value;$('flMinV').textContent=r.value;saveFlags();drawFlags();flagChanged();};r.onchange=()=>renderFlag();
   $('flOn').onclick=()=>{f.on=f.on===false;saveFlags();renderFlag();flagChanged(true);};
-  $('flMove').onclick=()=>{FLAGS.splice(FLAGS.indexOf(f),1);saveFlags();closeDetail(true);drawFlags();startPlacing(f.type);flagMoveRec=f;};
+  $('flMove').onclick=()=>{closeDetail();flagMoveRec=f;flagPlacing=f.type;closePops();document.body.classList.add('placing');toast('點地圖放到新位置（按 Esc 取消）');};
   $('flDel').onclick=()=>{FLAGS.splice(FLAGS.indexOf(f),1);saveFlags();closeDetail();flagChanged(true);toast('已刪除「'+f.label+'」');};}
 let flagMoveRec=null;
 function analyze(){saveLast();const act=CATS.filter(l=>state.active.has(l.id)&&data(l.id)).map(l=>l.id),FL=activeFlags();if(!act.length&&!FL.length){state.res=null;state.zones=[];return;}
