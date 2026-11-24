@@ -383,6 +383,10 @@ body.placing #map{cursor:crosshair}
 .sw-end{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:24px 12px}.sw-end svg{width:40px;height:40px;fill:none;stroke:#9AA0A6;stroke-width:1.5}.sw-end b{font-size:17px}.sw-end span{font-size:13px;color:var(--sub)}.sw-end .hl-ok{margin-top:8px;padding:0 20px}
 .pk.y{color:#137333}.pk.n{color:#5F6368}
 @media (prefers-reduced-motion:reduce){.sw-card,.sw-prog i{transition:none!important}}
+.ce-tip{font-size:12px;color:var(--sub);margin:4px 0 -2px}.cmp td.ce{cursor:pointer;border-radius:8px}.cmp td.ce:hover{background:#F6F8FC}.cmp td.ce:not(.ce-on){text-decoration:underline dotted #9AA0A6;text-underline-offset:4px}.cmp td.ce-lbl::after{content:'✎';margin-left:4px;color:#9AA0A6;font-size:12px}.cmp .ce-empty{color:var(--D);font-weight:600}
+.cmp td.ce-done{animation:ceflash 1.2s}@keyframes ceflash{from{background:#CEEAD6}to{background:transparent}}@media (prefers-reduced-motion:reduce){.cmp td.ce-done{animation:none}}
+.cmp td.ce-on{background:#F6F8FC;text-align:left}.cmp td.ce-on input,.cmp td.ce-on select{width:100%;box-sizing:border-box;height:40px;border:1px solid #D2D6DC;border-radius:8px;padding:0 6px;font-size:16px;background:#fff;margin-top:4px;font-variant-numeric:tabular-nums}
+.ce-f{display:block;font-size:12px;color:var(--sub);margin-top:4px}.ce-f input{margin-top:2px!important}.ce-2{display:flex;gap:4px}.ce-2 .ce-f{flex:1;min-width:0}.ce-act{display:flex;gap:4px;margin-top:6px}.ce-act button{flex:1;height:40px;border:0;border-radius:8px;font-size:14px;font-weight:700}.ce-x{background:#E8EAED;color:#3C4043}.ce-ok{background:var(--D);color:#fff}
 .stiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}.st-t{border:0;border-radius:16px;background:#F6F8FC;padding:10px 8px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px}.st-t b{font-size:24px;font-weight:800;line-height:1.1;color:#202124;font-variant-numeric:tabular-nums}.st-t b small{font-size:13px;font-weight:600;color:var(--sub)}.st-t span{font-size:12px;font-weight:600;color:var(--sub)}
 .st-t.new b{color:#C5221F}.st-t.un b{color:#1A56DB}.st-t[aria-pressed=true]{background:var(--D)}.st-t[aria-pressed=true] b,.st-t[aria-pressed=true] span,.st-t[aria-pressed=true] small{color:#fff}.st-t:disabled{opacity:.5}
 .sh-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:4px}.sh-l span{font-weight:500}
@@ -2189,13 +2193,16 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=
     return `<tr><td>${label}</td>${vals.map(v=>`<td class="${best!=null&&v===best&&ok.filter(x=>x===best).length===1?'best':''}">${v==null?'—':fmt(v)}</td>`).join('')}</tr>`;};
   const txt=(label,vals)=>`<tr><td>${label}</td>${vals.map(v=>`<td>${v}</td>`).join('')}</tr>`;
   const pay=V=>V.off?valLoan(V,loanPrice(V)).pay:null,rent=V=>{const r=V.est.ok?valRent(V):null;return r?r.rent:null;};
-  let h=rankHTML(its)+`<table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
+  // 點格子就地修改（車位、條件、開價、談判價）；表格樣式不變
+  const ec=(label,g,vals)=>`<tr><td class="ce-lbl">${label}</td>${vals.map((v,i)=>`<td class="ce" data-cek="${i}:${g}" tabindex="0" role="button" aria-label="修改 ${esc(its[i].h.name)} 的${label}">${v}</td>`).join('')}</tr>`;
+  const ecVal=(fmt,get)=>its.map(x=>{const v=get(x);return v==null||v===''?'<span class="ce-empty">點此填寫</span>':fmt(v);});
+  let h=rankHTML(its)+`<div class="ce-tip">有 ✎ 的列可以點格子直接修改，會重新估價並存回物件</div><table class="cmp"><thead><tr><th></th>${its.map((x,i)=>`<th>${i+1}. ${esc(x.h.name)}</th>`).join('')}</tr></thead><tbody>`+
     txt('狀態',its.map(x=>stName(x.h.st||'todo')))+
     txt('物件連結',its.map(x=>(x.h.links||[]).length?x.h.links.map(l=>`<a href="${esc(l.u)}" target="_blank" rel="noopener noreferrer">${esc(l.p)}</a>`).join('、'):'—'))+
-    txt('車位',its.map(x=>x.h.form.park===1?'<b class="pk y">有</b>':x.h.form.park===0?'<span class="pk n">沒有</span>':'<span class="pk">不確定</span>'))+
-    txt('條件',its.map(x=>`${T[x.h.form.t]}<small>屋齡 ${x.h.form.age} 年・${x.h.form.fl}/${x.h.form.tot} 樓</small>`))+
-    row('開價',val((V,hh)=>hh.form.ask?+hh.form.ask:null),wan)+
-    row('談判價',val(V=>dealOf(V)),wan)+
+    ec('車位','park',its.map(x=>x.h.form.park===1?'<b class="pk y">有</b>':x.h.form.park===0?'<span class="pk n">沒有</span>':'<span class="pk">不確定</span>'))+
+    ec('條件','cond',its.map(x=>`${T[x.h.form.t]}<small>${x.h.form.ping} 坪・屋齡 ${x.h.form.age} 年・${x.h.form.fl}/${x.h.form.tot} 樓・${['可直接入住','局部翻修','全室翻修'][+x.h.form.cond||0]}</small>`))+
+    ec('開價','ask',ecVal(wan,x=>x.h.form.ask?+x.h.form.ask:null))+
+    ec('談判價','deal',ecVal(wan,x=>x.h.form.deal?+x.h.form.deal:null))+
     row('合理出價',val(V=>V.off?V.off.out[1]:null),wan)+
     txt('保守～積極',its.map(x=>x.V.off?`${Math.round(x.V.off.out[0]).toLocaleString('en-US')}～${wan(x.V.off.out[2])}`:'資料不足'))+
     row('估計單價',val(V=>V.est.ok?V.est.q(.5)*(1+V.est.poi):null),v=>v.toFixed(1)+' 萬／坪')+
@@ -2211,7 +2218,26 @@ function renderCmp(){const its=state.view.items,T=VALDATA.types,n=its.length,F0=
   $('body').innerHTML=h+foot();
   function renderCmpBind(){$('body').querySelectorAll('[data-rkw]').forEach(b=>b.onclick=()=>{cmpW=b.dataset.rkw;try{localStorage.setItem('tlm.cmpW',cmpW);}catch(e){}$('cmpRank').outerHTML=rankHTML(its);renderCmpBind();});
     $('body').querySelectorAll('[data-rk]').forEach(el=>el.onclick=()=>{const x=its[+el.dataset.rk];map.setView(x.V.pt,Math.max(map.getZoom(),16));if(isMob())setSheet('half');});}
-  renderCmpBind();}
+  renderCmpBind();
+  const B=$('body'),opt=(a,cur)=>a.map(([v,nm])=>`<option value="${v}"${String(cur)===String(v)?' selected':''}>${nm}</option>`).join(''),inp=(k,v,ph)=>`<label class="ce-f"><span>${ph}</span><input data-cf="${k}" inputmode="decimal" value="${esc(v??'')}"></label>`;
+  const LIM={ping:[5,150,'坪數'],age:[0,80,'屋齡'],fl:[1,60,'樓層'],tot:[1,60,'總樓層'],ask:[100,30000,'開價'],deal:[100,30000,'談判價']};
+  function openEd(td){if(td.classList.contains('ce-on'))return;B.querySelectorAll('td.ce-on').forEach(t=>t.dispatchEvent(new Event('ce-cancel')));const [i,g]=td.dataset.cek.split(':'),x=its[+i],f=x.h.form,old=td.innerHTML;td.classList.add('ce-on');
+    td.innerHTML=g==='park'?`<select data-cf="park" aria-label="車位">${opt([['','不確定'],['1','有'],['0','沒有']],f.park??'')}</select>`:
+      g==='cond'?`<select data-cf="t" aria-label="型態">${opt(T.map((n,j)=>[j,n]),f.t)}</select>${inp('ping',f.ping,'坪數')}${inp('age',f.age,'屋齡')}<div class="ce-2">${inp('fl',f.fl,'樓層')}${inp('tot',f.tot,'總樓層')}</div><select data-cf="cond" aria-label="屋況">${opt([[0,'可直接入住'],[1,'局部翻修'],[2,'全室翻修']],+f.cond||0)}</select><div class="ce-act"><button type="button" class="ce-x">取消</button><button type="button" class="ce-ok">儲存</button></div>`:
+      `<input data-cf="${g}" inputmode="decimal" value="${esc(f[g]??'')}" placeholder="萬" aria-label="${LIM[g][2]}（萬）">`;
+    let dead=false;const cancel=()=>{dead=true;td.classList.remove('ce-on');td.querySelectorAll('[data-cf]').forEach(el=>{el.onchange=el.onblur=null;});td.innerHTML=old;};td.addEventListener('ce-cancel',cancel,{once:true});
+    const save=()=>{if(dead)return;const nf={};for(const el of td.querySelectorAll('[data-cf]')){const k=el.dataset.cf,raw=el.value.trim();let v;
+        if(k==='t'||k==='cond')v=+raw;else if(k==='park')v=raw===''?'':+raw;else if(raw===''&&(k==='ask'||k==='deal'))v='';else{v=parseFloat(raw);const L2=LIM[k];if(!isFinite(v)||v<L2[0]||v>L2[1]){toast(`${L2[2]}要在 ${L2[0]}～${L2[1].toLocaleString()} 之間`);el.focus();return;}}nf[k]=v;}
+      if(nf.fl!=null&&nf.fl>nf.tot){toast('樓層不能高於總樓層');return;}
+      if(Object.keys(nf).every(k=>String(nf[k])===String(f[k]??''))){cancel();return;}
+      const h2=setHome(x.h.id,hh=>Object.assign(hh.form,nf));if(!h2)return;const V2=homeVal(h2);setHome(h2.id,hh=>{hh.mid=V2.off?Math.round(V2.off.out[1]):null;});
+      its[+i]={h:loadHomes().find(z=>z.id===h2.id),V:V2};const y=B.scrollTop;renderCmp();B.scrollTop=y;const nt=B.querySelector(`[data-cek="${td.dataset.cek}"]`);if(nt)nt.classList.add('ce-done');
+      toast(`已更新「${h2.name}」：合理出價 ${V2.off?wan(V2.off.out[1]):'資料不足'}`);};
+    td.querySelectorAll('input,select').forEach(el=>el.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();save();}if(e.key==='Escape'){e.preventDefault();cancel();td.focus();}});
+    if(g==='cond'){td.querySelector('.ce-ok').onclick=e=>{e.stopPropagation();save();};td.querySelector('.ce-x').onclick=e=>{e.stopPropagation();cancel();};}
+    else{const el=td.querySelector('[data-cf]');el.onchange=save;if(g!=='park')el.onblur=()=>setTimeout(()=>{if(td.isConnected&&td.classList.contains('ce-on'))save();},0);}
+    const first=td.querySelector('input,select');first.focus();if(first.select)first.select();}
+  B.querySelectorAll('td.ce').forEach(td=>{td.onclick=e=>{if(!e.target.closest('input,select,button'))openEd(td);};td.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target===td){e.preventDefault();openEd(td);}};});}
 // ---------- 單價熱圖：每筆成交換算成同一個標準物件（住宅大樓、屋齡 20 年、30 坪、中間樓層）的單價，取附近 400 公尺的中位數 ----------
 const PH_STD={t:0,age:20,ping:30,fl:6,tot:12};let PH=null,phLayer=null;
 function priceGrid(){if(PH)return PH;const {v,sales}=VALDATA,b=v.model.b,poiI=v.feats.indexOf('poi'),xs=modelX(Object.assign({s:0},PH_STD)),G=.0025,R=400,bins=new Map(),key=(i,j)=>i+','+j;
