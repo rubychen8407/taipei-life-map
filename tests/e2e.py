@@ -14,6 +14,7 @@ MOCK, ROUTES = _M['layers'], _M['routes']
 LF = os.path.join(HERE, 'node_modules', 'leaflet', 'dist') + '/'
 PD = os.path.join(HERE, 'node_modules', 'leaflet-polylinedecorator', 'dist', 'leaflet.polylineDecorator.js')
 XL = os.path.join(HERE, 'node_modules', 'xlsx', 'dist', 'xlsx.mini.min.js')
+THREE_JS = os.path.join(HERE, 'node_modules', 'three', 'build', 'three.module.min.js')
 geo_calls = []
 GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon': '121.5705', 'addresstype': 'house', 'type': 'house'}],
        '台北市松山區八德路三段': [{'lat': '25.0480', 'lon': '121.5560', 'addresstype': 'road', 'type': 'secondary'}],
@@ -98,6 +99,8 @@ async def route(r):
         return await r.fulfill(path=PD, content_type='application/javascript')
     if 'xlsx.mini.min.js' in u:
         return await r.fulfill(path=XL, content_type='application/javascript')
+    if 'three.module.min.js' in u:
+        return await r.fulfill(path=THREE_JS, content_type='application/javascript', headers={'Access-Control-Allow-Origin': '*'})
     if 'nominatim.openstreetmap.org' in u:
         q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query).get('q', [''])[0]
         geo_calls.append(q)
@@ -1216,6 +1219,43 @@ async def baked_suite(b, errs):
     await page.click('.tg-ed [data-tgt=海砂屋]'); await page.click('.tg-ed [data-tgdel=管委會差]'); await page.wait_for_timeout(150)
     check(await ev("!document.querySelector('.tg-ed [data-tgt=管委會差]')&&JSON.parse(localStorage.getItem('tlm.tagset')).length===0&&loadHomes().some(h=>(h.tags||[]).includes('管委會差'))"), '另一間也看得到自訂標籤；從清單刪除自訂標籤，已加上的物件不受影響')
     await page.click('.tg-ed .hl-done'); await page.wait_for_timeout(150)
+    # 我的物件小城（3D）
+    cg = await ev("(()=>{const b=document.getElementById('cityBtn');return b?b.innerText.replace(/\\s+/g,' '):''})()")
+    check('3D 小城' in cg and '完成度 75%' in cg, f"我的物件上方有「3D 小城」入口，顯示完成度（已看房＋議價中）{cg}")
+    await page.click('#cityBtn'); await page.wait_for_function("CITY3D&&CITY3D.bld.length===2&&CITY3D.renderer.info.render.calls>0", timeout=20000); await page.wait_for_timeout(1200)
+    c1 = await ev("""(()=>{const b=CITY3D.bld.map(g=>({id:g.userData.id,H:g.userData.H,st:g.userData.st,sy:g.scale.y,scaff:g.children.some(c=>c.type==='LineSegments'),drops:g.userData.drops.length,band:g.children.filter(c=>c.type==='Mesh'&&c.material.color&&c.material.color.getHexString&&c.material.color.getHexString()==='d93025').length,sc:Math.round(HSC[g.userData.id].total)}));
+      return {b,stat:document.getElementById('cityStat').innerText,full:(()=>{const r=document.getElementById('city').getBoundingClientRect();return r.width===innerWidth&&r.height===innerHeight})(),calls:CITY3D.renderer.info.render.calls}})()""")
+    print('  city', c1)
+    hi = max(c1['b'], key=lambda x: x['sc']); lo = min(c1['b'], key=lambda x: x['sc'])
+    check(c1['full'] and len(c1['b']) == 2 and all(x['sy'] == 1 for x in c1['b']) and hi['H'] >= lo['H'] and '完成度 75%' in c1['stat'], f"打開 3D 小城：全螢幕，兩間物件各是一棟樓（蓋起來的動畫跑完），分數越高樓越高 {c1['stat']}")
+    check(sorted([x['st'] for x in c1['b']]) == ['nego', 'seen'] and any(x['drops'] == 3 for x in c1['b']) and any(x['band'] == 1 for x in c1['b']), f"狀態與標籤看得到：已看房蓋好、議價中亮燈；漏水有滴水、海砂屋有紅色警示帶 {c1['b']}")
+    inview = await ev("""CITY3D.bld.every(g=>{const v=g.position.clone();v.y=g.userData.H*.5;v.project(CITY3D.cam);return Math.abs(v.x)<.95&&Math.abs(v.y)<.95&&v.z<1})""")
+    check(inview, '一打開所有樓都在手機畫面內（直式畫面也看得到）')
+    await shot(page, '9c0_city')
+    cam0 = await ev("[CITY3D.cam.position.x,CITY3D.cam.position.z]")
+    await page.mouse.move(200, 500); await page.mouse.down()
+    for k in range(1, 8): await page.mouse.move(200 + 20 * k, 500)
+    await page.mouse.up(); await page.wait_for_timeout(200)
+    check(await ev(f"Math.hypot(CITY3D.cam.position.x-{cam0[0]},CITY3D.cam.position.z-{cam0[1]})>1&&!document.getElementById('cityCard').hidden===false"), '單指拖曳：旋轉小城（拖動不會誤選樓）')
+    await page.mouse.wheel(0, 300); await page.wait_for_timeout(200)
+    # 點一棟樓
+    sp = await ev("""(()=>{const g=CITY3D.bld.find(x=>x.userData.st==='seen'),v=g.position.clone();v.y=g.userData.H*.5;v.project(CITY3D.cam);const r=document.getElementById('cityCv').getBoundingClientRect();return {id:g.userData.id,x:(v.x+1)/2*r.width+r.left,y:(1-v.y)/2*r.height+r.top}})()""")
+    await page.mouse.click(sp['x'], sp['y']); await page.wait_for_timeout(300)
+    cc = await ev("({sel:CITY3D.sel,card:!document.getElementById('cityCard').hidden,t:document.getElementById('cityCard').innerText,next:(document.querySelector('.cc-next')||{}).innerText})")
+    check(cc['sel'] == sp['id'] and cc['card'] and '已看房' in cc['t'] and cc['next'] == '開始議價：點亮這棟', f"點一棟樓：下方出現那間的分數、標籤、看房進度，主按鈕是下一步（開始議價：點亮這棟）{cc}")
+    await shot(page, '9c1_city_card')
+    await page.click('.cc-next'); await page.wait_for_timeout(900)
+    c2 = await ev(f"({{st:loadHomes().find(h=>h.id==='{sp['id']}').st,b:CITY3D.bld.find(g=>g.userData.id==='{sp['id']}').userData.st,stat:document.getElementById('cityStat').innerText,bar:document.getElementById('cityBarI').style.width,done:(document.querySelector('.cc-done')||{{}}).innerText}})")
+    check(c2['st'] == 'nego' and c2['b'] == 'nego' and '完成度 100%' in c2['stat'] and c2['bar'] == '100%' and '亮燈' in c2['done'], f"按「開始議價」：存回物件狀態，這棟亮燈，完成度變 100% {c2}")
+    await page.click('.cc-st [data-cst=todo]'); await page.wait_for_timeout(300)
+    check(await ev(f"loadHomes().find(h=>h.id==='{sp['id']}').st==='todo'&&CITY3D.bld.find(g=>g.userData.id==='{sp['id']}').children.some(c=>c.type==='LineSegments')"), '改回「未看房」：變回鷹架')
+    await page.click('.cc-st [data-cst=seen]'); await page.wait_for_timeout(200)
+    await page.keyboard.press('Escape'); await page.wait_for_timeout(300)
+    check(await ev("!document.getElementById('city')&&!CITY3D&&state.view.type==='homes'&&!!document.getElementById('homesPop')"), '按 Esc 或 ✕ 關閉小城，回到我的物件（3D 資源釋放）')
+    await page.click('#cityBtn'); await page.wait_for_function("CITY3D&&CITY3D.bld.length===2", timeout=20000)
+    await ev("CITY3D.select(CITY3D.bld[0].userData.id)"); await page.click('#ccOpen'); await page.wait_for_function("state.view.type==='val'", timeout=15000)
+    check(await ev("!document.getElementById('city')"), '小城卡片的「估價／詳細」：關掉小城、打開那間的估價')
+    await page.click('#homesBtn'); await page.wait_for_timeout(300)
     await page.click('#homesPop [data-hsel]'); await page.click('#homesPop .frow:last-of-type [data-hsel]')
     ids = await ev("[...document.querySelectorAll('#homesPop [data-hsel][aria-pressed=true]')].length")
     await shot(page, '8f_homes')
