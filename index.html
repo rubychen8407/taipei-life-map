@@ -501,6 +501,7 @@ body.vlist #sheet{visibility:hidden;pointer-events:none}
 .sp .offer{margin:8px 0 2px;padding:8px 10px;border-radius:12px;background:#FFF7EE}.sp .orow{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#9C5200}.sp .orow b{color:#202124;font-variant-numeric:tabular-nums}.sp .orng{width:100%;accent-color:#E8710A;height:28px;margin:2px 0}.sp .ores{font-size:13px;min-height:22px}.sp .ores .dbadge{margin-left:4px}.sp .ores .save{font-weight:700;color:#137333}.sp .hint2{color:var(--sub);font-size:12px}
 .sp-meta{display:flex;gap:6px;margin-top:4px;font-size:12px;color:var(--sub)}.sp-meta .rk{color:#1A56DB;font-weight:700}
 .sp .lk .svtog{display:inline-flex;align-items:center;gap:4px;width:auto;margin:0;border:0;border-radius:12px;padding:3px 10px;background:#F1F3F4;color:#3C4043;font-size:13px;font-weight:700}.sp .lk .svtog svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7}.sp .lk .svtog[aria-pressed=true]{background:var(--D);color:#fff}.svbox .sv-embed{width:100%!important}
+.sp-acts{display:flex;gap:8px;margin-top:10px}.sp-acts .sp-go{flex:1;margin-top:0!important}.sp .sp-add{margin-top:0;flex:1.3;display:flex;align-items:center;justify-content:center;gap:4px;height:44px;border-radius:12px;border:1.5px solid #F7931E;background:#fff;color:#9C5200;font-size:14px;font-weight:700;padding:0 8px;width:auto}.sp .sp-add svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;flex:none}.sp .sp-add[aria-pressed=true]{background:#FFF3E0;color:#9C5200}.sp .sp-add[aria-pressed=true] svg{fill:#F7931E;stroke:#F7931E}
 .sp .sp-go{margin-top:10px;height:44px;font-size:15px}.sp-note{margin-top:6px;font-size:12px;color:var(--sub)}.sp-note summary{cursor:pointer}
 .sp .lk{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.sp .lk a{background:var(--bluebg);color:var(--D);border-radius:12px;padding:3px 10px;font-weight:700;text-decoration:none}
 .sp button{margin-top:6px;border:0;background:var(--D);color:#fff;border-radius:12px;padding:6px 10px;font-weight:700;width:100%}
@@ -1695,11 +1696,11 @@ function saleInfo(l,i){const f=(v,d=1)=>v==null?'':(+v).toFixed(d).replace(/\.0$
     ${l.rank!=null||l.conf?`<div class="sp-meta">${l.rank!=null?`<span class="rk">CP 第 ${l.rank} 名</span>`:''}${l.conf?`<span>可信度 ${esc(l.conf)}</span>`:''}</div>`:''}
     <div class="lk">${l.links.map(x=>`<a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.p)}</a>`).join('')}${l.lat!=null&&l.prec!=='none'?(GMKEY?`<button type="button" class="svl svtog" data-svtog>${categoryIcon('eye')}街景</button>`:svLink(l.lat,l.lng,'svl')):''}</div>
     ${l.lat!=null&&l.prec!=='none'&&GMKEY?`<div class="svbox" hidden data-la="${l.lat}" data-lo="${l.lng}"></div>`:''}
-    <button type="button" class="sp-go" data-sval="${i}">估價</button>
+    <div class="sp-acts"><button type="button" class="sp-add" data-sadd="${i}" aria-pressed="${!!homeOfListing(l)}">${categoryIcon('star')}<span>${homeOfListing(l)?'已在我的物件':'加入我的物件'}</span></button><button type="button" class="sp-go" data-sval="${i}">估價</button></div>
     ${l.prec==='road'||l.note?`<details class="sp-note"><summary>${l.prec==='road'?'位置只到路段・':''}備註</summary>${l.note?esc(l.note):'只定位到路段，位置是約略的'}</details>`:''}</div>`;}
 // 資訊卡上的互動：出價試算、展開街景
 const salePopOpt=()=>({closeButton:true,maxWidth:280,autoPanPaddingTopLeft:[10,(($('top')||{}).offsetHeight||150)+16],autoPanPaddingBottomRight:[10,navH()+16]});
-function bindSaleCard(el,l){if(!el)return;const rg=el.querySelector('.orng');
+function bindSaleCard(el,l){if(!el)return;const ab=el.querySelector('[data-sadd]');if(ab)ab.onclick=()=>toggleHomeFromListing(l,ab);const rg=el.querySelector('.orng');
   if(rg){const u=saleUnit(l),refs=saleRefs(l);
     const upd=()=>{const pct=+rg.value,ofs=l.price*pct/100,ou=u*pct/100,rf=refs[refs.length-1],d=(ou/rf.v-1)*100;
       el.querySelector('.ov').textContent=Math.round(ofs).toLocaleString()+' 萬'+(pct<100?`（-${100-pct}%）`:'');
@@ -1994,10 +1995,18 @@ function swAct(kind,fromSwipe){const D=swDeck(),x=D[0];if(!x)return;const k=list
   if(c&&!matchMedia('(prefers-reduced-motion: reduce)').matches){c.style.transition='transform .22s ease-in,opacity .22s';c.style.transform=`translateX(${kind==='like'?420:-420}px) rotate(${kind==='like'?18:-18}deg)`;c.style.opacity='0';setTimeout(go,200);}else go();
   if(kind==='like')toast(hid==='dup'?'已經在我的物件裡':'已加入我的物件');}
 function swUndo(){const h=swHist.pop();if(!h)return;delete SWIPED[h.k];saveSwiped();if(h.hid&&h.hid!=='dup'){saveHomes(loadHomes().filter(z=>z.id!==h.hid));drawHomes();}renderAff();}
+// 這間房源是否已在我的物件（同一個房源連結，或同地址同位置）
+function homeOfListing(l){const us=(l.links||[]).map(m=>m.u);return loadHomes().find(h=>(h.links||[]).some(k=>us.includes(k.u))||(h.src===listingKey(l)))||null;}
+async function toggleHomeFromListing(l,btn){const h=homeOfListing(l);
+  if(h){saveHomes(loadHomes().filter(z=>z.id!==h.id));drawHomes();toast('已從我的物件移除');}
+  else{try{await loadVal();}catch(e){toast('估價資料還沒建好，暫時無法加入',true);return;}const V=listingVal(l);
+    if(!V){toast(listingForm(l)?'這個位置附近成交太少，請按「估價」手動加入':'這間缺坪數或屋齡，請按「估價」補上後再儲存');return;}
+    const r=addHomeFromListing({l,V});if(r===false)return;toast('已加入我的物件，可以到「物件」分頁比較');}
+  const on=!!homeOfListing(l);if(btn){btn.setAttribute('aria-pressed',String(on));btn.querySelector('span').textContent=on?'已在我的物件':'加入我的物件';}if(state.view.type==='homes')renderHomes();}
 function addHomeFromListing(x){const l=x.l,a=loadHomes(),links=(l.links||[]).slice(0,8);
   if(a.some(h=>(h.links||[]).some(k=>links.some(m=>m.u===k.u))))return 'dup';
   if(a.length>=HOMES_MAX){toast('我的物件最多 '+HOMES_MAX+' 間，請先刪除一間');return false;}
-  const V=Object.assign({},x.V,{links}),rec=homeRecord(V);rec.name=String(l.addr||rec.name).replace(/^(臺|台)北市/,'').slice(0,20);rec.form.ask=+l.price||'';const pk=hasPark(l);if(pk!=null)rec.form.park=pk?1:0;
+  const V=Object.assign({},x.V,{links}),rec=homeRecord(V);rec.src=listingKey(l);rec.name=String(l.addr||rec.name).replace(/^(臺|台)北市/,'').slice(0,20);rec.form.ask=+l.price||'';const pk=hasPark(l);if(pk!=null)rec.form.park=pk?1:0;
   a.unshift(rec);saveHomes(a);drawHomes();return rec.id;}
 function bindSwCard(x){const c=$('swCard');if(!c)return;$('swSkip').onclick=()=>swAct('skip');$('swLike').onclick=()=>swAct('like');$('swUndo').onclick=swUndo;
   c.querySelectorAll('[data-swmap]').forEach(b=>b.onclick=()=>openSaleAt(+b.dataset.swmap));
