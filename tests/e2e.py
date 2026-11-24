@@ -859,6 +859,18 @@ async def baked_suite(b, errs):
     await shot(page, '8m2_urban'); await ev("void map.closePopup()")
     await page.click('#layersBtn'); await page.click('#layersPop [data-layer=urban]')
     check(await ev("!state.layers.urban&&!urbanLayer"), '再點一次關閉都市更新地區')
+    # 都更案件（都市更新研究發展基金會）：勾選才下載、依狀態上色、點範圍看建案／實施者／狀態，版權列標出處
+    check('urcase.json' not in data_hits and await ev("!state.layers.urcase&&!!document.querySelector('#layersPop [data-layer=urcase]')"), '圖層「房市」有「都更案件」，預設關閉、還沒下載')
+    await page.click('#layersPop [data-layer=urcase]'); await page.wait_for_function("!!urcLayer&&urcLayer.getLayers().length>0", timeout=5000)
+    uc = await ev("({n:urcLayer.getLayers().length,cols:[...new Set(urcLayer.getLayers().map(l=>l.options.color))].length,leg:document.getElementById('urcLegend').hidden?'':document.getElementById('urcLegend').innerText,attr:document.querySelector('.leaflet-control-attribution').innerText})")
+    check('urcase.json' in data_hits and uc['n'] == 6 and uc['cols'] == 4 and '施工中 1' in uc['leg'] and '已完工 2' in uc['leg'] and '都市更新研究發展基金會' in uc['attr'], f"打開都更案件：這時才下載，6 件依已核定／審議中／施工中／已完工上色，下方有圖例，版權列標出處 {uc}")
+    await page.click('#layersBtn'); await ev("void map.setView([25.0348,121.5461],17,{animate:false})"); await page.wait_for_timeout(300)
+    await ev("(()=>{const l=urcLayer.getLayers().find(l=>l.getBounds().contains([25.0348,121.5461]));l.fire('click',{latlng:l.getBounds().getCenter()})})()"); await page.wait_for_timeout(250)
+    pop = await ev("document.querySelector('.leaflet-popup-content')?.innerText||''")
+    check('親家JIA' in pop and '已完工' in pop and '敦寶建設' in pop and '102 年 6 月' in pop and '113 年' in pop and '391 坪' in pop and '都市更新研究發展基金會' in pop, f"點案件：建案名、狀態、核定與完工年（民國）、實施者、基地坪數、資料來源 {pop!r}")
+    await shot(page, '8m3_urcase'); await ev("void map.closePopup()")
+    await page.click('#layersBtn'); await page.click('#layersPop [data-layer=urcase]')
+    check(await ev("!state.layers.urcase&&!urcLayer&&document.getElementById('urcLegend').hidden&&!document.querySelector('.leaflet-control-attribution').innerText.includes('基金會')"), '再點一次關閉都更案件：圖例與出處一起收起')
     await page.click('#layersPop [data-layer=heat]')
     await page.click('#layersPop [data-group="0"]')
     await page.click('#layersBtn')
@@ -1130,6 +1142,9 @@ async def baked_suite(b, errs):
     ft = await ev("document.getElementById('valTab').innerText")
     check('最近的未來捷運站' in ft and ('Y20' in ft or '民生社區' in ft) and '不計入估價' in ft, '位置分頁：顯示最近的未來捷運站（興建中／規劃中）與步行時間，註明不計入估價')
     check('這裡的公告土地現值：仁愛段二小段' in ft and '約 229 萬／坪' in ft and '通常低於市價' in ft, f'位置分頁：顯示這個位置所在地段的公告土地現值（萬／坪），註明低於市價、不計入估價')
+    await page.wait_for_function("!!URC", timeout=5000); await page.wait_for_timeout(200); ft = await ev("document.getElementById('valTab').innerText")
+    uc = await ev("(()=>{const n=urcNear(state.val.pt);return {n:n.length,names:n.map(x=>urcName(x[1]))}})()")
+    check(uc['n'] >= 1 and '附近 300 公尺的都更案件' in ft and '都市更新研究發展基金會' in ft, f"位置分頁：列出附近 300 公尺的都更案件（狀態、名稱、距離），標明資料來源、不計入估價 {uc}")
     # 談判價：手動填即時價格，房貸改用它試算
     await page.click('#body [data-vtab=fin]'); await page.wait_for_timeout(200)
     d0 = await ev("Math.round(state.val.off.out[1]*0.95)")
@@ -1964,6 +1979,8 @@ async def main():
                 MODE['land'] = BL.build(BL.read_shp(_shp, _dbf), BL.read_values(LM.values_csv()), 113, BL.read_rates(LM.rates_csv()), BL.read_public(LM.public_csv()), DATA_DIR, built='2026-11-16', min_sections=3, log=lambda *a: None)
                 import build_urban as BU, urban_mock as UM
                 MODE['urban'] = BU.build(UM.mock(), DATA_DIR, built='2026-11-17', min_areas=3, log=lambda *a: None)
+                import build_urcase as BUC, urcase_mock as UCM
+                MODE['urcase'] = BUC.build(UCM.mock(), DATA_DIR, built='2026-11-24', min_cases=3, log=lambda *a: None)
                 import build_market as BMK, market_mock as MKM
                 from datetime import date as _date
                 MODE['market'] = BMK.build(MKM.src(), DATA_DIR, built='2026-11-16', today=_date(*MKM.TODAY), log=lambda *a: None)

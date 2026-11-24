@@ -1,0 +1,37 @@
+"""都更案件（URF Google 我的地圖 KML）模擬資料：圖層與欄位照實際匯出格式"""
+from xml.sax.saxutils import escape
+
+
+def sq(lat, lon, d=0.0006):
+    return ' '.join(f'{x},{y},0' for x, y in [(lon, lat), (lon + d, lat), (lon + d, lat + d), (lon, lat + d), (lon, lat)])
+
+
+def pm(name, data, lat, lon):
+    ext = ''.join(f'<Data name="{escape(k)}"><value>{escape(v)}</value></Data>' for k, v in data.items())
+    return (f'<Placemark><name>{escape(name)}</name><description>x</description><ExtendedData>{ext}</ExtendedData>'
+            f'<Polygon><outerBoundaryIs><LinearRing><tessellate>1</tessellate><coordinates>{sq(lat, lon)}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>')
+
+
+def case(no, date, dist, title, impl, method, area, done, status):
+    return {'名稱': '', '說明': '', '編號': no, '事業計畫核定日期': date, '縣市': '01臺北市', '行政區': dist, '案名': title,
+            '實施者': impl, '規劃單位': 'x', '建築師': 'x', '實施方式': method, '併分送': '分送', '基地面積': area,
+            '完工年度': done, '目前狀態': status, '備註': '', '相關資訊': ''}
+
+
+def mock(extra=0):
+    """近 25.0335,121.5452（e2e 的估價位置）有兩件；回傳 KML bytes"""
+    f1 = [pm('親家JIA', case('北158', '2013/6/22', '大安區', '擬訂臺北市大安區懷生段一小段32地號等12筆土地都市更新事業計畫案', '敦寶建設股份有限公司', '權利變換', '1292', '2024', '完工'), 25.0345, 121.5458),
+          pm('', case('北396', '2019/7/25', '大安區', '擬訂臺北市大安區懷生段二小段166地號等12筆土地都市更新事業計畫案', '國產建材實業股份有限公司', '權利變換', '2,198.2', '', '核定'), 25.0298, 121.5426),
+          pm('施工測試', case('北401', '2021/3/2', '信義區', '擬訂臺北市信義區永吉段一小段1地號等5筆土地都市更新事業計畫案', '甲建設', '協議合建', '800', '', '施工中'), 25.0420, 121.5700),
+          pm('審議測試', case('北402', '2022/1/5', '中山區', '變更臺北市中山區吉林段四小段705地號等46筆土地(原某社區)都市更新事業計畫案', '乙建設', '權利變換', '3133', '', '權變審議'), 25.0560, 121.5300)]
+    f1 += [pm(f'填充{i}', case(f'北9{i:02d}', '2010/1/1', '文山區', f'擬訂臺北市文山區測試段{i}地號都市更新事業計畫案', '丙', '權利變換', '500', '2015年', '完工'), 24.99 + i * 0.001, 121.56) for i in range(extra)]
+    f2 = [pm('逸仙二小段', {'編號': '公辦006', '區別': '信義區', '公告年度': '2012/05/18', '位置': '逸仙段二小段107-2地號等9筆 ', '面積(㎡)': '1232',
+                         '得標廠商': '允鵬建設股份有限公司', '實施者': '東家建設股份有限公司', '完工案名': '', '主導類型': '市府主導', '說明': '招商成功', 'ID': ''}, 25.0380, 121.5650),
+          pm('崇仁花園', {'編號': '公辦003', '區別': '萬華區', '公告年度': '2005/02/23', '位置': '青年段一小段711地號', '面積(㎡)': '17619',
+                       '得標廠商': '', '實施者': '國防部總政治作戰局', '完工案名': '崇仁花園', '主導類型': '市府主導', '說明': '同意實施案件', 'ID': ''}, 25.0250, 121.5000)]
+    skip = [pm('不要的更新地區', {'編號': '臺北277'}, 25.04, 121.55)]
+    nogeo = '<Placemark><name>沒有範圍</name></Placemark>'
+    folders = [('更新地區-優先劃定', skip), ('自劃單元', skip), ('已核定重建更新事業-自行劃定', f1[:2] + f1[4:]), ('已核定重建更新事業-優先劃定', f1[2:3]),
+               ('已核定重建更新事業-都市計畫', f1[3:4]), ('中央及市府主導', f2 + [nogeo])]
+    body = ''.join(f'<Folder><name>{n}</name>{"".join(p)}</Folder>' for n, p in folders)
+    return (f'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>1.臺北市都市更新地圖-URF製作</name>{body}</Document></kml>').encode('utf-8')
