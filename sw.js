@@ -26,7 +26,7 @@ async function dataFirst(e) {
 async function pageFirst(e) {
   const c = await caches.open(CACHE);
   try {
-    const res = await Promise.race([fetch(e.request), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 3000))]);
+    const res = await Promise.race([fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 3000))]);
     if (res.ok) e.waitUntil(stamp(res.clone()).then(r => c.put(e.request, r)));
     return res;
   } catch (err) {
