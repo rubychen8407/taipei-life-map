@@ -15,14 +15,20 @@ async function refresh(req, c) {
   if (res.ok) await c.put(req, await stamp(res.clone()));
   return res;
 }
-const ver = r => r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length') || '';
+const ver = r => r.headers.get('etag') || r.headers.get('last-modified') || '';
+// 有 ETag／Last-Modified 就比對它，沒有就比對內容大小
+async function changed(oldRes, newRes) {
+  const a = ver(oldRes), b = ver(newRes);
+  if (a && b) return a !== b;
+  return (await oldRes.blob()).size !== (await newRes.blob()).size;
+}
 async function dataFirst(e) {
   const c = await caches.open(CACHE), hit = await c.match(e.request);
   if (hit) {
     if (Date.now() - (+hit.headers.get('sw-time') || 0) > MAX_AGE) {
-      const old = ver(hit);
+      const old = hit.clone();
       e.waitUntil(refresh(e.request, c).then(async res => {
-        if (!res.ok || ver(res) === old) return;
+        if (!res.ok || !(await changed(old, res.clone()))) return;
         for (const cl of await self.clients.matchAll({ type: 'window' })) cl.postMessage({ type: 'tlm-data', url: new URL(e.request.url).pathname });
       }).catch(() => {}));
     }
