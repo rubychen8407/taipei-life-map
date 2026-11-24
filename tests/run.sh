@@ -14,4 +14,5 @@ python3 test_trees.py
 python3 test_land.py
 python3 test_market.py
 python3 test_urban.py
+python3 test_urcase.py
 python3 e2e.py
