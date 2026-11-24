@@ -404,7 +404,8 @@ body.placing #map{cursor:crosshair}
 .city-joy{position:absolute;left:24px;bottom:calc(env(safe-area-inset-bottom) + 28px);width:112px;height:112px;border-radius:50%;background:rgba(255,255,255,.3);border:2px solid rgba(255,255,255,.75);touch-action:none}.city-joy i{position:absolute;left:32px;top:32px;width:48px;height:48px;border-radius:50%;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,.15);pointer-events:none}
 .city-act{position:absolute;right:24px;bottom:calc(env(safe-area-inset-bottom) + 44px);width:76px;height:76px;border-radius:50%;border:0;background:rgba(255,255,255,.85);color:#3C4043;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(0,0,0,.18);transition:background .2s}.city-act svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.city-act span{position:absolute;top:100%;margin-top:6px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.45)}.city-act.on{background:#F7931E;color:#fff}
 #city.card-on .city-joy,#city.card-on .city-act{display:none}
-.city-hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translateX(-50%);background:rgba(32,33,36,.8);color:#fff;font-size:13px;border-radius:16px;padding:6px 14px;pointer-events:none;transition:opacity .4s;white-space:nowrap}
+.city-zone{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translateX(-50%);font-size:17px;font-weight:700;letter-spacing:.1em;color:#fff;text-shadow:0 1px 6px rgba(0,60,30,.55);pointer-events:none;opacity:0;transition:opacity .5s}.city-zone.on{opacity:1}
+.city-hint{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 112px);transform:translateX(-50%);background:rgba(32,33,36,.8);color:#fff;font-size:13px;border-radius:16px;padding:6px 14px;pointer-events:none;transition:opacity .4s;white-space:nowrap}
 .city-card{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);background:#fff;border-radius:24px;box-shadow:0 6px 24px rgba(0,0,0,.2);padding:14px 16px;max-width:520px;margin:0 auto}.cc-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-right:40px}.cc-h b{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cc-sc{font-size:20px;font-weight:800;color:#C5221F;flex:none}.cc-sc small{font-size:12px;color:var(--sub);font-weight:600}
 .cc-x{position:absolute;right:6px;top:4px;width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center}.cc-x svg{width:18px;height:18px;fill:none;stroke:#5F6368;stroke-width:2.2;stroke-linecap:round}
 .city-card .htags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.cc-st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 8px}.cc-st button{border:1.5px solid #D2D6DC;background:#fff;border-radius:12px;min-height:48px;font-size:14px;font-weight:700;color:#3C4043;display:flex;flex-direction:column;align-items:center;justify-content:center}.cc-st small{font-size:12px;font-weight:500;color:var(--sub)}.cc-st [aria-pressed=true]{border-color:#F7931E;background:#FFF3E0;color:#9C5200}
@@ -2190,7 +2191,7 @@ async function openCity(){const homes=loadHomes();if(!homes.length){toast('先�
     <div class="city-leg" id="cityLeg" hidden><span><i class="lg-todo"></i>鷹架＝未看房</span><span><i class="lg-seen"></i>蓋好插旗＝已看房</span><span><i class="lg-nego"></i>亮燈＝議價中</span><span>樓越高分數越高</span></div>
     <div class="city-joy" id="cityJoy" aria-label="搖桿：拖曳讓主角走路，也可以用方向鍵"><i></i></div>
     <button type="button" class="city-act" id="cityAct"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z"/></svg><span>走近一棟樓</span></button>
-    <div class="city-hint" id="cityHint">搖桿走路・拖曳轉視角・點樓看詳細</div>
+    <div class="city-zone" id="cityZone" aria-live="polite"></div><div class="city-hint" id="cityHint">搖桿走路・拖曳轉視角・點樓看詳細</div>
     <div class="city-card" id="cityCard" hidden></div>`;
   document.body.appendChild(el);document.body.classList.add('city-on');$('cityX').onclick=closeCity;
   $('cityHelp').onclick=()=>{const l=$('cityLeg'),o=l.hidden;l.hidden=!o;$('cityHelp').setAttribute('aria-expanded',String(o));};
@@ -2223,11 +2224,19 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   let seed=hashStr(homes.map(h=>h.id).join())||7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   // ── 排版：真實方向、壓縮距離
   const la0=homes.reduce((s,h)=>s+h.pt[0],0)/homes.length,lo0=homes.reduce((s,h)=>s+h.pt[1],0)/homes.length,kx=111320*Math.cos(la0*Math.PI/180);
-  const Pm=pt=>[(pt[1]-lo0)*kx,-(pt[0]-la0)*110540],farM=Math.max(1500,...homes.map(h=>Math.hypot(...Pm(h.pt)))),SC=15/farM,P=pt=>Pm(pt).map(v=>v*SC),IR=28,B=1;
+  const Pm=pt=>[(pt[1]-lo0)*kx,-(pt[0]-la0)*110540],farM=Math.max(1500,...homes.map(h=>Math.hypot(...Pm(h.pt)))),SC=15/farM,P=pt=>Pm(pt).map(v=>v*SC),B=1;
   const POS={};homes.forEach((h,i)=>{const p=P(h.pt);POS[h.id]=[p[0],p[1]];});
   for(let it=0;it<40;it++)homes.forEach((a,i)=>homes.forEach((b,j)=>{if(j<=i)return;const A=POS[a.id],Bp=POS[b.id];let dx=Bp[0]-A[0],dz=Bp[1]-A[1],d=Math.hypot(dx,dz);if(d>=9)return;
     if(d<.01){const t=(hashStr(a.id+b.id)%628)/100;dx=Math.cos(t);dz=Math.sin(t);d=1;}const k=(9-d)/2/d;A[0]-=dx*k;A[1]-=dz*k;Bp[0]+=dx*k;Bp[1]+=dz*k;}));
-  homes.forEach(h=>{const p=POS[h.id],d=Math.hypot(...p);if(d>18){p[0]*=18/d;p[1]*=18/d;}});
+  // 分區：每間物件歸到所在的行政區，同區的物件聚在一塊有底色的區域，區域裡放那一區的地標（物件增減時自動重排）
+  const dOf=pt=>{let i=DISTRICTS.findIndex(d=>inPoly(d,pt[0],pt[1]));if(i<0){let bd=1e9;DISTRICTS.forEach((d,k)=>{const v=Math.hypot(d.ctr[0]-pt[0],d.ctr[1]-pt[1]);if(v<bd){bd=v;i=k;}});}return i;};
+  const REGS=[];homes.forEach(h=>{const k=dOf(h.pt);let r=REGS.find(x=>x.k===k);if(!r)REGS.push(r={k,name:DISTRICTS[k].name,ids:[]});r.ids.push(h.id);});
+  REGS.forEach(r=>{r.c=[0,1].map(i=>r.ids.reduce((s2,id)=>s2+POS[id][i],0)/r.ids.length);r.r=Math.max(11,...r.ids.map(id=>Math.hypot(POS[id][0]-r.c[0],POS[id][1]-r.c[1])+8));});
+  const shiftReg=(r,dx,dz)=>{r.c[0]+=dx;r.c[1]+=dz;r.ids.forEach(id=>{POS[id][0]+=dx;POS[id][1]+=dz;});};
+  for(let it=0;it<80;it++)REGS.forEach((a,i)=>REGS.forEach((b2,j)=>{if(j<=i)return;let dx=b2.c[0]-a.c[0],dz=b2.c[1]-a.c[1],d=Math.hypot(dx,dz);const need=a.r+b2.r+4;if(d>=need)return;
+    if(d<.01){const t=(hashStr(a.name+b2.name)%628)/100;dx=Math.cos(t);dz=Math.sin(t);d=1;}const k=(need-d)/2/d;shiftReg(a,-dx*k,-dz*k);shiftReg(b2,dx*k,dz*k);}));
+  {const xs=REGS.flatMap(r=>[r.c[0]-r.r,r.c[0]+r.r]),zs=REGS.flatMap(r=>[r.c[1]-r.r,r.c[1]+r.r]),cx=(Math.min(...xs)+Math.max(...xs))/2,cz=(Math.min(...zs)+Math.max(...zs))/2;REGS.forEach(r=>shiftReg(r,-cx,-cz));}
+  const IR=Math.max(28,...REGS.map(r=>Math.hypot(r.c[0],r.c[1]/1.08)+r.r+6)),inReg=(x,z,m=0)=>REGS.find(r=>Math.hypot(x-r.c[0],z-r.c[1])<r.r+m);
   const inIsle=(x,z,m=0)=>Math.hypot(x,z/1.08)<IR-m;
   // ── 畫面
   const renderer=new T.WebGLRenderer({canvas:cv,antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -2256,7 +2265,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   const rv=new T.CatmullRomCurve3(CITY_RIVER.map(q=>{const [x,z]=P(q);return new T.Vector3(x,0,z);})).getPoints(160).filter(p=>inIsle(p.x,p.z,1.5));
   if(rv.length>4){ribbon(rv,3.1,.02,'#EBD9AE');ribbon(rv,2.3,.05,'#5AB8E6');}
   const nearR=(x,z,m)=>rv.some(p=>Math.hypot(p.x-x,p.z-z)<2.3+m);
-  const busy=homes.map(h=>[POS[h.id][0],POS[h.id][1],5]);
+  const busy=homes.map(h=>[POS[h.id][0],POS[h.id][1],6]);
   // 馬路：物件之間最短樹，再一條通往島邊（主角從這裡出發）
   const RD=[];{const ids=homes.map(h=>h.id),used=[0];while(used.length<ids.length){let best=null;used.forEach(i=>ids.forEach((id,j)=>{if(used.includes(j))return;const a=POS[ids[i]],b=POS[id],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(!best||d<best[2])best=[i,j,d];}));used.push(best[1]);
       const a=POS[ids[best[0]]],b=POS[ids[best[1]]];RD.push(new T.QuadraticBezierCurve3(new T.Vector3(a[0],0,a[1]+3.8),new T.Vector3((a[0]+b[0])/2+(a[1]-b[1])*.15,0,(a[1]+b[1])/2-(a[0]-b[0])*.15),new T.Vector3(b[0],0,b[1]+3.8)));}
@@ -2281,16 +2290,40 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
     grand:(x,z)=>{env.add(G.box,'#F4E6CF',x,.8,z,0,0,0,6,1.6,2);for(let k=0;k<3;k++)env.add(G.box,'#C0392B',x,1.7+k*.6,z,0,0,0,6.4-k*.6,.15,2.3);env.add(new T.CylinderGeometry(.01,2.4,1.4,4),'#D9442C',x,3.6,z,0,Math.PI/4,0,1.9,1,.62);for(let k=0;k<6;k++)env.add(G.cyl,'#C0392B',x-2.5+k,.8,z+1.05,0,0,0,.12,1.6,.12);},
     cks:(x,z)=>{env.add(G.box,'#F2F2F2',x,.3,z,0,0,0,6,.6,6);env.add(G.box,'#F2F2F2',x,.9,z,0,0,0,4,.6,4);env.add(G.box,'#FFFFFF',x,2.3,z,0,0,0,2.8,2.2,2.8);env.add(new T.ConeGeometry(2.4,1.8,8),'#2F5FA8',x,4.3,z);env.add(new T.ConeGeometry(1.4,1.1,8),'#2F5FA8',x,5.2,z);},
     station:(x,z)=>{env.add(G.box,'#E9DCC4',x,.9,z,0,0,0,8,1.8,5);env.add(G.box,'#6B4B3A',x,2,z,0,0,0,8.6,.4,5.6);env.add(G.box,'#E9DCC4',x,2.45,z,0,0,0,6,.5,3.6);env.add(G.box,'#6B4B3A',x,2.85,z,0,0,0,6.6,.3,4.2);}};
-  CITY_LM.forEach(L=>{const [x,z]=P(L.pt);if(L.k==='mtn'){if(!inIsle(x,z,2)||busy.some(([a,b,r])=>Math.hypot(a-x,b-z)<r+L.r))return;const g=new T.ConeGeometry(L.r,L.h,10,4),p=g.attributes.position;
+  const DLM={'信義區':LMB['101'],'中山區':LMB.wheel,'中正區':LMB.cks,
+    '大同區':(x,z)=>{['#B5553C','#C46A4A','#A84C36','#BF5E44'].forEach((c,k)=>{const dx=(k-1.5)*1.9;env.add(G.box,c,x+dx,1.6,z,0,0,0,1.8,3.2,2.4);env.add(G.box,'#F1E3CF',x+dx,3.45,z+1.21,0,0,0,1.5,.5,.1);for(const wy of [.9,2.2])env.add(G.box,'#5B4636',x+dx,wy,z+1.22,0,0,0,.6,.7,.05);env.add(G.box,'#E8D5B5',x+dx,.25,z+1.4,0,0,0,1.8,.08,.6);});},
+    '萬華區':(x,z)=>{env.add(G.box,'#D9C7A3',x,.3,z,0,0,0,6.4,.6,4.4);for(let k=0;k<6;k++)env.add(G.cyl,'#C0392B',x-2.5+k,1.6,z+1.6,0,0,0,.16,2,.16);env.add(G.box,'#F2E3C6',x,1.6,z-.2,0,0,0,5.4,2,3);
+      env.add(G.cone4,'#C0392B',x,3.4,z,0,Math.PI/4,0,5.2,1.6,3.4);env.add(G.cone4,'#C0392B',x,4.6,z,0,Math.PI/4,0,3.2,1.2,2.2);env.add(G.box,'#2E8B57',x,5.25,z,0,0,0,3.6,.18,.2);[-1,1].forEach(c=>env.add(G.cone4,'#2E8B57',x+c*1.9,5.45,z,0,Math.PI/4,c*.5,.25,.6,.25));},
+    '大安區':(x,z)=>{env.add(new T.CylinderGeometry(4.6,4.6,.06,32),'#7CC36B',x,.06,z);env.add(new T.CylinderGeometry(1.6,1.6,.05,24),'#5AB8E6',x+1.6,.1,z+1.2);for(let k=0;k<7;k++){const t=k/7*Math.PI*2;tree(x+Math.cos(t)*3.6,z+Math.sin(t)*3.6,1.25+rnd()*.3);}
+      env.add(new T.SphereGeometry(1.5,20,12,0,Math.PI,0,Math.PI/2),'#F4F1EA',x-1.4,.06,z-.6,0,Math.PI/2,0);},
+    '松山區':(x,z)=>{env.add(G.box,'#9A9DA3',x,.05,z,0,0,0,9,.1,2.4);for(let k=-4;k<=4;k+=2)env.add(G.box,'#FFFFFF',x+k,.12,z,0,0,0,1,.02,.15);env.add(G.cyl,'#E8EAED',x-3.6,2,z-2.6,0,0,0,.45,4,.45);env.add(G.cyl,'#7FB3D5',x-3.6,4.3,z-2.6,0,0,0,.8,.6,.8);
+      env.add(new T.CapsuleGeometry(.35,3,6,10),'#FFFFFF',x+1,.9,z,0,0,Math.PI/2);env.add(G.box,'#FFFFFF',x+1.2,.9,z,0,0,0,.8,.08,4.2);env.add(G.box,'#2F5FA8',x-.4,1.4,z,0,0,0,.6,.9,.08);env.add(G.box,'#2F5FA8',x+1,.92,z,0,0,0,3,.06,.72);},
+    '士林區':(x,z)=>{env.add(G.box,'#F2F2F2',x,.4,z,0,0,0,8,.8,4);env.add(G.box,'#F2F2F2',x,1,z,0,0,0,6.4,.4,3.2);env.add(G.box,'#F3DC9A',x,2,z,0,0,0,5.6,1.6,2.6);
+      env.add(G.cone4,'#3E8E5E',x,3.4,z,0,Math.PI/4,0,4.8,1.3,2.6);[-1,1].forEach(c=>{env.add(G.box,'#F3DC9A',x+c*3.6,1.6,z,0,0,0,1.6,1.2,2);env.add(G.cone4,'#3E8E5E',x+c*3.6,2.6,z,0,Math.PI/4,0,1.6,.9,1.6);});},
+    '北投區':(x,z)=>{env.add(new T.CylinderGeometry(2.6,2.6,.08,24),'#8FD3C9',x,.08,z);for(let k=0;k<12;k++){const t=k/12*Math.PI*2;env.add(G.ico,toon('#9A9590',{flatShading:true}),x+Math.cos(t)*2.7,.25,z+Math.sin(t)*2.7,0,t,0,.45,.35,.4);}
+      for(let k=0;k<5;k++)env.add(G.sph,toon('#FFFFFF',{transparent:true,opacity:.55}),x-1+k*.5,1+k*.45,z-.5+(k%2)*.6,0,0,0,.5+k*.08,.5+k*.08,.5+k*.08);env.add(G.box,'#9C7A54',x+4,1,z,0,0,0,2.6,2,2);env.add(G.box,'#5E8F5A',x+4,2.15,z,0,0,0,3,.3,2.4);},
+    '內湖區':(x,z)=>{env.add(new T.CylinderGeometry(3.4,3.4,.06,28),'#5AB8E6',x,.06,z);env.add(new T.TorusGeometry(2.6,.18,8,24,Math.PI),'#F4F1EA',x,0,z,0,0,0);for(let k=0;k<7;k++){const t=k/6*Math.PI;env.add(G.box,'#F4F1EA',x-Math.cos(t)*2.6,Math.sin(t)*2.6+.1,z,0,0,t-Math.PI/2,.9,.08,1.1);}tree(x-4,z+2,1);tree(x+4.2,z-1.5,1.1);},
+    '南港區':(x,z)=>{env.add(G.box,'#DDE3EA',x,1,z,0,0,0,8,2,4);for(let k=0;k<4;k++)env.add(new T.CylinderGeometry(1,1,4,16,1,false,0,Math.PI),'#A9C4DC',x-3+k*2,2,z,Math.PI/2,0,Math.PI/2);env.add(G.box,'#7FB3D5',x,.9,z+2.01,0,0,0,7.2,1.2,.05);},
+    '文山區':(x,z)=>{for(let k=0;k<4;k++)env.add(new T.CylinderGeometry(3.6-k*.8,3.8-k*.8,.7,20),k%2?'#6DBA62':'#86C96E',x,.35+k*.7,z);for(let k=0;k<6;k++){const t=k/6*Math.PI*2;env.add(G.sph,'#3F8F4A',x+Math.cos(t)*2.9,.85,z+Math.sin(t)*2.9,0,0,0,.35,.25,.35);}
+      env.add(G.cyl6,'#8A8F96',x-3.6,2.2,z+3.4,0,0,0,.1,4.4,.1);env.add(G.cyl6,'#8A8F96',x+.2,5,z,0,0,0,.1,4,.1);env.add(new T.TubeGeometry(new T.LineCurve3(new T.Vector3(x-3.6,4.4,z+3.4),new T.Vector3(x+.2,7,z)),2,.03,4),'#4A4640');env.add(G.box,'#E85D5D',x-1.7,5.2,z+1.7,0,.7,0,.7,.6,.6);}};
+  CITY_LM.filter(L=>L.k==='mtn').forEach(L=>{const [x,z]=P(L.pt);if(L.k==='mtn'){if(!inIsle(x,z,2)||busy.some(([a,b,r])=>Math.hypot(a-x,b-z)<r+L.r))return;const g=new T.ConeGeometry(L.r,L.h,10,4),p=g.attributes.position;
       for(let i=0;i<p.count;i++){const y=p.getY(i);if(y>-L.h/2+.01&&y<L.h/2-.01){p.setX(i,p.getX(i)*(.88+rnd()*.24));p.setZ(i,p.getZ(i)*(.88+rnd()*.24));}}g.computeVertexNormals();
       const m=new T.Mesh(g,toon('#5FB063',{flatShading:true}));m.position.set(x,L.h/2-.2,z);m.castShadow=m.receiveShadow=true;scene.add(m);busy.push([x,z,L.r]);for(let i=0;i<L.r*3;i++){const a=rnd()*7,rr=rnd()*L.r*.8;tree(x+Math.cos(a)*rr,z+Math.sin(a)*rr,.7+rnd()*.4,L.h*(1-rr/L.r)-.2);}return;}
-    if(!inIsle(x,z,5)||busy.some(([a,b,r])=>Math.hypot(a-x,b-z)<r+4)||nearRd(x,z,3))return;LMB[L.k](x,z);busy.push([x,z,5]);});
+  });
+  // 區域底色＋矮樹籬，區域裡放該區地標（只靠造型，不放字）
+  const TINT=['#A8D98A','#C5E3A0','#9FD4A6','#D6E8A8','#B5DDB0','#CBE6B8'],LMS=[];
+  REGS.forEach((r,i)=>{const sh=new T.Shape();for(let a=0;a<=60;a++){const t=a/60*Math.PI*2,rr=r.r*(1+.05*Math.sin(t*3+i)),x=r.c[0]+Math.cos(t)*rr,y=-(r.c[1]+Math.sin(t)*rr);a?sh.lineTo(x,y):sh.moveTo(x,y);}
+    const g=new T.ShapeGeometry(sh,24);g.rotateX(-Math.PI/2);const m=new T.Mesh(g,toon(TINT[r.k%TINT.length]));m.position.y=.03;m.receiveShadow=true;scene.add(m);
+    const n=Math.round(r.r*1.6);for(let a=0;a<n;a++){const t=a/n*Math.PI*2,x=r.c[0]+Math.cos(t)*r.r,z=r.c[1]+Math.sin(t)*r.r;if(!nearRd(x,z,.4)&&inIsle(x,z,1))env.add(G.sph,'#4E9E58',x,.25,z,0,0,0,.6,.42,.6);}
+    const f=DLM[r.name];if(!f)return;let best=null;for(const dd of [r.r-4.5,r.r-6.5,r.r-3])for(let a=0;a<24;a++){const t=a/24*Math.PI*2,x=r.c[0]+Math.cos(t)*dd,z=r.c[1]+Math.sin(t)*dd;if(!inIsle(x,z,4)||nearRd(x,z,2.6)||nearR(x,z,1))continue;
+      const md=Math.min(...busy.map(([a2,b2])=>Math.hypot(a2-x,b2-z)));if(md<7.5)continue;const sc3=md-Math.hypot(x,z)*.05;if(!best||sc3>best[2])best=[x,z,sc3];}
+    if(!best)return;f(best[0],best[1]);busy.push([best[0],best[1],5]);LMS.push({name:r.name,x:best[0],z:best[1]});});
   // 背景小房子與樹（避開物件、地標、河、路）
   const free=(x,z,m)=>inIsle(x,z,2)&&!nearR(x,z,m)&&!nearRd(x,z,m)&&busy.every(([a,b,r])=>Math.hypot(a-x,b-z)>r+m);
   const hc=['#F6E7D7','#F3D9C8','#E9E3F2','#DCEBE0','#F7EBC4','#E3ECF6'],rc=['#D98C6A','#7FA6C9','#9DBE8C','#C9A27E'];
-  for(let i=0;i<IR*4;i++){const a=rnd()*7,rr=Math.sqrt(rnd())*IR,x=Math.cos(a)*rr,z=Math.sin(a)*rr;if(!free(x,z,1.6))continue;const w=1.5+rnd()*.8,hh=1.2+rnd()*1.8,ry=Math.floor(rnd()*4)*Math.PI/2;
+  for(let i=0;i<IR*2.2;i++){const a=rnd()*7,rr=Math.sqrt(rnd())*IR,x=Math.cos(a)*rr,z=Math.sin(a)*rr;if(!free(x,z,1.6)||inReg(x,z,1.5))continue;const w=1.5+rnd()*.8,hh=1.2+rnd()*1.8,ry=Math.floor(rnd()*4)*Math.PI/2;
     env.add(G.box,hc[Math.floor(rnd()*6)],x,hh/2,z,0,ry,0,w,hh,w*.9);env.add(G.cone4,toon(rc[Math.floor(rnd()*4)],{flatShading:true}),x,hh+.45,z,0,ry+Math.PI/4,0,w*.82,.9,w*.74);busy.push([x,z,1.4]);}
-  for(let i=0;i<IR*6;i++){const a=rnd()*7,rr=Math.sqrt(rnd())*IR,x=Math.cos(a)*rr,z=Math.sin(a)*rr;if(free(x,z,.6))tree(x,z,.65+rnd()*.45);}
+  for(let i=0;i<IR*4;i++){const a=rnd()*7,rr=Math.sqrt(rnd())*IR,x=Math.cos(a)*rr,z=Math.sin(a)*rr;if(free(x,z,.8)&&(!inReg(x,z)||rnd()<.3))tree(x,z,.65+rnd()*.45);}
   if(rv.length>10){const m=rv[Math.floor(rv.length*.55)],q=rv[Math.floor(rv.length*.55)+1],ang=-Math.atan2(q.z-m.z,q.x-m.x);env.add(G.box,'#E85D5D',m.x,.45,m.z,0,ang,0,6.6,.3,1.8);}
   env.build(scene);
   // 積雲
@@ -2379,7 +2412,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
       const i=bld.findIndex(x=>x.userData.id===id),ng=makeB(loadHomes().find(x=>x.id===id));scene.remove(bld[i]);bld[i].traverse(o=>{o.geometry&&o.geometry!==G.sph&&o.geometry.dispose();});scene.add(ng);bld[i]=ng;stat();select(id);
       toast(v==='seen'?'「'+h.name+'」蓋好了':v==='nego'?'「'+h.name+'」亮燈了，議價中':'「'+h.name+'」回到鷹架');});
     $('ccOpen').onclick=()=>{closeCity();openHome(loadHomes().find(x=>x.id===id));};}
-  CITY3D={renderer,scene,cam,bld,hero,sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
+  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
   resize();setCam();stat();const ro=new ResizeObserver(resize);ro.observe(el);CITY3D.ro=ro;
   const v3=new T.Vector3();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;
@@ -2391,10 +2424,12 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
       const want=Math.atan2(nx-hero.position.x,nz-hero.position.z);let dr=want-hero.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));hero.rotation.y+=dr*Math.min(1,dt*10);hero.position.x=nx;hero.position.z=nz;walkT+=dt*il;}
     const hm=hero.userData.mesh;if(hm){hm.position.y=(hm.userData.y0??(hm.userData.y0=hm.position.y))+(moving&&!reduce?Math.abs(Math.sin(walkT*9))*.18:0);hm.rotation.z=moving&&!reduce?Math.sin(walkT*9)*.06:0;}
     setCam();
+    // 走進哪一區：上方淡入區名
+    const zr=inReg(hero.position.x,hero.position.z);if((zr&&zr.name)!==zone){zone=zr?zr.name:null;const zc=$('cityZone');if(zone)zc.textContent=zone;zc.classList.toggle('on',!!zone);}
     // 最近的物件
     let best=null,bd=1e9;bld.forEach(g=>{const d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<bd){bd=d;best=g;}});const nn=best&&bd<10?best.userData.id:null;
     if(nn!==near){near=nn;act.classList.toggle('on',!!near);act.querySelector('span').textContent=near?'看這間':'走近一棟樓';pins.querySelectorAll('.cp').forEach(p=>p.classList.toggle('near',p.dataset.cp===near));pinUpd();}
-    const W=cv.clientWidth,H=cv.clientHeight;bld.forEach(g=>{const p=pins.querySelector(`[data-cp="${g.userData.id}"]`);if(!p)return;v3.set(g.position.x,g.userData.H+(g.userData.st==='todo'?3.2:2.2),g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&v3.y>-1.1;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${Math.min(W-70,Math.max(70,(v3.x+1)/2*W))}px,${Math.max(150,(1-v3.y)/2*H)}px) translate(-50%,-100%)`;});
+    const W=cv.clientWidth,H=cv.clientHeight;bld.forEach(g=>{const p=pins.querySelector(`[data-cp="${g.userData.id}"]`);if(!p)return;v3.set(g.position.x,g.userData.H+(g.userData.st==='todo'?3.2:2.2),g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&v3.y>-1.1;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${Math.min(W-70,Math.max(70,(v3.x+1)/2*W))}px,${Math.max(176,(1-v3.y)/2*H)}px) translate(-50%,-100%)`;});
     bld.forEach(g=>{const u=g.userData;if(g.scale.y<1)g.scale.y=reduce?1:Math.min(1,(now-u.born)/800);if(u.pop){const k=(now-u.pop)/500;if(k<1){const s=1+.06*Math.sin(k*Math.PI);g.scale.x=g.scale.z=s;}else{g.scale.x=g.scale.z=1;u.pop=0;}}
       u.drops.forEach(d=>{const p=((now/1400+d.userData.ph)%1);d.position.y=u.H*.85*(1-p)+.3;});
       if(!reduce){if(u.jib)u.jib.rotation.y=Math.sin(now/2200)*1.1;if(u.flag)u.flag.rotation.y=Math.sin(now/300)*.35;if(u.bulbs)u.bulbs.children.forEach((b,k)=>b.visible=Math.sin(now/260+k)>-.4);}});
