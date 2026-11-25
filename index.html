@@ -2267,7 +2267,7 @@ function cityProg(a){const n=a.length,v=a.reduce((t,h)=>t+({seen:1,nego:2}[h.st]
 async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}if(cityMusPref().on)CITY_MUS.prime();
   try{THREE=THREE||await import(THREE_URL);}catch(e){toast('3D 小城載入失敗，請檢查網路後再試',true);return;}
   const tc=document.createElement('canvas');if(!(tc.getContext('webgl2')||tc.getContext('webgl'))){toast('這台裝置不支援 3D 顯示',true);return;}
-  await homesScore();let HR=null,AR=null;try{HR=await loadHero(THREE);}catch(e){}try{AR=await loadGLB(THREE,AGENT_URL);}catch(e){}closeCity();
+  await homesScore();let HR=null,AR=null;try{HR=await loadHero(THREE);}catch(e){}closeCity();
   const el=document.createElement('div');el.id='city';el.setAttribute('role','dialog');el.setAttribute('aria-label','我的物件小城');
   el.innerHTML=`<canvas id="cityCv" aria-label="3D 小城：搖桿或方向鍵走路，拖曳轉視角，點一棟樓看詳細"></canvas><div id="cityPins" aria-hidden="true"></div>
     <div class="city-top"><div class="city-h"><span id="cityStat"></span><div class="city-bar"><i id="cityBarI"></i></div></div>
@@ -2327,7 +2327,6 @@ const hashStr=t=>{let h=7;for(const c of String(t))h=(h*31+c.charCodeAt(0))>>>0;
 const AGENT_CO={'信義':'#1B7F4B','永慶':'#C62828','住商':'#E0A100','中信':'#1565C0','台灣房屋':'#6A1B9A','樂屋':'#EF6C00','其他':'#546E7A'};
 function homeCo(h){const ps=(h.links||[]).map(l=>l.p||platformOf(l.u||''));return ps.find(p=>AGENT_CO[p]&&p!=='其他')||(ps.length?'其他':null);}
 const coName=c=>c==='其他'?'仲介':c+'仲介';
-const AGENT_URL='assets/agent.glb';
 // 同行的人（日曆邀請）：[{n:名字,e:email}]，雲端同步
 function companions(){try{return JSON.parse(localStorage.getItem('tlm.companions')||'[]');}catch(e){return [];}}
 function saveCompanions(a){try{localStorage.setItem('tlm.companions',JSON.stringify(a));}catch(e){}}
@@ -2574,20 +2573,40 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     $('ccOpen').onclick=()=>openDet(id,'sum');}
   // ── 仲介角色：每間有連結的物件門口站一位（同公司同一個人設），走近或點他就能說話
   const NPCS=[];
-  function makeAgent(col){const g=new T.Group(),skin=toon('#F2C9A5'),shirt=toon('#F7F7F4'),pants=toon('#2F3640'),shoe=toon('#1C1C1E'),vest=toon(col),hair=toon('#2B2018');
-    if(AR){const m=new T.Mesh(AR.g,new T.MeshToonMaterial({map:AR.map,gradientMap:TG3}));const bb=AR.g.boundingBox,hh=bb.max.y-bb.min.y;m.scale.setScalar(HS/hh);m.position.y=-bb.min.y*HS/hh;m.castShadow=true;g.add(m);
-}
-    else{const P=(geo,mat,x,y,z,rx=0,ry=0,rz=0)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.castShadow=true;g.add(m);return m;};
-      [-1,1].forEach(s=>{P(new T.CapsuleGeometry(.1,.62,4,10),pants,s*.12,.46,0);P(new T.BoxGeometry(.17,.1,.3),shoe,s*.12,.05,.05);
-        const arm=P(new T.CapsuleGeometry(.075,.5,4,10),shirt,s*.33,1.08,0,0,0,s*.14);arm.userData.arm=s;P(new T.SphereGeometry(.075,10,8),skin,s*.37,.78,.02);});
-      P(new T.CapsuleGeometry(.24,.42,6,14),shirt,0,1.12,0);P(new T.CylinderGeometry(.255,.25,.52,18,1,true),vest,0,1.1,0);
-      P(new T.BoxGeometry(.06,.34,.02),toon('#3A3F47'),0,1.14,.255);P(new T.BoxGeometry(.1,.05,.02),toon('#FFFFFF'),.13,1.24,.25);
-      P(new T.CylinderGeometry(.07,.08,.1,10),skin,0,1.43,0);P(new T.SphereGeometry(.21,18,14),skin,0,1.62,0);
-      const hr=P(new T.SphereGeometry(.225,18,14,0,Math.PI*2,0,Math.PI*.55),hair,0,1.64,-.01);hr.scale.set(1,.95,1.04);
-      [-1,1].forEach(s=>{P(new T.SphereGeometry(.026,8,6),toon('#2A2420'),s*.075,1.63,.19);P(new T.SphereGeometry(.035,8,6),skin,s*.21,1.61,0);});
-      P(new T.BoxGeometry(.3,.38,.04),toon('#F3EFE6'),.3,.95,.2,0,-.3,0);}
-    const mk=new T.Mesh(new T.OctahedronGeometry(.18,0),new T.MeshBasicMaterial({color:col}));mk.position.y=HS+.45;mk.userData.mk=1;g.add(mk);return g;}
-  homes.forEach(h=>{const co=homeCo(h),b=bld.find(x=>x.userData.id===h.id);if(!co||!b)return;let best=null,bs=-1e9;
+  const ATM={},atoon=c=>ATM[c]||(ATM[c]=new T.MeshToonMaterial({color:c,gradientMap:TG3}));
+  // 仲介角色（程式捏的：比例和畫風對齊主角──大頭圓眼、腮紅、霧面柔和色；背心是公司色）
+  // 同材質的零件併成一個網格：一位仲介只要約 10 次繪製
+  const mergeAgent=g=>{const by=new Map();g.children.forEach(c=>{c.updateMatrix();const k=c.material;if(!by.has(k))by.set(k,[]);by.get(k).push(c.geometry.clone().applyMatrix4(c.matrix));c.geometry.dispose();});const out=new T.Group();by.forEach((l,m)=>{const o=new T.Mesh(mergeGeos(T,l),m);o.castShadow=!m.transparent;out.add(o);});return out;};
+  function makeAgent(col){const g=mergeAgent((function(T,mat,col){const g=new T.Group(),M=c=>mat(c),skin=M('#F4D8C4'),shirt=M('#F4EFE6'),pants=M('#596070'),shoe=M('#6B4A36'),hair=M('#3A2A22'),vest=M(new T.Color(col).lerp(new T.Color('#E8DCCB'),.28).getStyle()),dark=M('#2B2420');
+  const P=(geo,m,x,y,z,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0)=>{const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.rotation.set(rx,ry,rz);o.castShadow=true;g.add(o);return o;};
+  const S=(r,w=20,h=16)=>new T.SphereGeometry(r,w,h),C=(rt,rb,hh,s=20,open=false,t0=0,tl=Math.PI*2)=>new T.CylinderGeometry(rt,rb,hh,s,1,open,t0,tl),K=(r,l)=>new T.CapsuleGeometry(r,l,6,14);
+  // 腳、鞋（修長，和主角一樣細）
+  [-1,1].forEach(s=>{P(K(.072,.52),pants,s*.085,.43,0);P(S(.085),shoe,s*.085,.06,.04,1,.6,1.5);});
+  P(C(.165,.17,.18),pants,0,.75,0);
+  // 上身：襯衫＋前開 V 的背心＋領帶＋名牌
+  P(C(.17,.165,.46),shirt,0,1.0,0);P(S(.17),shirt,0,1.22,0,1.08,.45,.9);
+  const v=P(C(.182,.172,.4,24,true,.45,Math.PI*2-.9),vest,0,.97,0);v.material=vest.clone();v.material.side=T.DoubleSide;
+  P(new T.BoxGeometry(.04,.24,.015),M('#3A4152'),0,1.06,.17,1,1,1,-.06);P(new T.BoxGeometry(.06,.04,.02),M('#3A4152'),0,1.19,.168);
+  P(new T.BoxGeometry(.07,.045,.012),M('#FFFFFF'),.1,1.09,.178);P(new T.BoxGeometry(.07,.012,.013),vest,.1,1.107,.18);
+  // 手臂、手、資料夾
+  [-1,1].forEach(s=>{P(K(.052,.42),shirt,s*.235,1.0,0,1,1,1,0,0,s*.2);P(S(.056),skin,s*.29,.74,.01);});
+  P(new T.BoxGeometry(.2,.27,.025),M('#C9A27A'),-.31,.82,.08,1,1,1,0,.45,.05);P(new T.BoxGeometry(.16,.22,.004),M('#FBF7EE'),-.305,.83,.096,1,1,1,0,.45,.05);
+  // 頭：大頭、圓眼、腮紅、小嘴
+  P(C(.05,.055,.1),skin,0,1.32,0);const hy=1.5;P(S(.235,28,22),skin,0,hy,0,1,1.04,.97);
+  [-1,1].forEach(s=>{P(S(.045),skin,s*.232,hy-.01,0,.55,1,1);
+    P(S(.036),dark,s*.085,hy-.015,.205,.85,1.2,.45);P(S(.012),M('#FFFFFF'),s*.085+.01,hy+.006,.222);
+    P(new T.BoxGeometry(.062,.014,.01),hair,s*.088,hy+.065,.214,1,1,1,0,0,-s*.12);
+    const ck=new T.Mesh(new T.CircleGeometry(.034,20),new T.MeshBasicMaterial({color:'#F2A3A0',transparent:true,opacity:.5}));ck.position.set(s*.14,hy-.07,.196);ck.rotation.y=s*.55;g.add(ck);});
+  P(S(.018),M('#EBC3AC'),0,hy-.05,.226);P(new T.TorusGeometry(.026,.006,6,14,Math.PI),M('#A2554C'),0,hy-.1,.21,1,1,1,0,0,Math.PI);
+  // 頭髮：整齊短髮（頂部往後傾的帽狀＋後腦＋旁分瀏海）
+  P(new T.SphereGeometry(.248,28,16,0,Math.PI*2,0,Math.PI*.5),hair,0,hy+.02,-.015,1,1.06,1,-.32);
+  P(new T.SphereGeometry(.245,24,14,Math.PI,Math.PI,Math.PI*.25,Math.PI*.42),hair,0,hy,-.005,1.02,1,1.02);
+  P(S(.14),hair,-.06,hy+.16,.11,1.25,.42,.7,.35,0,.22);P(S(.1),hair,.11,hy+.175,.09,1,.4,.75,.35,0,-.3);
+  return g;})(T,atoon,col));
+    const mk=new T.Mesh(new T.OctahedronGeometry(.16,0),new T.MeshBasicMaterial({color:col}));mk.position.y=HS+.35;mk.userData.mk=1;g.add(mk);return g;}
+  // 同一家公司只有一位仲介（使用者：同公司的仲介都能帶看），站在離該公司所有物件中心最近的那間門口
+  const COS={};homes.forEach(h=>{const co=homeCo(h);if(co&&bld.some(x=>x.userData.id===h.id))(COS[co]=COS[co]||[]).push(h);});
+  Object.entries(COS).map(([co,hs])=>{const P2=hs.map(h=>bld.find(x=>x.userData.id===h.id).position),cx=P2.reduce((a,p)=>a+p.x,0)/P2.length,cz=P2.reduce((a,p)=>a+p.z,0)/P2.length;let k=0,bd=1e9;P2.forEach((p,i)=>{const d=Math.hypot(p.x-cx,p.z-cz);if(d<bd){bd=d;k=i;}});return hs[k];}).forEach(h=>{const co=homeCo(h),b=bld.find(x=>x.userData.id===h.id);if(!co||!b)return;let best=null,bs=-1e9;
     for(let k=0;k<16;k++){const a=k/16*Math.PI*2,x=b.position.x+Math.sin(a)*5.6,z=b.position.z+Math.cos(a)*5.6;if(!inIsle(x,z,2))continue;let m=1e9;bld.forEach(o=>{if(o!==b)m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z));});NPCS.forEach(n=>m=Math.min(m,Math.hypot(n.g.position.x-x,n.g.position.z-z)*2));if(m>bs){bs=m;best=a;}}
     if(best==null)return;const a=best+.32,g=makeAgent(AGENT_CO[co]);g.position.set(b.position.x+Math.sin(a)*5.6,0,b.position.z+Math.cos(a)*5.6);g.rotation.y=best;g.userData={co,homeId:h.id,base:best};scene.add(g);NPCS.push({co,homeId:h.id,g});});
   pins.insertAdjacentHTML('beforeend',NPCS.map((n,i)=>`<div class="cp cnp" data-np="${i}"><i style="background:${AGENT_CO[n.co]}"></i><b>${esc(coName(n.co))}</b></div>`).join(''));
@@ -2738,7 +2757,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     // 仲介：走近（3.5 內）右下按鈕變「和○○仲介說話」；8 單位內轉頭看主角；頭上菱形慢慢轉
     let nb=null,nd=1e9;NPCS.forEach(n=>{const g=n.g,d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<nd){nd=d;nb=n;}
       if(!talking){const want=d<8?Math.atan2(hero.position.x-g.position.x,hero.position.z-g.position.z):g.userData.base;let dr=want-g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));g.rotation.y+=dr*Math.min(1,dt*4);}
-      if(!reduce)g.children.forEach(c=>{if(c.userData.mk){c.rotation.y+=dt*1.5;c.position.y=HS+.45+Math.sin(now/400+n.g.position.x)*.08;}});});
+      if(!reduce)g.children.forEach(c=>{if(c.userData.mk){c.rotation.y+=dt*1.5;c.position.y=HS+.35+Math.sin(now/400+n.g.position.x)*.08;}});});
     const nn2=nb&&nd<3.5&&!talking?nb:null;if(nn2!==nearNpc){nearNpc=nn2;near=undefined;}
     // 最近的物件
     let best=null,bd=1e9;bld.forEach(g=>{const d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<bd){bd=d;best=g;}});const nn=best&&bd<10?best.userData.id:null;
