@@ -417,23 +417,28 @@ body.placing #map{cursor:crosshair}
 .cd-ch button:hover,.cd-ch button:focus-visible{background:#F2A541;color:#fff;box-shadow:0 4px 0 #C9802A;outline:none}
 @keyframes cdIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}@keyframes cdBob{50%{transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){.cd-box,.cd-ch button,.cd-next{animation:none}}
-.cdet{position:absolute;left:0;right:0;bottom:0;top:calc(76px + env(safe-area-inset-top));z-index:7;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);overflow:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}.cdet[hidden]{display:none}
-.cdt-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}.cdt-h b{font-size:17px;display:block}.cdt-h small{font-size:13px;color:var(--sub)}.cdt-h .cc-x{position:static;flex:none}
-.cdt-tabs{display:flex;gap:4px;margin:8px 0 10px;position:sticky;top:-16px;background:#fff;padding:6px 0;z-index:1}.cdt-tabs button{flex:1;min-height:40px;border:0;border-radius:12px;background:#F1F3F4;color:#3C4043;font-size:14px;font-weight:700}.cdt-tabs button[aria-selected=true]{background:var(--D);color:#fff}
-.cdt-tg{margin:0 0 6px}.cdt-k{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px}.cdt-k b{font-size:17px;color:#202124}
-.cdt-price,.cdt-band,.cdt-loan{display:flex;gap:8px}.cdt-price>div,.cdt-band>div,.cdt-loan>div{flex:1;background:#F6F8FA;border-radius:12px;padding:10px 12px}.cdt-price small,.cdt-band small,.cdt-loan small{display:block;font-size:12px;color:var(--sub)}.cdt-price b{font-size:24px}.cdt-price b em,.cdt-price b em{font-style:normal;font-size:14px}.cdt-price b.g{color:#188038}
-.cdt-band b,.cdt-loan b{font-size:16px}.cdt-band .mid,.cdt-loan .mid{background:#E6F4EA}.cdt-loan{flex-wrap:wrap}.cdt-loan>div{flex:1 1 40%}
-.cdt-bar{display:grid;grid-template-columns:64px 1fr 30px;align-items:center;gap:8px;font-size:13px;margin:4px 0}.cdt-bar i{height:8px;border-radius:4px;background:#EEF0F2;overflow:hidden}.cdt-bar em{display:block;height:100%}.cdt-bar b{text-align:right}
-.cdt-chips{display:flex;flex-wrap:wrap;gap:8px}.cdet .chip{min-height:40px;border:1.5px solid #D2D6DC;background:#fff;border-radius:24px;padding:0 14px;font-size:14px;font-weight:600;color:#3C4043;display:inline-flex;align-items:center;gap:6px;position:relative}.cdet .chip::after{content:'';position:absolute;inset:-2px 0}
-.cdet .chip.on{background:#E8F0FE;border-color:#1A56DB;color:#1A56DB}.cdet .chip.risk.on{background:#FCE8E6;border-color:#C5221F;color:#B3261E}.cdet .chip i{font-style:normal;font-size:16px}
-.cdt-add{display:flex;gap:8px;margin-top:8px}.cdt-add input{flex:1;min-width:0;height:44px;border:1.5px solid #D2D6DC;border-radius:12px;padding:0 10px;font-size:16px}
-.cdet textarea{width:100%;box-sizing:border-box;border:1.5px solid #D2D6DC;border-radius:12px;padding:10px;font-size:16px;line-height:1.5;font-family:inherit;resize:vertical}
-.cdt-btn{display:block;width:100%;min-height:48px;border:1.5px solid var(--D);background:#fff;color:var(--D);border-radius:16px;font-size:16px;font-weight:700;margin-top:10px}.cdt-btn.line{background:#06C755;border-color:#06C755;color:#fff}.cdt-btn.cal{border-color:#1A73E8;color:#1A73E8}.cdt-btn:disabled{opacity:.5}
-.cdt-row2{display:flex;gap:8px}.cdt-row2 .cdt-btn{flex:1}.cdt-tip{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.5}
-.cdt-next{background:#E8F0FE;border-radius:12px;padding:10px 12px;margin-bottom:8px}.cdt-next small{display:block;font-size:12px;color:var(--sub)}.cdt-next b{font-size:17px;color:#1A56DB}
-.cdt-tl>div{border-left:3px solid #9AA0A6;padding:2px 0 2px 10px;margin:10px 0}.cdt-tl b{display:block;font-size:15px}.cdt-tl small{font-size:12px;color:var(--sub)}.cdt-tl .t-visit{border-color:#1A56DB}.cdt-tl .t-offer{border-color:#188038}.cdt-tl .t-ask{border-color:#06C755}
-.cdt-links>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0}.cdt-links a{font-size:15px;font-weight:700;color:var(--D);min-height:44px;display:inline-flex;align-items:center}
-.cdt-map{width:100%;height:260px;border:0;border-radius:16px;background:#EEF0F2}
+.cdet{--cr:#FFF8E7;--cb:#5A4630;--cs:#E8D9B5;--co:#F2A541;--cod:#C9802A;position:absolute;left:0;right:0;bottom:0;top:calc(84px + env(safe-area-inset-top));z-index:7;max-width:620px;margin:0 auto;background:var(--cr);color:var(--cb);border-radius:36px 36px 0 0;box-shadow:0 -6px 0 var(--cs),0 -12px 30px rgba(0,0,0,.18);overflow:auto;padding:26px 18px calc(28px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;animation:cdIn .3s cubic-bezier(.2,1.3,.4,1)}.cdet[hidden]{display:none}
+.cdt-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.cdt-h>div{min-width:0}.cdt-h b{display:inline-block;font-size:17px;font-weight:800;color:#fff;background:var(--co);padding:6px 16px;border-radius:24px;transform:rotate(-2deg);box-shadow:0 3px 0 var(--cod);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cdt-h small{display:block;font-size:13px;color:#7A6650;margin:8px 0 0 4px}
+.cdt-h .cc-x{position:static;flex:none;background:#fff;border-radius:50%;box-shadow:0 3px 0 var(--cs)}.cdt-h .cc-x svg{stroke:var(--cb)}
+.cdt-tabs{display:flex;gap:6px;margin:10px -4px 12px;position:sticky;top:-26px;background:var(--cr);padding:8px 4px;z-index:1}.cdt-tabs button{flex:1;min-height:44px;border:0;border-radius:24px;background:#fff;color:var(--cb);font-size:14px;font-weight:800;box-shadow:0 3px 0 var(--cs)}.cdt-tabs button[aria-selected=true]{background:var(--co);color:#fff;box-shadow:0 3px 0 var(--cod)}
+.cdt-tg{margin:0 0 6px}.cdt-k{display:block;font-size:13px;font-weight:700;color:#7A6650;margin:16px 0 8px}.cdt-k b{font-size:17px;color:var(--cb)}
+.cdt-price,.cdt-band,.cdt-loan{display:flex;gap:8px}.cdt-price>div,.cdt-band>div,.cdt-loan>div{flex:1;background:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 3px 0 var(--cs)}.cdt-price small,.cdt-band small,.cdt-loan small{display:block;font-size:12px;color:#7A6650}.cdt-price b{font-size:24px;color:var(--cb)}.cdt-price b em{font-style:normal;font-size:14px}.cdt-price b.g{color:#3E8E5A}
+.cdt-band b,.cdt-loan b{font-size:16px}.cdt-band .mid,.cdt-loan .mid{background:#EAF5E4}.cdt-loan{flex-wrap:wrap}.cdt-loan>div{flex:1 1 40%}
+.cdt-bar{display:grid;grid-template-columns:64px 1fr 30px;align-items:center;gap:8px;font-size:13px;margin:6px 0}.cdt-bar i{height:10px;border-radius:5px;background:#EFE4CC;overflow:hidden}.cdt-bar em{display:block;height:100%;border-radius:5px}.cdt-bar b{text-align:right}
+.cdt-chips{display:flex;flex-wrap:wrap;gap:8px}.cpl{min-height:44px;border:0;background:#fff;border-radius:24px;padding:4px 16px;font-size:14px;font-weight:700;color:var(--cb);display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 0 var(--cs);font-family:inherit}
+.cpl small{font-size:12px;font-weight:600;opacity:.75}.cpl.on{background:var(--co);color:#fff;box-shadow:0 3px 0 var(--cod)}.cpl.risk.on{background:#E06C5F;box-shadow:0 3px 0 #B4473C}.cpl i{font-style:normal;font-size:16px}.cpl:active,.cdt-btn:active{transform:translateY(2px);box-shadow:none}
+.cdt-more{display:block;margin:10px 0 0;border:0;background:none;color:#B3661A;font-size:14px;font-weight:800;min-height:44px;padding:0 4px}
+.cdt-add{display:flex;gap:8px;margin-top:10px}.cdt-add input{flex:1;min-width:0;height:44px;border:2px solid #EADBBE;background:#fff;border-radius:16px;padding:0 12px;font-size:16px;color:var(--cb);font-family:inherit}
+.cdet textarea{width:100%;box-sizing:border-box;border:2px solid #EADBBE;background:#fff;border-radius:18px;padding:12px;font-size:16px;line-height:1.55;font-family:inherit;color:var(--cb);resize:vertical}
+.cdt-btn{display:block;width:100%;min-height:50px;border:0;background:#fff;color:var(--cb);border-radius:24px;font-size:16px;font-weight:800;margin-top:12px;box-shadow:0 4px 0 var(--cs);font-family:inherit}.cdt-btn.line{background:#06C755;color:#fff;box-shadow:0 4px 0 #04963F}.cdt-btn.cal{background:var(--co);color:#fff;box-shadow:0 4px 0 var(--cod)}.cdt-btn:disabled{opacity:.5}
+.cdt-row2{display:flex;gap:10px}.cdt-row2 .cdt-btn{flex:1}.cdt-tip{font-size:13px;color:#7A6650;margin-top:10px;line-height:1.55}
+.cdt-next{background:#fff;border-radius:18px;padding:12px 14px;margin-bottom:8px;box-shadow:0 3px 0 var(--cs)}.cdt-next small{display:block;font-size:12px;color:#7A6650}.cdt-next b{font-size:17px;color:#B3661A}
+.cdt-tl>div{border-left:4px solid #D8C7A4;padding:2px 0 2px 12px;margin:12px 0}.cdt-tl b{display:block;font-size:15px}.cdt-tl small{font-size:12px;color:#7A6650}.cdt-tl .t-visit{border-color:var(--co)}.cdt-tl .t-offer{border-color:#3E8E5A}.cdt-tl .t-ask{border-color:#06C755}
+.cdt-links>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0}.cdt-links a{font-size:15px;font-weight:800;color:#B3661A;min-height:44px;display:inline-flex;align-items:center}
+.cdt-map{width:100%;height:260px;border:0;border-radius:20px;background:#EFE4CC;box-shadow:0 3px 0 var(--cs)}
+.city-card{background:#FFF8E7!important;color:#5A4630;border-radius:32px!important;box-shadow:0 6px 0 #E8D9B5,0 14px 28px rgba(0,0,0,.2)!important;padding:18px 18px 16px!important}.city-card .cc-h b{color:#5A4630}.city-card .cc-x svg{stroke:#5A4630}
+.city-card .cc-st button{border:0!important;background:#fff!important;color:#5A4630!important;border-radius:20px!important;box-shadow:0 3px 0 #E8D9B5}.city-card .cc-st button[aria-pressed=true]{background:#F2A541!important;color:#fff!important;box-shadow:0 3px 0 #C9802A}.city-card .cc-st small{color:inherit;opacity:.8}
+.city-card .cc-next{border-radius:24px;background:#F2A541;box-shadow:0 4px 0 #C9802A}.city-card .cc-open{border-radius:24px;background:#fff;color:#5A4630;box-shadow:0 4px 0 #E8D9B5}.city-card .cc-done{color:#B3661A}
 .city-mus .mus-off{display:none}.city-mus[aria-pressed=false] .mus-off{display:inline}.city-mus[aria-pressed=true] svg{stroke:var(--D)}
 .city-x{pointer-events:auto;flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center}.city-x svg{width:20px;height:20px;fill:none;stroke:#3C4043;stroke-width:2.2;stroke-linecap:round}.city-x[aria-expanded=true]{background:#FFF3E0}
 .city-bar{flex:1;height:8px;border-radius:8px;background:#EDE5D6;overflow:hidden}.city-bar i{display:block;height:100%;border-radius:8px;background:#F7931E;transition:width .4s}
@@ -2637,40 +2642,52 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     det.innerHTML=`<div class="cdt-h"><div><b>${esc(title)}</b>${sub?`<small>${sub}</small>`:''}</div><button type="button" class="cc-x" id="cdtX" aria-label="關閉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>${body}`;$('cdtX').onclick=closeDet;}
   const num=v=>Math.round(v).toLocaleString('en-US');
   function rebuildB(id){const i=bld.findIndex(x=>x.userData.id===id);if(i<0)return;const ng=makeB(loadHomes().find(x=>x.id===id));scene.remove(bld[i]);bld[i].traverse(o=>{o.geometry&&o.geometry!==G.sph&&o.geometry.dispose();});scene.add(ng);bld[i]=ng;stat();drawHomes();}
-  // 約看房：我方便的時段（傳給仲介挑）＋同行的人（日曆邀請）＋自動寫好的訊息
-  function openSched(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;const nm=coName(co||homeCo(h)||'其他');
+  // 約看房（可以一次約多間）：要看的物件（同公司的排前面，其他公司的收在下面）＋我方便的時段（傳給仲介挑）＋同行的人（日曆邀請）
+  // 每家公司各一則自動寫好的訊息、各一顆「傳到 Line」；選定時段後整趟行程一個日曆活動，每間依順序間隔 1 小時記上看房時間
+  function openSched(id,co){const h0=loadHomes().find(x=>x.id===id);if(!h0)return;const co0=co||homeCo(h0)||'其他';
     const sat=new Date();sat.setDate(sat.getDate()+((6-sat.getDay()+7)%7||7));const mk2=(d,hh)=>{const x=new Date(d);x.setHours(hh,0,0,0);return x;};
-    const S={slots:[mk2(sat,10),mk2(sat,14)],who:new Set(),pick:0,edited:false};
-    const msg=()=>{const w=companions().filter(c=>S.who.has(c.e));return `${nm}您好，想預約看「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}。我${S.slots.map(twDate).join('、')}${S.slots.length>1?'都':''}方便${w.length?`，會有 ${w.length} 位同行`:''}，請問哪個時段可以？謝謝！`;};
-    const draw=()=>{const cs=companions();sheet('約看房',`${esc(h.name)}・${esc(nm)}`,`
-      <div class="cdt-k">我方便的時段（傳給仲介挑）</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="chip on" data-rm="${i}" aria-label="移除 ${twDate(d)}">${twDate(d)}<i aria-hidden="true">×</i></button>`).join('')}</div>
-      <div class="cdt-add"><input type="date" id="cdD" aria-label="日期" value="${sat.toISOString().slice(0,10)}"><input type="time" id="cdT" aria-label="時間" value="19:00" step="1800"><button type="button" class="chip" id="cdAdd">＋ 加入</button></div>
-      <div class="cdt-k">一起去的人（日曆邀請）</div><div class="cdt-chips">${cs.map(c=>`<button type="button" class="chip${S.who.has(c.e)?' on':''}" data-who="${esc(c.e)}" aria-pressed="${S.who.has(c.e)}">${esc(c.n)}</button>`).join('')}</div>
-      <div class="cdt-add"><input id="cwN" placeholder="名字" aria-label="同行者名字"><input id="cwE" type="email" placeholder="email" aria-label="同行者 email"><button type="button" class="chip" id="cwAdd">＋ 新增</button></div>
-      <div class="cdt-k">要傳給仲介的訊息</div><textarea id="cdMsg" rows="4" aria-label="訊息">${esc(msg())}</textarea>
-      <button type="button" class="cdt-btn line" id="cdLine">傳到 Line（${esc(nm)}）</button>
-      <div class="cdt-k">仲介回覆後，選定的時段</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="chip${S.pick===i?' on':''}" data-pick="${i}" aria-pressed="${S.pick===i}">${twDate(d)}</button>`).join('')}</div>
-      <button type="button" class="cdt-btn cal" id="cdCal" ${S.slots.length?'':'disabled'}>加到 Google 日曆${S.who.size?`（邀請 ${S.who.size} 人）`:''}</button>
-      <div class="cdt-tip">加到日曆後，這間會記上「已約看房」，行程也會出現在物件細節裡</div>`);
-      const ta=$('cdMsg');ta.oninput=()=>S.edited=true;const keep=()=>{if(S.edited)S.msg=ta.value;};
-      det.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{keep();S.slots.splice(+b.dataset.rm,1);S.pick=0;draw();});
-      $('cdAdd').onclick=()=>{keep();const d=$('cdD').value,t=$('cdT').value;if(!d||!t)return;const x=new Date(d+'T'+t+':00');if(isNaN(x))return;if(!S.slots.some(y=>+y===+x))S.slots.push(x);S.slots.sort((a,b)=>a-b);draw();};
-      det.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{keep();const e=b.dataset.who;S.who.has(e)?S.who.delete(e):S.who.add(e);draw();});
-      $('cwAdd').onclick=()=>{keep();const n2=$('cwN').value.trim(),e=$('cwE').value.trim();if(!n2||!/^\S+@\S+\.\S+$/.test(e)){toast('請填名字和正確的 email',true);return;}const a=companions().filter(c=>c.e!==e).concat([{n:n2,e}]);saveCompanions(a);S.who.add(e);draw();};
-      det.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{keep();S.pick=+b.dataset.pick;draw();});
-      if(S.edited&&S.msg!=null)ta.value=S.msg;
-      $('cdLine').onclick=()=>{const t=ta.value.trim();if(!t)return;lineSend(co||homeCo(h)||'其他',t);addLog(id,{t:'ask',via:'line',co,slots:S.slots.map(d=>d.toISOString())});toast('訊息已帶到 Line（也複製好了），選群組送出');};
-      $('cdCal').onclick=()=>{const at=S.slots[S.pick];if(!at)return;const w=companions().filter(c=>S.who.has(c.e));
-        calAdd({title:`看房：${h.name}`,start:at,min:60,loc:`${h.name}（${h.dist||''}）`,who:w.map(c=>c.e),desc:`仲介：${nm}\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`});
-        setHome(id,x=>{x.visit={at:at.toISOString(),who:w.map(c=>c.n),co};});addLog(id,{t:'visit',at:at.toISOString(),who:w.map(c=>c.n),co});toast(`已約 ${twDate(at)} 看「${h.name}」`);openDet(id,'log');};};
+    const S={ids:[id],slots:[mk2(sat,10),mk2(sat,14)],who:new Set(),pick:0,msgs:{},more:false};
+    const coOf=h=>homeCo(h)||'其他',sel=()=>{const a=loadHomes();return S.ids.map(i=>a.find(x=>x.id===i)).filter(Boolean);};
+    const groups=()=>{const g={};sel().forEach(h=>{(g[coOf(h)]=g[coOf(h)]||[]).push(h);});return g;};
+    const msgFor=(c,hs)=>{const w=companions().filter(x=>S.who.has(x.e)),nm=coName(c),L=hs.map(h=>`「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}`).join('、');
+      return `${nm}您好，想預約看${hs.length>1?`這 ${hs.length} 間，可以排在同一天一起看：`:''}${L}。我${S.slots.map(twDate).join('、')}${S.slots.length>1?'都':''}方便${w.length?`，會有 ${w.length} 位同行`:''}，請問哪個時段可以？謝謝！`;};
+    const draw=()=>{const cs=companions(),all=loadHomes(),mine=all.filter(h=>coOf(h)===co0),oth=all.filter(h=>coOf(h)!==co0),G=groups(),n=S.ids.length;
+      const hc=h=>`<button type="button" class="cpl${S.ids.includes(h.id)?' on':''}" data-hid="${h.id}" aria-pressed="${S.ids.includes(h.id)}">${esc(h.name)}<small>${stName(h.st||'todo')}</small></button>`;
+      sheet(n>1?`約看房・${n} 間`:'約看房',`${esc(Object.keys(G).map(coName).join('、'))}`,`
+      <div class="cdt-k">要看的物件（可以一次約多間）</div><div class="cdt-chips">${mine.map(hc).join('')}</div>
+      ${oth.length?`<button type="button" class="cdt-more" id="cdMore" aria-expanded="${S.more}">${S.more?'收起':'加入'}其他公司的物件（${oth.length}）</button>${S.more?`<div class="cdt-chips">${oth.map(hc).join('')}</div>`:''}`:''}
+      <div class="cdt-k">我方便的時段（傳給仲介挑）</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="cpl on" data-rm="${i}" aria-label="移除 ${twDate(d)}">${twDate(d)}<i aria-hidden="true">×</i></button>`).join('')}</div>
+      <div class="cdt-add"><input type="date" id="cdD" aria-label="日期" value="${sat.toISOString().slice(0,10)}"><input type="time" id="cdT" aria-label="時間" value="19:00" step="1800"><button type="button" class="cpl" id="cdAdd">＋ 加入</button></div>
+      <div class="cdt-k">一起去的人（日曆邀請）</div><div class="cdt-chips">${cs.map(c=>`<button type="button" class="cpl${S.who.has(c.e)?' on':''}" data-who="${esc(c.e)}" aria-pressed="${S.who.has(c.e)}">${esc(c.n)}</button>`).join('')}</div>
+      <div class="cdt-add"><input id="cwN" placeholder="名字" aria-label="同行者名字"><input id="cwE" type="email" placeholder="email" aria-label="同行者 email"><button type="button" class="cpl" id="cwAdd">＋ 新增</button></div>
+      ${Object.entries(G).map(([c,hs])=>`<div class="cdt-k">傳給${esc(coName(c))}的訊息${hs.length>1?`（${hs.length} 間）`:''}</div><textarea class="cdMsg" data-co="${esc(c)}" rows="4" aria-label="傳給${esc(coName(c))}的訊息">${esc(S.msgs[c]!=null?S.msgs[c]:msgFor(c,hs))}</textarea>
+        <button type="button" class="cdt-btn line" data-line="${esc(c)}">傳到 Line（${esc(coName(c))}）</button>`).join('')}
+      <div class="cdt-k">仲介回覆後，選定的時段</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="cpl${S.pick===i?' on':''}" data-pick="${i}" aria-pressed="${S.pick===i}">${twDate(d)}</button>`).join('')}</div>
+      <button type="button" class="cdt-btn cal" id="cdCal" ${S.slots.length&&n?'':'disabled'}>加到 Google 日曆${n>1?`（${n} 間一趟）`:''}${S.who.size?`・邀請 ${S.who.size} 人`:''}</button>
+      <div class="cdt-tip">${n>1?'多間會依上面的順序，每間間隔 1 小時記上看房時間；':''}加到日曆後，行程會出現在每間的物件細節裡</div>`);
+      det.querySelectorAll('.cdMsg').forEach(t=>t.oninput=()=>{S.msgs[t.dataset.co]=t.value;});
+      det.querySelectorAll('[data-hid]').forEach(b=>b.onclick=()=>{const k=b.dataset.hid;if(S.ids.includes(k)){if(S.ids.length>1)S.ids=S.ids.filter(x=>x!==k);}else S.ids.push(k);S.msgs={};draw();});
+      const mo=$('cdMore');if(mo)mo.onclick=()=>{S.more=!S.more;draw();};
+      det.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{S.slots.splice(+b.dataset.rm,1);S.pick=0;S.msgs={};draw();});
+      $('cdAdd').onclick=()=>{const d=$('cdD').value,t=$('cdT').value;if(!d||!t)return;const x=new Date(d+'T'+t+':00');if(isNaN(x))return;if(!S.slots.some(y=>+y===+x))S.slots.push(x);S.slots.sort((a,b)=>a-b);S.msgs={};draw();};
+      det.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{const e=b.dataset.who;S.who.has(e)?S.who.delete(e):S.who.add(e);S.msgs={};draw();});
+      $('cwAdd').onclick=()=>{const n2=$('cwN').value.trim(),e=$('cwE').value.trim();if(!n2||!/^\S+@\S+\.\S+$/.test(e)){toast('請填名字和正確的 email',true);return;}saveCompanions(companions().filter(c=>c.e!==e).concat([{n:n2,e}]));S.who.add(e);S.msgs={};draw();};
+      det.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{S.pick=+b.dataset.pick;draw();});
+      det.querySelectorAll('[data-line]').forEach(b=>b.onclick=()=>{const c=b.dataset.line,ta=det.querySelector(`.cdMsg[data-co="${CSS.escape(c)}"]`),t=ta.value.trim();if(!t)return;lineSend(c,t);
+        (G[c]||[]).forEach(h=>addLog(h.id,{t:'ask',via:'line',co:c,slots:S.slots.map(d=>d.toISOString())}));toast(`訊息已帶到 Line（也複製好了），選${coName(c)}的群組送出`);});
+      $('cdCal').onclick=()=>{const at=S.slots[S.pick],hs=sel();if(!at||!hs.length)return;const w=companions().filter(c=>S.who.has(c.e));
+        calAdd({title:`看房：${hs.length>2?hs[0].name+' 等 '+hs.length+' 間':hs.map(h=>h.name).join('、')}`,start:at,min:60*hs.length,loc:`${hs[0].name}（${hs[0].dist||''}）`,who:w.map(c=>c.e),
+          desc:hs.map((h,i)=>`${twDate(new Date(+at+i*3600e3))} ${h.name}（${coName(coOf(h))}）\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`).join('\n\n')});
+        hs.forEach((h,i)=>{const t2=new Date(+at+i*3600e3).toISOString();setHome(h.id,x=>{x.visit={at:t2,who:w.map(c=>c.n),co:coOf(h)};});addLog(h.id,{t:'visit',at:t2,who:w.map(c=>c.n),co:coOf(h),trip:hs.length>1?hs.length:undefined});});
+        toast(hs.length>1?`已約 ${twDate(at)} 起看 ${hs.length} 間`:`已約 ${twDate(at)} 看「${hs[0].name}」`);openDet(hs[0].id,'log');};};
     draw();}
   // 議價：出價（預設談判價或合理出價，可用保守／合理／積極快選）＋自動寫好的訊息
   function openOffer(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,nm=coName(co||homeCo(h)||'其他');
     let p=Math.round(h.offer||(V&&dealOf(V))||(o?o.out[1]:+h.form.ask||0)),edited=false;
     const msg=()=>`${nm}您好，關於「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}，我們評估後想出價 ${num(p)} 萬，麻煩幫忙跟屋主談談，謝謝！`;
     const draw=()=>{sheet(h.st==='nego'?'再出一次價':'開始議價',`${esc(h.name)}・${esc(nm)}`,`
-      ${o?`<div class="cdt-k">快選（估價模型）</div><div class="cdt-chips">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].concat(+h.form.ask>0?[['開價',+h.form.ask]]:[]).map(([n2,v])=>`<button type="button" class="chip${Math.round(v)===p?' on':''}" data-op="${Math.round(v)}">${n2} ${num(v)}</button>`).join('')}</div>`:''}
-      <label class="cdt-k" for="cdP">出價（萬）</label><div class="cdt-add"><button type="button" class="chip" data-step="-10">−10</button><input type="number" id="cdP" inputmode="numeric" value="${p}"><button type="button" class="chip" data-step="10">＋10</button></div>
+      ${o?`<div class="cdt-k">快選（估價模型）</div><div class="cdt-chips">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].concat(+h.form.ask>0?[['開價',+h.form.ask]]:[]).map(([n2,v])=>`<button type="button" class="cpl${Math.round(v)===p?' on':''}" data-op="${Math.round(v)}">${n2} ${num(v)}</button>`).join('')}</div>`:''}
+      <label class="cdt-k" for="cdP">出價（萬）</label><div class="cdt-add"><button type="button" class="cpl" data-step="-10">−10</button><input type="number" id="cdP" inputmode="numeric" value="${p}"><button type="button" class="cpl" data-step="10">＋10</button></div>
       ${o?`<div class="cdt-tip">合理出價 ${num(o.out[1])} 萬，你的出價是它的 ${Math.round(p/o.out[1]*100)}%</div>`:''}
       <div class="cdt-k">要傳給仲介的訊息</div><textarea id="cdMsg" rows="4" aria-label="訊息">${esc(msg())}</textarea>
       <button type="button" class="cdt-btn line" id="cdLine">傳到 Line（${esc(nm)}）</button><div class="cdt-tip">送出後這間會變成「議價中」並記下出價</div>`);
@@ -2688,22 +2705,22 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     let body='';
     if(tab==='sum'){body=`<div class="cdt-price"><div><small>開價</small><b>${+f.ask>0?num(f.ask)+'<em> 萬</em>':'—'}</b></div><div><small>合理出價</small><b class="g">${o?num(o.out[1])+'<em> 萬</em>':'—'}</b></div></div>
       ${z?`<div class="cdt-k">推薦分數 <b>${Math.round(z.total)}</b>・第 ${z.rank} 名</div>${RANK_K.map(([k,n2,c])=>`<div class="cdt-bar"><span>${n2}</span><i><em style="width:${Math.round(z.sc[k]||0)}%;background:${c}"></em></i><b>${Math.round(z.sc[k]||0)}</b></div>`).join('')}`:''}
-      <div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="chip${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
+      <div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="cpl${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
       <div class="cdt-row2">${co?`<button type="button" class="cdt-btn" data-go="sched">約看房</button><button type="button" class="cdt-btn" data-go="offer">出價</button>`:''}</div>`;}
     else if(tab==='val'){if(!o)body='<div class="cdt-tip">這間附近相似成交太少，估不出區間</div>';else{const d=dealOf(V),lp=loanPrice(V),L=valLoan(V,lp);
       body=`<div class="cdt-k">出價區間（估價模型）</div><div class="cdt-band">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].map(([n2,v],i)=>`<div class="${i===1?'mid':''}"><small>${n2}</small><b>${num(v)}</b></div>`).join('')}</div>
-        <label class="cdt-k" for="cdDeal">談判價（萬，有填就用它算房貸）</label><div class="cdt-add"><input type="number" id="cdDeal" inputmode="numeric" value="${d||''}" placeholder="${num(o.out[1])}"><button type="button" class="chip" id="cdDealOk">更新</button></div>
+        <label class="cdt-k" for="cdDeal">談判價（萬，有填就用它算房貸）</label><div class="cdt-add"><input type="number" id="cdDeal" inputmode="numeric" value="${d||''}" placeholder="${num(o.out[1])}"><button type="button" class="cpl" id="cdDealOk">更新</button></div>
         <div class="cdt-k">房貸試算（${d?'談判價':'合理出價'} ${num(lp)} 萬）</div>
         <div class="cdt-loan"><div><small>貸款</small><b>${num(L.L)} 萬</b></div><div><small>自備款</small><b>${num(L.down)} 萬</b></div><div class="mid"><small>每月還款</small><b>${num(L.pay)} 元</b></div><div><small>準備現金</small><b>${num(L.cash)} 萬</b></div></div>
         <div class="cdt-tip">${V.fin.years} 年、利率 ${(+V.fin.rate).toFixed(2)}%${V.fin.mode==='youth'?'（青安）':''}；成數與利率依估價設定</div>`;}}
     else if(tab==='log'){const lg=(h.log||[]).slice().sort((a,b)=>(b.at||b.ts).localeCompare(a.at||a.ts)),tx=e=>e.t==='visit'?`看房 ${twDate(new Date(e.at))}${(e.who||[]).length?'・'+e.who.join('、')+' 同行':''}`:e.t==='offer'?`出價 ${num(e.p)} 萬`:e.t==='ask'?`問仲介看房時段（${(e.slots||[]).length} 個）`:esc(e.x||'');
       body=`${h.visit?`<div class="cdt-next"><small>下一次看房</small><b>${twDate(new Date(h.visit.at))}</b></div>`:''}<div class="cdt-tl">${lg.length?lg.map(e=>`<div class="t-${e.t}"><b>${tx(e)}</b><small>${twDate(new Date(e.ts))} 記錄${e.co?'・'+esc(coName(e.co)):''}${e.via==='line'?'・Line':''}</small></div>`).join(''):'<div class="cdt-tip">還沒有行程。和仲介說話可以約看房、出價。</div>'}</div>
-        <div class="cdt-add"><input id="cdNote" placeholder="記一筆（例如：屋主說 2,350 可以談）" aria-label="新增紀錄"><button type="button" class="chip" id="cdNoteOk">記下</button></div>
+        <div class="cdt-add"><input id="cdNote" placeholder="記一筆（例如：屋主說 2,350 可以談）" aria-label="新增紀錄"><button type="button" class="cpl" id="cdNoteOk">記下</button></div>
         <div class="cdt-row2"><button type="button" class="cdt-btn" data-go="sched">約看房</button><button type="button" class="cdt-btn" data-go="offer">出價</button></div>`;}
-    else if(tab==='info'){const ts=h.tags||[];body=`<div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="chip${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
-      <div class="cdt-k">標籤</div><div class="cdt-chips">${tagSet().map(t=>`<button type="button" class="chip${ts.includes(t)?' on':''}${TAG_RISK.includes(t)?' risk':''}" data-dtag="${esc(t)}" aria-pressed="${ts.includes(t)}">${esc(t)}</button>`).join('')}</div>
-      <div class="cdt-k">物件連結</div><div class="cdt-links">${(h.links||[]).map((l,i)=>`<div><a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.p||platformOf(l.u))}</a><button type="button" class="chip" data-dlk="${i}" aria-label="刪除這個連結">刪除</button></div>`).join('')||'<div class="cdt-tip">還沒有連結</div>'}</div>
-      <div class="cdt-add"><input id="cdLk" type="url" placeholder="貼上物件網址" aria-label="新增物件連結"><button type="button" class="chip" id="cdLkOk">加入</button></div>`;}
+    else if(tab==='info'){const ts=h.tags||[];body=`<div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="cpl${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
+      <div class="cdt-k">標籤</div><div class="cdt-chips">${tagSet().map(t=>`<button type="button" class="cpl${ts.includes(t)?' on':''}${TAG_RISK.includes(t)?' risk':''}" data-dtag="${esc(t)}" aria-pressed="${ts.includes(t)}">${esc(t)}</button>`).join('')}</div>
+      <div class="cdt-k">物件連結</div><div class="cdt-links">${(h.links||[]).map((l,i)=>`<div><a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.p||platformOf(l.u))}</a><button type="button" class="cpl" data-dlk="${i}" aria-label="刪除這個連結">刪除</button></div>`).join('')||'<div class="cdt-tip">還沒有連結</div>'}</div>
+      <div class="cdt-add"><input id="cdLk" type="url" placeholder="貼上物件網址" aria-label="新增物件連結"><button type="button" class="cpl" id="cdLkOk">加入</button></div>`;}
     else{body=`<div class="cdt-k">周遭環境</div><iframe class="cdt-map" title="${esc(h.name)} 周遭地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${h.pt[0]},${h.pt[1]}&z=16&hl=zh-TW&output=embed"></iframe>
       <div class="cdt-k">附近都更</div><div id="cdUrc" class="cdt-tip">讀取中…</div><div class="cdt-k">使用分區</div><div class="cdt-tip">資料建置中，之後會顯示這塊地的使用分區（例如住三、商二）</div>`;}
     sheet(h.name,esc(chips),`<div class="cdt-tabs" role="tablist">${DTABS.map(([k,n2])=>`<button type="button" role="tab" data-dtab="${k}" aria-selected="${k===tab}">${n2}</button>`).join('')}</div>${(h.tags||[]).length&&tab!=='info'?`<div class="htags cdt-tg">${h.tags.map(t=>`<em class="tg${TAG_RISK.includes(t)?' risk':''}">${esc(t)}</em>`).join('')}</div>`:''}<div class="cdt-body" data-tab="${tab}">${body}</div>`);
