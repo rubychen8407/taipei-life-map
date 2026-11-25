@@ -404,6 +404,36 @@ body.placing #map{cursor:crosshair}
 .cmp-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
 #city{position:fixed;inset:0;z-index:5000;background:#A9D4EE;overscroll-behavior:none;user-select:none;-webkit-user-select:none}#cityCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}body.city-on{overflow:hidden}
 .city-top{position:absolute;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 16px);display:flex;align-items:center;gap:8px;pointer-events:none}.city-h{flex:1;min-width:0;height:44px;box-sizing:border-box;background:rgba(255,255,255,.92);border-radius:24px;padding:0 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.1)}.city-h span{font-size:15px;font-weight:700;color:#202124;white-space:nowrap;font-variant-numeric:tabular-nums}
+#city.dlg-on .city-joy,#city.dlg-on .city-act,#city.dlg-on .city-map,#city.dlg-on .city-hint,#city.dlg-on .city-card,#city.dlg-on .city-leg,#city.dlg-on #cityPins,#city.det-on .city-joy,#city.det-on .city-act,#city.det-on .city-hint,#city.det-on .city-card,#city.det-on #cityPins{display:none!important}
+.city-act.talk{background:#F2A541;color:#fff}.city-act.talk svg{stroke:#fff}
+#cityPins .cnp{flex-direction:row}#cityPins .cnp b{display:inline;font-size:13px}
+.cdlg{position:absolute;left:12px;right:12px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;pointer-events:none}.cdlg[hidden]{display:none}
+.cd-box{pointer-events:auto;position:relative;background:#FFF8E7;border-radius:40px 40px 44px 44px/34px 34px 46px 46px;padding:28px 26px 30px;min-height:96px;box-shadow:0 6px 0 #E8D9B5,0 14px 28px rgba(0,0,0,.2);font-size:17px;line-height:1.6;color:#5A4630;font-weight:600;cursor:pointer;animation:cdIn .28s cubic-bezier(.2,1.4,.4,1)}
+.cd-name{position:absolute;left:26px;top:-18px;background:#F2A541;color:#fff;font-weight:800;font-size:16px;padding:6px 18px;border-radius:24px;transform:rotate(-4deg);box-shadow:0 3px 0 #C9802A}
+.cd-next{position:absolute;right:30px;bottom:14px;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:12px solid #F2A541;display:none;animation:cdBob .8s ease-in-out infinite}.cdlg.more .cd-next{display:block}
+.cd-ch{pointer-events:auto;display:flex;flex-direction:column;align-items:flex-end;gap:10px;margin:0 0 18px}
+.cd-ch button{min-height:44px;background:#FFF8E7;color:#5A4630;border:0;padding:10px 20px;border-radius:24px;font-size:16px;font-weight:700;box-shadow:0 4px 0 #E8D9B5,0 6px 14px rgba(0,0,0,.12);animation:cdIn .25s cubic-bezier(.2,1.4,.4,1) both;max-width:86%;text-align:right}
+.cd-ch button:nth-child(2){animation-delay:.04s}.cd-ch button:nth-child(3){animation-delay:.08s}.cd-ch button:nth-child(4){animation-delay:.12s}.cd-ch button:nth-child(5){animation-delay:.16s}
+.cd-ch button:hover,.cd-ch button:focus-visible{background:#F2A541;color:#fff;box-shadow:0 4px 0 #C9802A;outline:none}
+@keyframes cdIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}@keyframes cdBob{50%{transform:translateY(4px)}}
+@media (prefers-reduced-motion:reduce){.cd-box,.cd-ch button,.cd-next{animation:none}}
+.cdet{position:absolute;left:0;right:0;bottom:0;top:calc(76px + env(safe-area-inset-top));z-index:7;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);overflow:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}.cdet[hidden]{display:none}
+.cdt-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}.cdt-h b{font-size:17px;display:block}.cdt-h small{font-size:13px;color:var(--sub)}.cdt-h .cc-x{position:static;flex:none}
+.cdt-tabs{display:flex;gap:4px;margin:8px 0 10px;position:sticky;top:-16px;background:#fff;padding:6px 0;z-index:1}.cdt-tabs button{flex:1;min-height:40px;border:0;border-radius:12px;background:#F1F3F4;color:#3C4043;font-size:14px;font-weight:700}.cdt-tabs button[aria-selected=true]{background:var(--D);color:#fff}
+.cdt-tg{margin:0 0 6px}.cdt-k{display:block;font-size:13px;color:var(--sub);margin:14px 0 6px}.cdt-k b{font-size:17px;color:#202124}
+.cdt-price,.cdt-band,.cdt-loan{display:flex;gap:8px}.cdt-price>div,.cdt-band>div,.cdt-loan>div{flex:1;background:#F6F8FA;border-radius:12px;padding:10px 12px}.cdt-price small,.cdt-band small,.cdt-loan small{display:block;font-size:12px;color:var(--sub)}.cdt-price b{font-size:24px}.cdt-price b em,.cdt-price b em{font-style:normal;font-size:14px}.cdt-price b.g{color:#188038}
+.cdt-band b,.cdt-loan b{font-size:16px}.cdt-band .mid,.cdt-loan .mid{background:#E6F4EA}.cdt-loan{flex-wrap:wrap}.cdt-loan>div{flex:1 1 40%}
+.cdt-bar{display:grid;grid-template-columns:64px 1fr 30px;align-items:center;gap:8px;font-size:13px;margin:4px 0}.cdt-bar i{height:8px;border-radius:4px;background:#EEF0F2;overflow:hidden}.cdt-bar em{display:block;height:100%}.cdt-bar b{text-align:right}
+.cdt-chips{display:flex;flex-wrap:wrap;gap:8px}.cdet .chip{min-height:40px;border:1.5px solid #D2D6DC;background:#fff;border-radius:24px;padding:0 14px;font-size:14px;font-weight:600;color:#3C4043;display:inline-flex;align-items:center;gap:6px;position:relative}.cdet .chip::after{content:'';position:absolute;inset:-2px 0}
+.cdet .chip.on{background:#E8F0FE;border-color:#1A56DB;color:#1A56DB}.cdet .chip.risk.on{background:#FCE8E6;border-color:#C5221F;color:#B3261E}.cdet .chip i{font-style:normal;font-size:16px}
+.cdt-add{display:flex;gap:8px;margin-top:8px}.cdt-add input{flex:1;min-width:0;height:44px;border:1.5px solid #D2D6DC;border-radius:12px;padding:0 10px;font-size:16px}
+.cdet textarea{width:100%;box-sizing:border-box;border:1.5px solid #D2D6DC;border-radius:12px;padding:10px;font-size:16px;line-height:1.5;font-family:inherit;resize:vertical}
+.cdt-btn{display:block;width:100%;min-height:48px;border:1.5px solid var(--D);background:#fff;color:var(--D);border-radius:16px;font-size:16px;font-weight:700;margin-top:10px}.cdt-btn.line{background:#06C755;border-color:#06C755;color:#fff}.cdt-btn.cal{border-color:#1A73E8;color:#1A73E8}.cdt-btn:disabled{opacity:.5}
+.cdt-row2{display:flex;gap:8px}.cdt-row2 .cdt-btn{flex:1}.cdt-tip{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.5}
+.cdt-next{background:#E8F0FE;border-radius:12px;padding:10px 12px;margin-bottom:8px}.cdt-next small{display:block;font-size:12px;color:var(--sub)}.cdt-next b{font-size:17px;color:#1A56DB}
+.cdt-tl>div{border-left:3px solid #9AA0A6;padding:2px 0 2px 10px;margin:10px 0}.cdt-tl b{display:block;font-size:15px}.cdt-tl small{font-size:12px;color:var(--sub)}.cdt-tl .t-visit{border-color:#1A56DB}.cdt-tl .t-offer{border-color:#188038}.cdt-tl .t-ask{border-color:#06C755}
+.cdt-links>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0}.cdt-links a{font-size:15px;font-weight:700;color:var(--D);min-height:44px;display:inline-flex;align-items:center}
+.cdt-map{width:100%;height:260px;border:0;border-radius:16px;background:#EEF0F2}
 .city-mus .mus-off{display:none}.city-mus[aria-pressed=false] .mus-off{display:inline}.city-mus[aria-pressed=true] svg{stroke:var(--D)}
 .city-x{pointer-events:auto;flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center}.city-x svg{width:20px;height:20px;fill:none;stroke:#3C4043;stroke-width:2.2;stroke-linecap:round}.city-x[aria-expanded=true]{background:#FFF3E0}
 .city-bar{flex:1;height:8px;border-radius:8px;background:#EDE5D6;overflow:hidden}.city-bar i{display:block;height:100%;border-radius:8px;background:#F7931E;transition:width .4s}
@@ -1621,7 +1651,7 @@ async function drawUrban(){const seq=++urbanSeq;if(!state.layers.urban||state.tr
 // ---------- 雲端同步（Supabase）：個人資料跨裝置；用 email 登入連結，每個帳號只讀得到自己的資料（資料表 user_data 有 RLS） ----------
 const SB_URL='https://exugellewviuiwnohsfo.supabase.co',SB_KEY='sb_publishable_oLDvQbIRFB1G4tV93P0Xog_jVqkfuI4';
 // 同步的個人資料（裝置上只留一份副本，雲端為準）；金鑰、token、快取、暫存不同步
-const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW','tlm.homeSort','tlm.tagset','tlm.flags','tlm.swiped'];
+const CLOUD_KEYS=['tlm.homes','tlm.filters','tlm.last','tlm.layers','tlm.seen','tlm.salef','tlm.finMode','tlm.valForm','tlm.export','tlm.listings','tlm.synckeys','tlm.afford','tlm.cmpW','tlm.homeSort','tlm.tagset','tlm.flags','tlm.swiped','tlm.companions'];
 let SBA=null,CMETA={},cloudApplying=false,cloudTimer=null,cloudBusy=false,cloudErr='';
 try{SBA=JSON.parse(localStorage.getItem('tlm.auth')||'null');CMETA=JSON.parse(localStorage.getItem('tlm.cloudmeta')||'{}');}catch(e){}
 const saveSBA=()=>{try{SBA?localStorage.setItem('tlm.auth',JSON.stringify(SBA)):localStorage.removeItem('tlm.auth');}catch(e){}};
@@ -2237,7 +2267,7 @@ function cityProg(a){const n=a.length,v=a.reduce((t,h)=>t+({seen:1,nego:2}[h.st]
 async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}if(cityMusPref().on)CITY_MUS.prime();
   try{THREE=THREE||await import(THREE_URL);}catch(e){toast('3D 小城載入失敗，請檢查網路後再試',true);return;}
   const tc=document.createElement('canvas');if(!(tc.getContext('webgl2')||tc.getContext('webgl'))){toast('這台裝置不支援 3D 顯示',true);return;}
-  await homesScore();let HR=null;try{HR=await loadHero(THREE);}catch(e){}closeCity();
+  await homesScore();let HR=null,AR=null;try{HR=await loadHero(THREE);}catch(e){}try{AR=await loadGLB(THREE,AGENT_URL);}catch(e){}closeCity();
   const el=document.createElement('div');el.id='city';el.setAttribute('role','dialog');el.setAttribute('aria-label','我的物件小城');
   el.innerHTML=`<canvas id="cityCv" aria-label="3D 小城：搖桿或方向鍵走路，拖曳轉視角，點一棟樓看詳細"></canvas><div id="cityPins" aria-hidden="true"></div>
     <div class="city-top"><div class="city-h"><span id="cityStat"></span><div class="city-bar"><i id="cityBarI"></i></div></div>
@@ -2249,13 +2279,15 @@ async function openCity(){const homes=loadHomes();if(!homes.length){toast('先�
     <div class="city-zone" id="cityZone" aria-live="polite"></div>
     <button type="button" class="city-map" id="cityMap" aria-label="展開小城地圖"><canvas id="cityMapCv" width="208" height="208"></canvas></button>
     <div class="city-mapbig" id="cityMapBig" role="dialog" aria-label="小城地圖" hidden><div class="cmb-in"><div class="cmb-h"><b>小城地圖</b><button type="button" class="city-x" id="cityMapX" aria-label="關閉地圖"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div><canvas id="cityMapBigCv" width="680" height="680"></canvas><div class="cmb-tip">點一間物件，直接走到它門口</div></div></div><div class="city-hint" id="cityHint">搖桿走路・拖曳轉視角・點樓看詳細</div>
-    <div class="city-card" id="cityCard" hidden></div>`;
+    <div class="city-card" id="cityCard" hidden></div>
+    <div class="cdlg" id="cityDlg" role="dialog" aria-label="和仲介說話" hidden><div class="cd-ch" id="cdCh"></div><div class="cd-box" role="button" tabindex="0" aria-label="下一句"><div class="cd-name" id="cdName"></div><div class="cd-txt" id="cdTxt" aria-live="polite"></div><i class="cd-next" aria-hidden="true"></i></div></div>
+    <div class="cdet" id="cityDet" role="dialog" aria-label="物件細節" hidden></div>`;
   document.body.appendChild(el);document.body.classList.add('city-on');$('cityX').onclick=closeCity;
   $('cityMus').onclick=()=>setCityMus($('cityMus').getAttribute('aria-pressed')!=='true');if(cityMusPref().on)setCityMus(true);
   $('cityHelp').onclick=()=>{const l=$('cityLeg'),o=l.hidden;l.hidden=!o;$('cityHelp').setAttribute('aria-expanded',String(o));};
   $('cityX').focus();
-  buildCity(el,HR);}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('city')){e.stopPropagation();const mb2=$('cityMapBig');if(mb2&&!mb2.hidden){mb2.hidden=true;return;}closeCity();}},true);
+  buildCity(el,HR,AR);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('city')){e.stopPropagation();const mb2=$('cityMapBig');if(mb2&&!mb2.hidden){mb2.hidden=true;return;}if(CITY3D&&CITY3D.talking){CITY3D.endTalk();return;}if(CITY3D&&!$('cityDet').hidden){CITY3D.closeDet();return;}closeCity();}},true);
 // ---------- 3D 小城背景音樂：Web Audio 即時生成（沒有音檔、沒有版權問題）----------
 // 72 BPM 的 Lo-fi／Ambient：柔和和弦墊底（Cmaj7→Am7→Fmaj7→G6，每 2 小節換）、低音、五聲音階的撥弦旋律隨機漫步、偶爾的鈴聲，加上自己算的殘響
 function musicEngine(ac,out,rnd){rnd=rnd||Math.random;const f=m=>440*2**((m-69)/12),BEAT=60/72,ST=BEAT/2;
@@ -2290,13 +2322,33 @@ function closeCity(){const el=$('city');CITY_MUS.stop(true);if(CITY3D){cancelAni
 // 3D 小城（散步版）：主角（AI 生成的公仔，assets/hero.glb）在依物件排出的臺北小島上走；搖桿／方向鍵走路，走近物件按「看這間」
 // 物件增減不用重新建模：每次打開依當下物件的真實座標縮放排版（最遠的物件離中心 15 單位），地標只放落在島上的，路網用最短樹重連
 const hashStr=t=>{let h=7;for(const c of String(t))h=(h*31+c.charCodeAt(0))>>>0;return h%2147483646+1;};
+// ---------- 3D 小城：仲介角色、RPG 對話（溫暖泡泡風）、約看房／議價、小城內的物件細節（不跳回原頁）----------
+// 仲介依「物件連結的平台」自動產生：同一家公司一個角色（同公司的仲介都能帶看），591 等非仲介網站歸「其他仲介」
+const AGENT_CO={'信義':'#1B7F4B','永慶':'#C62828','住商':'#E0A100','中信':'#1565C0','台灣房屋':'#6A1B9A','樂屋':'#EF6C00','其他':'#546E7A'};
+function homeCo(h){const ps=(h.links||[]).map(l=>l.p||platformOf(l.u||''));return ps.find(p=>AGENT_CO[p]&&p!=='其他')||(ps.length?'其他':null);}
+const coName=c=>c==='其他'?'仲介':c+'仲介';
+const AGENT_URL='assets/agent.glb';
+// 同行的人（日曆邀請）：[{n:名字,e:email}]，雲端同步
+function companions(){try{return JSON.parse(localStorage.getItem('tlm.companions')||'[]');}catch(e){return [];}}
+function saveCompanions(a){try{localStorage.setItem('tlm.companions',JSON.stringify(a));}catch(e){}}
+// 行程紀錄：每間物件的 log：{t:'ask'|'visit'|'offer'|'note', ts, at?, p?, who?, via?}
+function addLog(id,e){return setHome(id,h=>{h.log=(h.log||[]).concat([Object.assign({ts:new Date().toISOString()},e)]);});}
+const twDate=d=>{const w='日一二三四五六'[d.getDay()];return `${d.getMonth()+1}/${d.getDate()}（${w}）${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+// 傳 Line：之後接上 Line 機器人（設定裡對應各公司群組）就直接送進群組；還沒設定時打開 Line 分享，訊息已寫好，選群組送出
+function lineSend(co,text){try{navigator.clipboard&&navigator.clipboard.writeText(text);}catch(e){}
+  window.__lineSent=(window.__lineSent||[]).concat([{co,text}]);window.open('https://line.me/R/share?text='+encodeURIComponent(text),'_blank','noopener');return 'share';}
+// 加到 Google 日曆：之後接上 Google 登入就直接建活動並寄邀請；還沒設定時打開預填好的 Google 日曆新增活動頁（同行者已列在邀請名單）
+function gcalUrl(ev){const f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z'),e=new Date(ev.start.getTime()+(ev.min||60)*60e3);
+  const q=new URLSearchParams({action:'TEMPLATE',text:ev.title,dates:f(ev.start)+'/'+f(e),ctz:'Asia/Taipei',details:ev.desc||'',location:ev.loc||''});if(ev.who&&ev.who.length)q.set('add',ev.who.join(','));return 'https://calendar.google.com/calendar/render?'+q;}
+function calAdd(ev){const u=gcalUrl(ev);window.__calAdded=(window.__calAdded||[]).concat([u]);window.open(u,'_blank','noopener');return 'link';}
 const HERO_URL='assets/hero.glb';let HERO=null;
-async function loadHero(T){if(HERO)return HERO;const ab=await (await fetch(HERO_URL)).arrayBuffer(),dv=new DataView(ab),jl=dv.getUint32(12,true),j=JSON.parse(new TextDecoder().decode(new Uint8Array(ab,20,jl))),bo=20+jl+8;
+const GLBS={};async function loadHero(T){return HERO||(HERO=await loadGLB(T,HERO_URL));}
+async function loadGLB(T,url){if(GLBS[url])return GLBS[url];const rs=await fetch(url);if(!rs.ok)throw new Error(url+' '+rs.status);const ab=await rs.arrayBuffer(),dv=new DataView(ab),jl=dv.getUint32(12,true),j=JSON.parse(new TextDecoder().decode(new Uint8Array(ab,20,jl))),bo=20+jl+8;
   const acc=i=>{const a=j.accessors[i],v=j.bufferViews[a.bufferView],n={SCALAR:1,VEC2:2,VEC3:3}[a.type],C={5126:Float32Array,5125:Uint32Array,5123:Uint16Array}[a.componentType],s=bo+(v.byteOffset||0)+(a.byteOffset||0);return new C(ab.slice(s,s+a.count*n*C.BYTES_PER_ELEMENT));};
   const pr=j.meshes[0].primitives[0],g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(acc(pr.attributes.POSITION),3));
   if(pr.attributes.TEXCOORD_0!=null)g.setAttribute('uv',new T.BufferAttribute(acc(pr.attributes.TEXCOORD_0),2));if(pr.indices!=null)g.setIndex(new T.BufferAttribute(acc(pr.indices),1));g.computeVertexNormals();g.computeBoundingBox();
   let map=null;const im=j.images&&j.images[0];if(im){const v=j.bufferViews[im.bufferView],bmp=await createImageBitmap(new Blob([new Uint8Array(ab,bo+(v.byteOffset||0),v.byteLength)],{type:im.mimeType}));map=new T.Texture(bmp);map.flipY=false;map.colorSpace=T.SRGBColorSpace;map.needsUpdate=true;}
-  return HERO={g,map};}
+  return GLBS[url]={g,map};}
 // 合併幾何：同一種材質的小零件併成一個網格，iPhone 上才不會有上千次繪製
 function mergeGeos(T,list){let nv=0,ni=0;list.forEach(g=>{nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count;});
   const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),uv=new Float32Array(nv*2),idx=new Uint32Array(ni);let ov=0,oi=0;
@@ -2307,7 +2359,7 @@ function cityTex(draw,w,h){const c=document.createElement('canvas');c.width=w;c.
 const CITY_LM=[{k:'101',pt:[25.0339,121.5645]},{k:'wheel',pt:[25.0833,121.5575]},{k:'grand',pt:[25.0786,121.5265]},{k:'cks',pt:[25.0353,121.5219]},{k:'station',pt:[25.0478,121.5170]},
   {k:'mtn',pt:[25.1650,121.5500],r:9,h:9},{k:'mtn',pt:[25.0270,121.5800],r:5,h:5},{k:'mtn',pt:[25.1000,121.5950],r:6,h:6},{k:'mtn',pt:[24.9900,121.5800],r:6,h:5}];
 const CITY_RIVER=[[25.0545,121.628],[25.0625,121.606],[25.0712,121.588],[25.0778,121.570],[25.0803,121.553],[25.0822,121.538],[25.0792,121.526],[25.0828,121.514],[25.0918,121.505],[25.0985,121.492]];
-function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let seed=hashStr(homes.map(h=>h.id).join())||7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
   // ── 排版：真實方向、壓縮距離
   const la0=homes.reduce((s,h)=>s+h.pt[0],0)/homes.length,lo0=homes.reduce((s,h)=>s+h.pt[1],0)/homes.length,kx=111320*Math.cos(la0*Math.PI/180);
@@ -2473,7 +2525,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
     b.build(g);g.userData={id:h.id,H:top,st,drops:parts.drops,jib:parts.jib,flag:parts.flag,bulbs:parts.bulbs,born:performance.now()};if(!reduce)g.scale.y=.01;return g;}
   homes.forEach(h=>{const g=makeB(h);scene.add(g);bld.push(g);});
   // ── 主角
-  const hero=new T.Group();scene.add(hero);const HS=1.9;
+  const hero=new T.Group();scene.add(hero);const HS=1.9;let talking=null;
   if(HR){const m=new T.Mesh(HR.g,new T.MeshToonMaterial({map:HR.map,gradientMap:TG3}));const bb=HR.g.boundingBox,hh=bb.max.y-bb.min.y;m.scale.setScalar(HS/hh);m.position.y=-bb.min.y*HS/hh;m.castShadow=true;hero.add(m);hero.userData.mesh=m;}
   else{const m=new T.Mesh(new T.CapsuleGeometry(.35,1.1,6,12),toon('#F28C5A'));m.position.y=.9;m.castShadow=true;hero.add(m);}
   const ring=new T.Mesh(new T.RingGeometry(.9,1.08,40),new T.MeshBasicMaterial({color:'#FFFFFF',transparent:true,opacity:.75}));ring.rotation.x=-Math.PI/2;ring.position.y=.12;hero.add(ring);
@@ -2482,7 +2534,8 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   // ── 鏡頭：在主角後上方跟著走；單指拖曳轉視角、兩指／滾輪縮放
   let th=0,ph=1.09,R=28,last=performance.now(),walkT=0;const tgt=new T.Vector3();
   const cam=new T.PerspectiveCamera(42,1,.5,IR*20);
-  const setCam=()=>{const fx=-Math.sin(th),fz=-Math.cos(th);tgt.set(hero.position.x+fx*12,3.5,hero.position.z+fz*12);cam.position.set(hero.position.x+R*Math.sin(ph)*Math.sin(th),hero.position.y+R*Math.cos(ph),hero.position.z+R*Math.sin(ph)*Math.cos(th));cam.lookAt(tgt);};
+  // 對話時：鏡頭移到兩人側邊、拉近，看得到主角和仲介的臉
+  const setCam=()=>{if(talking){const n=talking.g.position,hx=hero.position.x,hz=hero.position.z,dx=n.x-hx,dz=n.z-hz,dl=Math.hypot(dx,dz)||1,ux=dx/dl,uz=dz/dl,mx=hx+dx*.5,mz=hz+dz*.5;let best=null,bs=-1;[1,-1].forEach(sg=>{const cx=mx-uz*7*sg,cz=mz+ux*7*sg;let m=1e9;bld.forEach(b=>m=Math.min(m,Math.hypot(b.position.x-cx,b.position.z-cz)));if(m>bs){bs=m;best=[cx,cz];}});cam.position.set(best[0],2.4,best[1]);cam.lookAt(mx,.55,mz);return;}const fx=-Math.sin(th),fz=-Math.cos(th);tgt.set(hero.position.x+fx*12,3.5,hero.position.z+fz*12);cam.position.set(hero.position.x+R*Math.sin(ph)*Math.sin(th),hero.position.y+R*Math.cos(ph),hero.position.z+R*Math.sin(ph)*Math.cos(th));cam.lookAt(tgt);};
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();};
   // 搖桿＋方向鍵
   const joy=$('cityJoy'),knob=joy.querySelector('i'),mv={x:0,y:0},keys=new Set();let jid=null;
@@ -2502,24 +2555,148 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
   cv.addEventListener('wheel',e=>{e.preventDefault();R=Math.max(8,Math.min(60,R*(1+Math.sign(e.deltaY)*.12)));},{passive:false});
   const ray=new T.Raycaster();
-  function pick(cx,cy){const r=cv.getBoundingClientRect();ray.setFromCamera(new T.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1),cam);const hit=ray.intersectObjects(bld,true)[0];let g=hit&&hit.object;while(g&&!bld.includes(g))g=g.parent;select(g?g.userData.id:null);}
+  function pick(cx,cy){const r=cv.getBoundingClientRect();ray.setFromCamera(new T.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1),cam);const nh=CITY3D&&CITY3D.npcs.length?ray.intersectObjects(CITY3D.npcs.map(n=>n.g),true)[0]:null;if(nh){let g2=nh.object;while(g2&&!CITY3D.npcs.some(n=>n.g===g2))g2=g2.parent;const n=CITY3D.npcs.find(x=>x.g===g2);if(n){CITY3D.talk(n);return;}}const hit=ray.intersectObjects(bld,true)[0];let g=hit&&hit.object;while(g&&!bld.includes(g))g=g.parent;select(g?g.userData.id:null);}
   // 物件標籤（HTML）：最近的一間顯示名稱＋分數，其他只顯示分數
   const pins=$('cityPins');pins.innerHTML=homes.map(h=>`<div class="cp" data-cp="${h.id}"><i></i><b>${esc(h.name)}</b><em></em></div>`).join('');
   const STC={todo:'#9AA0A6',seen:'#1A73E8',nego:'#F7931E'};
   const pinUpd=()=>{const a=loadHomes();pins.querySelectorAll('.cp').forEach(p=>{const h=a.find(x=>x.id===p.dataset.cp),s=HSC&&HSC[p.dataset.cp];if(!h)return;p.querySelector('i').style.background=STC[h.st||'todo'];p.querySelector('em').textContent=s?Math.round(s.total)+(p.classList.contains('near')?' 分':''):'';});};
   let near=null;const act=$('cityAct');
-  act.onclick=()=>{if(near)select(near);else toast('走近一棟樓再按「看這間」');};
+  act.onclick=()=>{if(CITY3D&&CITY3D.nearNpc){CITY3D.talk(CITY3D.nearNpc);return;}if(near)select(near);else toast('走近一棟樓再按「看這間」');};
   function stat(){const a=loadHomes(),pc=cityProg(a);$('cityStat').textContent=`完成度 ${pc}%`;$('cityBarI').style.width=pc+'%';pinUpd();}
   function select(id){const card=$('cityCard'),h=id&&loadHomes().find(x=>x.id===id);CITY3D.sel=h?id:null;el.classList.toggle('card-on',!!h);if(!h){card.hidden=true;selRing.visible=false;return;}
     const g=bld.find(x=>x.userData.id===id);selRing.position.x=g.position.x;selRing.position.z=g.position.z;selRing.visible=true;g.userData.pop=performance.now();const sc2=HSC&&HSC[id],st=h.st||'todo',nx={todo:'seen',seen:'nego'}[st];
     card.innerHTML=`<button type="button" class="cc-x" id="ccX" aria-label="收起"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button><div class="cc-h"><b>${esc(h.name)}</b>${sc2?`<span class="cc-sc">${Math.round(sc2.total)}<small> 分・第 ${sc2.rank} 名</small></span>`:''}</div>
       ${(h.tags||[]).length?`<div class="htags">${h.tags.map(t=>`<em class="tg${TAG_RISK.includes(t)?' risk':''}">${esc(t)}</em>`).join('')}</div>`:''}
       <div class="cc-st" role="group" aria-label="看房進度">${HOME_ST.map(([k,n])=>`<button type="button" data-cst="${k}" aria-pressed="${st===k}">${n}<small>${CITY_ST[k][1]}</small></button>`).join('')}</div>
-      <div class="cc-act">${nx?`<button type="button" class="cc-next" data-cst="${nx}">${nx==='seen'?'看完房了：把樓蓋好':'開始議價：點亮這棟'}</button>`:'<span class="cc-done">這棟已經亮燈，議價加油</span>'}<button type="button" class="cc-open" id="ccOpen">估價／詳細</button></div>`;
-    card.hidden=false;$('ccX').onclick=()=>select(null);card.querySelectorAll('[data-cst]').forEach(b=>b.onclick=()=>{const v=b.dataset.cst;if(v===(h.st||'todo'))return;setHome(id,x=>x.st=v);drawHomes();
-      const i=bld.findIndex(x=>x.userData.id===id),ng=makeB(loadHomes().find(x=>x.id===id));scene.remove(bld[i]);bld[i].traverse(o=>{o.geometry&&o.geometry!==G.sph&&o.geometry.dispose();});scene.add(ng);bld[i]=ng;stat();select(id);
+      <div class="cc-act">${nx?`<button type="button" class="cc-next" data-cst="${nx}">${nx==='seen'?'看完房了：把樓蓋好':'開始議價：點亮這棟'}</button>`:'<span class="cc-done">這棟已經亮燈，議價加油</span>'}<button type="button" class="cc-open" id="ccOpen">看細節</button></div>`;
+    card.hidden=false;$('ccX').onclick=()=>select(null);card.querySelectorAll('[data-cst]').forEach(b=>b.onclick=()=>{const v=b.dataset.cst;if(v===(h.st||'todo'))return;setHome(id,x=>x.st=v);rebuildB(id);select(id);
       toast(v==='seen'?'「'+h.name+'」蓋好了':v==='nego'?'「'+h.name+'」亮燈了，議價中':'「'+h.name+'」回到鷹架');});
-    $('ccOpen').onclick=()=>{closeCity();openHome(loadHomes().find(x=>x.id===id));};}
+    $('ccOpen').onclick=()=>openDet(id,'sum');}
+  // ── 仲介角色：每間有連結的物件門口站一位（同公司同一個人設），走近或點他就能說話
+  const NPCS=[];
+  function makeAgent(col){const g=new T.Group(),skin=toon('#F2C9A5'),shirt=toon('#F7F7F4'),pants=toon('#2F3640'),shoe=toon('#1C1C1E'),vest=toon(col),hair=toon('#2B2018');
+    if(AR){const m=new T.Mesh(AR.g,new T.MeshToonMaterial({map:AR.map,gradientMap:TG3}));const bb=AR.g.boundingBox,hh=bb.max.y-bb.min.y;m.scale.setScalar(HS/hh);m.position.y=-bb.min.y*HS/hh;m.castShadow=true;g.add(m);
+}
+    else{const P=(geo,mat,x,y,z,rx=0,ry=0,rz=0)=>{const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.castShadow=true;g.add(m);return m;};
+      [-1,1].forEach(s=>{P(new T.CapsuleGeometry(.1,.62,4,10),pants,s*.12,.46,0);P(new T.BoxGeometry(.17,.1,.3),shoe,s*.12,.05,.05);
+        const arm=P(new T.CapsuleGeometry(.075,.5,4,10),shirt,s*.33,1.08,0,0,0,s*.14);arm.userData.arm=s;P(new T.SphereGeometry(.075,10,8),skin,s*.37,.78,.02);});
+      P(new T.CapsuleGeometry(.24,.42,6,14),shirt,0,1.12,0);P(new T.CylinderGeometry(.255,.25,.52,18,1,true),vest,0,1.1,0);
+      P(new T.BoxGeometry(.06,.34,.02),toon('#3A3F47'),0,1.14,.255);P(new T.BoxGeometry(.1,.05,.02),toon('#FFFFFF'),.13,1.24,.25);
+      P(new T.CylinderGeometry(.07,.08,.1,10),skin,0,1.43,0);P(new T.SphereGeometry(.21,18,14),skin,0,1.62,0);
+      const hr=P(new T.SphereGeometry(.225,18,14,0,Math.PI*2,0,Math.PI*.55),hair,0,1.64,-.01);hr.scale.set(1,.95,1.04);
+      [-1,1].forEach(s=>{P(new T.SphereGeometry(.026,8,6),toon('#2A2420'),s*.075,1.63,.19);P(new T.SphereGeometry(.035,8,6),skin,s*.21,1.61,0);});
+      P(new T.BoxGeometry(.3,.38,.04),toon('#F3EFE6'),.3,.95,.2,0,-.3,0);}
+    const mk=new T.Mesh(new T.OctahedronGeometry(.18,0),new T.MeshBasicMaterial({color:col}));mk.position.y=HS+.45;mk.userData.mk=1;g.add(mk);return g;}
+  homes.forEach(h=>{const co=homeCo(h),b=bld.find(x=>x.userData.id===h.id);if(!co||!b)return;let best=null,bs=-1e9;
+    for(let k=0;k<16;k++){const a=k/16*Math.PI*2,x=b.position.x+Math.sin(a)*5.6,z=b.position.z+Math.cos(a)*5.6;if(!inIsle(x,z,2))continue;let m=1e9;bld.forEach(o=>{if(o!==b)m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z));});NPCS.forEach(n=>m=Math.min(m,Math.hypot(n.g.position.x-x,n.g.position.z-z)*2));if(m>bs){bs=m;best=a;}}
+    if(best==null)return;const a=best+.32,g=makeAgent(AGENT_CO[co]);g.position.set(b.position.x+Math.sin(a)*5.6,0,b.position.z+Math.cos(a)*5.6);g.rotation.y=best;g.userData={co,homeId:h.id,base:best};scene.add(g);NPCS.push({co,homeId:h.id,g});});
+  pins.insertAdjacentHTML('beforeend',NPCS.map((n,i)=>`<div class="cp cnp" data-np="${i}"><i style="background:${AGENT_CO[n.co]}"></i><b>${esc(coName(n.co))}</b></div>`).join(''));
+  // ── RPG 對話（溫暖泡泡）：字一個一個跑出來，點一下顯示整句；選項是右側小泡泡；對話時搖桿、小地圖收起，鏡頭拉近
+  const dlg=$('cityDlg'),dTxt=$('cdTxt'),dName=$('cdName'),dCh=$('cdCh');let typing=null,savedR=R,nearNpc=null;
+  const blip=()=>{const A=CITY_MUS;if(!A.on||!A.ac)return;try{const t=A.ac.currentTime,o=A.ac.createOscillator(),gg=A.ac.createGain();o.type='sine';o.frequency.value=720+Math.random()*120;gg.gain.setValueAtTime(.025,t);gg.gain.exponentialRampToValueAtTime(.0001,t+.06);o.connect(gg).connect(A.ac.destination);o.start(t);o.stop(t+.07);}catch(e){}};
+  function say(name,text,choices){return new Promise(res=>{clearInterval(typing);el.classList.add('dlg-on');dlg.hidden=false;dName.textContent=name;dCh.innerHTML='';dlg.classList.remove('more');dTxt.textContent='';let i=0;
+    const showCh=()=>{if(!choices){dlg.classList.add('more');return;}dCh.innerHTML=choices.map((c,k)=>`<button type="button" data-k="${k}">${esc(c)}</button>`).join('');dCh.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();dCh.innerHTML='';res(+b.dataset.k);});const f=dCh.querySelector('button');f&&f.focus();};
+    const fin=()=>{clearInterval(typing);typing=null;dTxt.textContent=text;showCh();};
+    dlg.querySelector('.cd-box').onclick=()=>{if(typing)fin();else if(!choices)res(-1);};dlg.dataset.done='0';
+    if(reduce||window.__fastType)fin();else typing=setInterval(()=>{i++;dTxt.textContent=text.slice(0,i);if(i%2===0)blip();if(i>=text.length)fin();},36);});}
+  function endTalk(){clearInterval(typing);typing=null;dlg.hidden=true;el.classList.remove('dlg-on');if(talking){R=savedR;talking.g.rotation.y=talking.g.userData.base;}talking=null;}
+  async function talk(n){if(talking)return;talking=n;savedR=R;R=Math.min(R,15);select(null);const nm=coName(n.co);
+    const dx=n.g.position.x-hero.position.x,dz=n.g.position.z-hero.position.z;hero.rotation.y=Math.atan2(dx,dz);th=hero.rotation.y+Math.PI;n.g.rotation.y=Math.atan2(-dx,-dz);
+    const hs=loadHomes().filter(x=>homeCo(x)===n.co);let h=hs.find(x=>x.id===n.homeId)||hs[0];
+    if(hs.length>1){const k=await say(nm,`嗨！我負責你的 ${hs.length} 間物件，想聊哪一間呢？`,hs.map(x=>x.name).concat(['先不用']));if(k<0||k>=hs.length){await say(nm,'好喔，有需要再來找我！');return endTalk();}h=hs[k];}
+    const st=h.st||'todo',vis=h.visit&&new Date(h.visit.at)>new Date()?h.visit:null;
+    const [line,opts]=st==='nego'?[`「${h.name}」屋主還在考慮你${h.offer?' '+num(h.offer)+' 萬':''}的出價，要調整一下嗎？`,[['offer','再出一次價'],['det','看這間的細節'],['bye','先不用']]]
+      :st==='seen'?[`看完「${h.name}」覺得怎麼樣？喜歡的話我們來談價格吧！`,[['offer','開始議價'],['sched','再約一次看房'],['det','看這間的細節'],['bye','先不用']]]
+      :[vis?`「${h.name}」已經約好 ${twDate(new Date(vis.at))} 看房囉！要改時間嗎？`:`「${h.name}」屋主說最近都可以看，要幫你約時間嗎？`,[['sched',vis?'改看房時間':'約看房'],['offer','直接出價'],['det','看這間的細節'],['bye','先不用']]];
+    const k=await say(nm,line,opts.map(o=>o[1])),a=k<0?'bye':opts[k][0];
+    if(a==='bye'){await say(nm,'好的！有需要隨時來找我。');return endTalk();}
+    endTalk();if(a==='det')openDet(h.id,'sum');else if(a==='sched')openSched(h.id,n.co);else openOffer(h.id,n.co);}
+  // ── 小城裡的面板（約看房、議價、物件細節），不離開小城
+  const det=$('cityDet');let detId=null;
+  function closeDet(){det.hidden=true;el.classList.remove('det-on');detId=null;det.innerHTML='';}
+  function sheet(title,sub,body){if(CITY3D&&CITY3D.sel)select(null);el.classList.add('det-on');det.hidden=false;det.scrollTop=0;
+    det.innerHTML=`<div class="cdt-h"><div><b>${esc(title)}</b>${sub?`<small>${sub}</small>`:''}</div><button type="button" class="cc-x" id="cdtX" aria-label="關閉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>${body}`;$('cdtX').onclick=closeDet;}
+  const num=v=>Math.round(v).toLocaleString('en-US');
+  function rebuildB(id){const i=bld.findIndex(x=>x.userData.id===id);if(i<0)return;const ng=makeB(loadHomes().find(x=>x.id===id));scene.remove(bld[i]);bld[i].traverse(o=>{o.geometry&&o.geometry!==G.sph&&o.geometry.dispose();});scene.add(ng);bld[i]=ng;stat();drawHomes();}
+  // 約看房：我方便的時段（傳給仲介挑）＋同行的人（日曆邀請）＋自動寫好的訊息
+  function openSched(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;const nm=coName(co||homeCo(h)||'其他');
+    const sat=new Date();sat.setDate(sat.getDate()+((6-sat.getDay()+7)%7||7));const mk2=(d,hh)=>{const x=new Date(d);x.setHours(hh,0,0,0);return x;};
+    const S={slots:[mk2(sat,10),mk2(sat,14)],who:new Set(),pick:0,edited:false};
+    const msg=()=>{const w=companions().filter(c=>S.who.has(c.e));return `${nm}您好，想預約看「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}。我${S.slots.map(twDate).join('、')}${S.slots.length>1?'都':''}方便${w.length?`，會有 ${w.length} 位同行`:''}，請問哪個時段可以？謝謝！`;};
+    const draw=()=>{const cs=companions();sheet('約看房',`${esc(h.name)}・${esc(nm)}`,`
+      <div class="cdt-k">我方便的時段（傳給仲介挑）</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="chip on" data-rm="${i}" aria-label="移除 ${twDate(d)}">${twDate(d)}<i aria-hidden="true">×</i></button>`).join('')}</div>
+      <div class="cdt-add"><input type="date" id="cdD" aria-label="日期" value="${sat.toISOString().slice(0,10)}"><input type="time" id="cdT" aria-label="時間" value="19:00" step="1800"><button type="button" class="chip" id="cdAdd">＋ 加入</button></div>
+      <div class="cdt-k">一起去的人（日曆邀請）</div><div class="cdt-chips">${cs.map(c=>`<button type="button" class="chip${S.who.has(c.e)?' on':''}" data-who="${esc(c.e)}" aria-pressed="${S.who.has(c.e)}">${esc(c.n)}</button>`).join('')}</div>
+      <div class="cdt-add"><input id="cwN" placeholder="名字" aria-label="同行者名字"><input id="cwE" type="email" placeholder="email" aria-label="同行者 email"><button type="button" class="chip" id="cwAdd">＋ 新增</button></div>
+      <div class="cdt-k">要傳給仲介的訊息</div><textarea id="cdMsg" rows="4" aria-label="訊息">${esc(msg())}</textarea>
+      <button type="button" class="cdt-btn line" id="cdLine">傳到 Line（${esc(nm)}）</button>
+      <div class="cdt-k">仲介回覆後，選定的時段</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="chip${S.pick===i?' on':''}" data-pick="${i}" aria-pressed="${S.pick===i}">${twDate(d)}</button>`).join('')}</div>
+      <button type="button" class="cdt-btn cal" id="cdCal" ${S.slots.length?'':'disabled'}>加到 Google 日曆${S.who.size?`（邀請 ${S.who.size} 人）`:''}</button>
+      <div class="cdt-tip">加到日曆後，這間會記上「已約看房」，行程也會出現在物件細節裡</div>`);
+      const ta=$('cdMsg');ta.oninput=()=>S.edited=true;const keep=()=>{if(S.edited)S.msg=ta.value;};
+      det.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{keep();S.slots.splice(+b.dataset.rm,1);S.pick=0;draw();});
+      $('cdAdd').onclick=()=>{keep();const d=$('cdD').value,t=$('cdT').value;if(!d||!t)return;const x=new Date(d+'T'+t+':00');if(isNaN(x))return;if(!S.slots.some(y=>+y===+x))S.slots.push(x);S.slots.sort((a,b)=>a-b);draw();};
+      det.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{keep();const e=b.dataset.who;S.who.has(e)?S.who.delete(e):S.who.add(e);draw();});
+      $('cwAdd').onclick=()=>{keep();const n2=$('cwN').value.trim(),e=$('cwE').value.trim();if(!n2||!/^\S+@\S+\.\S+$/.test(e)){toast('請填名字和正確的 email',true);return;}const a=companions().filter(c=>c.e!==e).concat([{n:n2,e}]);saveCompanions(a);S.who.add(e);draw();};
+      det.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{keep();S.pick=+b.dataset.pick;draw();});
+      if(S.edited&&S.msg!=null)ta.value=S.msg;
+      $('cdLine').onclick=()=>{const t=ta.value.trim();if(!t)return;lineSend(co||homeCo(h)||'其他',t);addLog(id,{t:'ask',via:'line',co,slots:S.slots.map(d=>d.toISOString())});toast('訊息已帶到 Line（也複製好了），選群組送出');};
+      $('cdCal').onclick=()=>{const at=S.slots[S.pick];if(!at)return;const w=companions().filter(c=>S.who.has(c.e));
+        calAdd({title:`看房：${h.name}`,start:at,min:60,loc:`${h.name}（${h.dist||''}）`,who:w.map(c=>c.e),desc:`仲介：${nm}\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`});
+        setHome(id,x=>{x.visit={at:at.toISOString(),who:w.map(c=>c.n),co};});addLog(id,{t:'visit',at:at.toISOString(),who:w.map(c=>c.n),co});toast(`已約 ${twDate(at)} 看「${h.name}」`);openDet(id,'log');};};
+    draw();}
+  // 議價：出價（預設談判價或合理出價，可用保守／合理／積極快選）＋自動寫好的訊息
+  function openOffer(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,nm=coName(co||homeCo(h)||'其他');
+    let p=Math.round(h.offer||(V&&dealOf(V))||(o?o.out[1]:+h.form.ask||0)),edited=false;
+    const msg=()=>`${nm}您好，關於「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}，我們評估後想出價 ${num(p)} 萬，麻煩幫忙跟屋主談談，謝謝！`;
+    const draw=()=>{sheet(h.st==='nego'?'再出一次價':'開始議價',`${esc(h.name)}・${esc(nm)}`,`
+      ${o?`<div class="cdt-k">快選（估價模型）</div><div class="cdt-chips">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].concat(+h.form.ask>0?[['開價',+h.form.ask]]:[]).map(([n2,v])=>`<button type="button" class="chip${Math.round(v)===p?' on':''}" data-op="${Math.round(v)}">${n2} ${num(v)}</button>`).join('')}</div>`:''}
+      <label class="cdt-k" for="cdP">出價（萬）</label><div class="cdt-add"><button type="button" class="chip" data-step="-10">−10</button><input type="number" id="cdP" inputmode="numeric" value="${p}"><button type="button" class="chip" data-step="10">＋10</button></div>
+      ${o?`<div class="cdt-tip">合理出價 ${num(o.out[1])} 萬，你的出價是它的 ${Math.round(p/o.out[1]*100)}%</div>`:''}
+      <div class="cdt-k">要傳給仲介的訊息</div><textarea id="cdMsg" rows="4" aria-label="訊息">${esc(msg())}</textarea>
+      <button type="button" class="cdt-btn line" id="cdLine">傳到 Line（${esc(nm)}）</button><div class="cdt-tip">送出後這間會變成「議價中」並記下出價</div>`);
+      const ta=$('cdMsg');ta.oninput=()=>edited=true;
+      const setP=v=>{p=Math.max(0,Math.round(v));const t=edited?ta.value:null;draw();if(t!=null)$('cdMsg').value=t;};
+      det.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>setP(+b.dataset.op));det.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>setP(p+ +b.dataset.step));
+      $('cdP').onchange=()=>setP(+$('cdP').value||0);
+      $('cdLine').onclick=()=>{const t=ta.value.trim();if(!t||!(p>0))return;lineSend(co||homeCo(h)||'其他',t);const was=h.st;setHome(id,x=>{x.offer=p;x.st='nego';});addLog(id,{t:'offer',p,via:'line',co});if(was!=='nego')rebuildB(id);
+        toast(`出價 ${num(p)} 萬已帶到 Line，「${h.name}」改為議價中`);openDet(id,'log');};};
+    draw();}
+  // 物件細節：總覽／估價／行程／資料／周遭，都在小城裡看和改
+  const DTABS=[['sum','總覽'],['val','估價'],['log','行程'],['info','資料'],['env','周遭']];
+  function openDet(id,tab){const h=loadHomes().find(x=>x.id===id);if(!h){closeDet();return;}detId=id;tab=tab||'sum';let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,f=h.form||{},z=HSC&&HSC[id],co=homeCo(h);
+    const chips=[h.dist,f.ping?f.ping+' 坪':'',f.age!=null&&f.age!==''?'屋齡 '+f.age+' 年':'',f.fl?f.fl+(f.tot?'/'+f.tot:'')+' 樓':''].filter(Boolean).join('・');
+    let body='';
+    if(tab==='sum'){body=`<div class="cdt-price"><div><small>開價</small><b>${+f.ask>0?num(f.ask)+'<em> 萬</em>':'—'}</b></div><div><small>合理出價</small><b class="g">${o?num(o.out[1])+'<em> 萬</em>':'—'}</b></div></div>
+      ${z?`<div class="cdt-k">推薦分數 <b>${Math.round(z.total)}</b>・第 ${z.rank} 名</div>${RANK_K.map(([k,n2,c])=>`<div class="cdt-bar"><span>${n2}</span><i><em style="width:${Math.round(z.sc[k]||0)}%;background:${c}"></em></i><b>${Math.round(z.sc[k]||0)}</b></div>`).join('')}`:''}
+      <div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="chip${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
+      <div class="cdt-row2">${co?`<button type="button" class="cdt-btn" data-go="sched">約看房</button><button type="button" class="cdt-btn" data-go="offer">出價</button>`:''}</div>`;}
+    else if(tab==='val'){if(!o)body='<div class="cdt-tip">這間附近相似成交太少，估不出區間</div>';else{const d=dealOf(V),lp=loanPrice(V),L=valLoan(V,lp);
+      body=`<div class="cdt-k">出價區間（估價模型）</div><div class="cdt-band">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].map(([n2,v],i)=>`<div class="${i===1?'mid':''}"><small>${n2}</small><b>${num(v)}</b></div>`).join('')}</div>
+        <label class="cdt-k" for="cdDeal">談判價（萬，有填就用它算房貸）</label><div class="cdt-add"><input type="number" id="cdDeal" inputmode="numeric" value="${d||''}" placeholder="${num(o.out[1])}"><button type="button" class="chip" id="cdDealOk">更新</button></div>
+        <div class="cdt-k">房貸試算（${d?'談判價':'合理出價'} ${num(lp)} 萬）</div>
+        <div class="cdt-loan"><div><small>貸款</small><b>${num(L.L)} 萬</b></div><div><small>自備款</small><b>${num(L.down)} 萬</b></div><div class="mid"><small>每月還款</small><b>${num(L.pay)} 元</b></div><div><small>準備現金</small><b>${num(L.cash)} 萬</b></div></div>
+        <div class="cdt-tip">${V.fin.years} 年、利率 ${(+V.fin.rate).toFixed(2)}%${V.fin.mode==='youth'?'（青安）':''}；成數與利率依估價設定</div>`;}}
+    else if(tab==='log'){const lg=(h.log||[]).slice().sort((a,b)=>(b.at||b.ts).localeCompare(a.at||a.ts)),tx=e=>e.t==='visit'?`看房 ${twDate(new Date(e.at))}${(e.who||[]).length?'・'+e.who.join('、')+' 同行':''}`:e.t==='offer'?`出價 ${num(e.p)} 萬`:e.t==='ask'?`問仲介看房時段（${(e.slots||[]).length} 個）`:esc(e.x||'');
+      body=`${h.visit?`<div class="cdt-next"><small>下一次看房</small><b>${twDate(new Date(h.visit.at))}</b></div>`:''}<div class="cdt-tl">${lg.length?lg.map(e=>`<div class="t-${e.t}"><b>${tx(e)}</b><small>${twDate(new Date(e.ts))} 記錄${e.co?'・'+esc(coName(e.co)):''}${e.via==='line'?'・Line':''}</small></div>`).join(''):'<div class="cdt-tip">還沒有行程。和仲介說話可以約看房、出價。</div>'}</div>
+        <div class="cdt-add"><input id="cdNote" placeholder="記一筆（例如：屋主說 2,350 可以談）" aria-label="新增紀錄"><button type="button" class="chip" id="cdNoteOk">記下</button></div>
+        <div class="cdt-row2"><button type="button" class="cdt-btn" data-go="sched">約看房</button><button type="button" class="cdt-btn" data-go="offer">出價</button></div>`;}
+    else if(tab==='info'){const ts=h.tags||[];body=`<div class="cdt-k">看房進度</div><div class="cdt-chips">${HOME_ST.map(([k,n2])=>`<button type="button" class="chip${(h.st||'todo')===k?' on':''}" data-dst="${k}" aria-pressed="${(h.st||'todo')===k}">${n2}</button>`).join('')}</div>
+      <div class="cdt-k">標籤</div><div class="cdt-chips">${tagSet().map(t=>`<button type="button" class="chip${ts.includes(t)?' on':''}${TAG_RISK.includes(t)?' risk':''}" data-dtag="${esc(t)}" aria-pressed="${ts.includes(t)}">${esc(t)}</button>`).join('')}</div>
+      <div class="cdt-k">物件連結</div><div class="cdt-links">${(h.links||[]).map((l,i)=>`<div><a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.p||platformOf(l.u))}</a><button type="button" class="chip" data-dlk="${i}" aria-label="刪除這個連結">刪除</button></div>`).join('')||'<div class="cdt-tip">還沒有連結</div>'}</div>
+      <div class="cdt-add"><input id="cdLk" type="url" placeholder="貼上物件網址" aria-label="新增物件連結"><button type="button" class="chip" id="cdLkOk">加入</button></div>`;}
+    else{body=`<div class="cdt-k">周遭環境</div><iframe class="cdt-map" title="${esc(h.name)} 周遭地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${h.pt[0]},${h.pt[1]}&z=16&hl=zh-TW&output=embed"></iframe>
+      <div class="cdt-k">附近都更</div><div id="cdUrc" class="cdt-tip">讀取中…</div><div class="cdt-k">使用分區</div><div class="cdt-tip">資料建置中，之後會顯示這塊地的使用分區（例如住三、商二）</div>`;}
+    sheet(h.name,esc(chips),`<div class="cdt-tabs" role="tablist">${DTABS.map(([k,n2])=>`<button type="button" role="tab" data-dtab="${k}" aria-selected="${k===tab}">${n2}</button>`).join('')}</div>${(h.tags||[]).length&&tab!=='info'?`<div class="htags cdt-tg">${h.tags.map(t=>`<em class="tg${TAG_RISK.includes(t)?' risk':''}">${esc(t)}</em>`).join('')}</div>`:''}<div class="cdt-body" data-tab="${tab}">${body}</div>`);
+    det.querySelectorAll('[data-dtab]').forEach(b=>b.onclick=()=>openDet(id,b.dataset.dtab));
+    det.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>b.dataset.go==='sched'?openSched(id,co):openOffer(id,co));
+    det.querySelectorAll('[data-dst]').forEach(b=>b.onclick=()=>{const v=b.dataset.dst;if(v===(h.st||'todo'))return;setHome(id,x=>x.st=v);rebuildB(id);openDet(id,tab);toast('「'+h.name+'」改為'+stName(v));});
+    det.querySelectorAll('[data-dtag]').forEach(b=>b.onclick=()=>{const t=b.dataset.dtag;setHome(id,x=>{const a=x.tags||[];x.tags=a.includes(t)?a.filter(y=>y!==t):a.concat([t]);});rebuildB(id);openDet(id,'info');});
+    det.querySelectorAll('[data-dlk]').forEach(b=>b.onclick=()=>{setHome(id,x=>{x.links=(x.links||[]).filter((_,i)=>i!==+b.dataset.dlk);});openDet(id,'info');});
+    const lk=$('cdLkOk');if(lk)lk.onclick=()=>{const u=$('cdLk').value.trim();if(!/^https?:\/\//.test(u)){toast('請貼上 http 開頭的網址',true);return;}setHome(id,x=>{const a=x.links||[];if(!a.some(l=>l.u===u)&&a.length<8)x.links=a.concat([{p:platformOf(u),u}]);});openDet(id,'info');};
+    const no=$('cdNoteOk');if(no)no.onclick=()=>{const x=$('cdNote').value.trim();if(!x)return;addLog(id,{t:'note',x});openDet(id,'log');};
+    const dl=$('cdDealOk');if(dl)dl.onclick=()=>{const v=+$('cdDeal').value;setHome(id,x=>{x.form=Object.assign({},x.form,{deal:v>0?v:''});});openDet(id,'val');};
+    if(tab==='env')loadUrc().then(()=>{const u=$('cdUrc');if(u&&detId===id)u.innerHTML=urcRow(h.pt)||'附近 300 公尺內沒有都更案件或自劃單元';}).catch(()=>{const u=$('cdUrc');if(u)u.textContent='都更資料暫時讀不到';});}
   // ── 空間地圖：右上小圓圖（跟著鏡頭轉、主角在中間），點開是整座島的大地圖（北朝上），點物件直接走到門口
   const MS=680,mk=IR*1.15,toM=(x,z)=>[(x/mk*.5+.5)*MS,(z/mk*.5+.5)*MS],u2px=MS/(mk*2);
   const MAP=document.createElement('canvas');MAP.width=MAP.height=MS;{const c=MAP.getContext('2d');c.fillStyle='#3FA9D6';c.fillRect(0,0,MS,MS);
@@ -2542,7 +2719,7 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
   $('cityMap').onclick=()=>{drawBig();mapBig.hidden=false;$('cityMapX').focus();};$('cityMapX').onclick=()=>{mapBig.hidden=true;};mapBig.onclick=e=>{if(e.target===mapBig)mapBig.hidden=true;};
   const goTo=id=>{const g=bld.find(x=>x.userData.id===id);if(!g)return;let px=g.position.x,pz=g.position.z+6.5,bs=-1e9;for(let k=0;k<12;k++){const a=k/12*Math.PI*2,x=g.position.x+Math.sin(a)*6.5,z=g.position.z+Math.cos(a)*6.5;if(!inIsle(x,z,3))continue;let m=1e9;bld.forEach(o=>{if(o!==g)m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z));});const sc=Math.min(m,30)-(k?0.5:0);if(sc>bs){bs=sc;px=x;pz=z;}}hero.position.set(px,0,pz);hero.rotation.y=Math.atan2(g.position.x-px,g.position.z-pz);th=hero.rotation.y+Math.PI;mapBig.hidden=true;toast('走到「'+((loadHomes().find(x=>x.id===id)||{}).name||'')+'」門口');};
   bcv.onclick=e=>{const r=bcv.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*MS,my=(e.clientY-r.top)/r.height*MS;let best=null,bd=1e9;bld.forEach(g=>{const [x,y]=toM(g.position.x,g.position.z),d=Math.hypot(x-mx,y-my);if(d<bd){bd=d;best=g;}});if(best&&bd<40)goTo(best.userData.id);};
-  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,ANI,goTo,mapPx:id=>{const g=bld.find(x=>x.userData.id===id);return toM(g.position.x,g.position.z).map(v=>v/MS);},get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
+  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,ANI,goTo,npcs:NPCS,talk,endTalk,openDet,openSched,openOffer,closeDet,get talking(){return talking;},get nearNpc(){return nearNpc;},get detId(){return detId;},mapPx:id=>{const g=bld.find(x=>x.userData.id===id);return toM(g.position.x,g.position.z).map(v=>v/MS);},get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
   resize();setCam();stat();const ro=new ResizeObserver(resize);ro.observe(el);CITY3D.ro=ro;
   const v3=new T.Vector3();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;
@@ -2551,16 +2728,23 @@ function buildCity(el,HR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),reduce=
     const moving=il>.08;if(moving){const fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th),sp=7*Math.min(1,il);let nx=hero.position.x+(fx*-iy+rx*ix)*sp*dt,nz=hero.position.z+(fz*-iy+rz*ix)*sp*dt;
       if(!inIsle(nx,nz,2.5)){const d=Math.hypot(nx,nz/1.08),k=(IR-2.5)/d;nx*=k;nz*=k;}
       bld.forEach(g=>{const dx=nx-g.position.x,dz=nz-g.position.z,d=Math.hypot(dx,dz);if(d<4.1){nx=g.position.x+dx/(d||1)*4.1;nz=g.position.z+dz/(d||1)*4.1;}});
+      NPCS.forEach(n=>{const g=n.g,dx=nx-g.position.x,dz=nz-g.position.z,d=Math.hypot(dx,dz);if(d<1.1){nx=g.position.x+dx/(d||1)*1.1;nz=g.position.z+dz/(d||1)*1.1;}});
       const want=Math.atan2(nx-hero.position.x,nz-hero.position.z);let dr=want-hero.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));hero.rotation.y+=dr*Math.min(1,dt*10);hero.position.x=nx;hero.position.z=nz;walkT+=dt*il;}
     const hm=hero.userData.mesh;if(hm){hm.position.y=(hm.userData.y0??(hm.userData.y0=hm.position.y))+(moving&&!reduce?Math.abs(Math.sin(walkT*9))*.18:0);hm.rotation.z=moving&&!reduce?Math.sin(walkT*9)*.06:0;}
     setCam();
     drawMini();
     // 走進哪一區：上方淡入區名
     const zr=inReg(hero.position.x,hero.position.z);if((zr&&zr.name)!==zone){zone=zr?zr.name:null;const zc=$('cityZone');if(zone)zc.textContent=zone;zc.classList.toggle('on',!!zone);}
+    // 仲介：走近（3.5 內）右下按鈕變「和○○仲介說話」；8 單位內轉頭看主角；頭上菱形慢慢轉
+    let nb=null,nd=1e9;NPCS.forEach(n=>{const g=n.g,d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<nd){nd=d;nb=n;}
+      if(!talking){const want=d<8?Math.atan2(hero.position.x-g.position.x,hero.position.z-g.position.z):g.userData.base;let dr=want-g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));g.rotation.y+=dr*Math.min(1,dt*4);}
+      if(!reduce)g.children.forEach(c=>{if(c.userData.mk){c.rotation.y+=dt*1.5;c.position.y=HS+.45+Math.sin(now/400+n.g.position.x)*.08;}});});
+    const nn2=nb&&nd<3.5&&!talking?nb:null;if(nn2!==nearNpc){nearNpc=nn2;near=undefined;}
     // 最近的物件
     let best=null,bd=1e9;bld.forEach(g=>{const d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<bd){bd=d;best=g;}});const nn=best&&bd<10?best.userData.id:null;
-    if(nn!==near){near=nn;act.classList.toggle('on',!!near);act.querySelector('span').textContent=near?'看這間':'走近一棟樓';pins.querySelectorAll('.cp').forEach(p=>p.classList.toggle('near',p.dataset.cp===near));pinUpd();}
+    if(nn!==near){near=nn;act.classList.toggle('on',!!near||!!nearNpc);act.querySelector('span').textContent=nearNpc?'說話':near?'看這間':'走近一棟樓';act.setAttribute('aria-label',nearNpc?'和'+coName(nearNpc.co)+'說話':near?'看這間':'走近一棟樓');act.classList.toggle('talk',!!nearNpc);pins.querySelectorAll('.cp').forEach(p=>p.classList.toggle('near',p.dataset.cp===near));pinUpd();}
     const W=cv.clientWidth,H=cv.clientHeight;bld.forEach(g=>{const p=pins.querySelector(`[data-cp="${g.userData.id}"]`);if(!p)return;v3.set(g.position.x,g.userData.H+(g.userData.st==='todo'?3.2:2.2),g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&v3.y>-1.1;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${Math.min(W-70,Math.max(70,(v3.x+1)/2*W))}px,${Math.max(176,(1-v3.y)/2*H)}px) translate(-50%,-100%)`;});
+    NPCS.forEach((n,i)=>{const p=pins.querySelector(`[data-np="${i}"]`);if(!p)return;v3.set(n.g.position.x,HS+1.1,n.g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.05&&Math.abs(v3.y)<1.05&&Math.hypot(n.g.position.x-hero.position.x,n.g.position.z-hero.position.z)<26;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${(v3.x+1)/2*W}px,${(1-v3.y)/2*H}px)`;});
     bld.forEach(g=>{const u=g.userData;if(g.scale.y<1)g.scale.y=reduce?1:Math.min(1,(now-u.born)/800);if(u.pop){const k=(now-u.pop)/500;if(k<1){const s=1+.06*Math.sin(k*Math.PI);g.scale.x=g.scale.z=s;}else{g.scale.x=g.scale.z=1;u.pop=0;}}
       u.drops.forEach(d=>{const p=((now/1400+d.userData.ph)%1);d.position.y=u.H*.85*(1-p)+.3;});
       if(!reduce){if(u.jib)u.jib.rotation.y=Math.sin(now/2200)*1.1;if(u.flag)u.flag.rotation.y=Math.sin(now/300)*.35;if(u.bulbs)u.bulbs.children.forEach((b,k)=>b.visible=Math.sin(now/260+k)>-.4);}});
