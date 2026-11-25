@@ -404,6 +404,7 @@ body.placing #map{cursor:crosshair}
 .cmp-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
 #city{position:fixed;inset:0;z-index:5000;background:#A9D4EE;overscroll-behavior:none;user-select:none;-webkit-user-select:none}#cityCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}body.city-on{overflow:hidden}
 .city-top{position:absolute;left:16px;right:16px;top:calc(env(safe-area-inset-top) + 16px);display:flex;align-items:center;gap:8px;pointer-events:none}.city-h{flex:1;min-width:0;height:44px;box-sizing:border-box;background:rgba(255,255,255,.92);border-radius:24px;padding:0 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.1)}.city-h span{font-size:15px;font-weight:700;color:#202124;white-space:nowrap;font-variant-numeric:tabular-nums}
+.city-mus .mus-off{display:none}.city-mus[aria-pressed=false] .mus-off{display:inline}.city-mus[aria-pressed=true] svg{stroke:var(--D)}
 .city-x{pointer-events:auto;flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center}.city-x svg{width:20px;height:20px;fill:none;stroke:#3C4043;stroke-width:2.2;stroke-linecap:round}.city-x[aria-expanded=true]{background:#FFF3E0}
 .city-bar{flex:1;height:8px;border-radius:8px;background:#EDE5D6;overflow:hidden}.city-bar i{display:block;height:100%;border-radius:8px;background:#F7931E;transition:width .4s}
 .city-map{position:absolute;right:16px;top:calc(env(safe-area-inset-top) + 72px);width:104px;height:104px;border-radius:50%;border:3px solid #fff;padding:0;overflow:hidden;background:#3FA9D6;box-shadow:0 4px 14px rgba(0,0,0,.2)}.city-map canvas{width:100%;height:100%;display:block}
@@ -2233,14 +2234,14 @@ const HOME_ST=[['todo','未看房'],['seen','已看房'],['nego','議價中']],s
 const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js';let THREE=null,CITY3D=null;
 const CITY_ST={todo:['未看房','鷹架'],seen:['已看房','蓋好了'],nego:['議價中','亮燈']};
 function cityProg(a){const n=a.length,v=a.reduce((t,h)=>t+({seen:1,nego:2}[h.st]||0),0);return n?Math.round(v/(n*2)*100):0;}
-async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}
+async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}if(cityMusPref().on)CITY_MUS.prime();
   try{THREE=THREE||await import(THREE_URL);}catch(e){toast('3D 小城載入失敗，請檢查網路後再試',true);return;}
   const tc=document.createElement('canvas');if(!(tc.getContext('webgl2')||tc.getContext('webgl'))){toast('這台裝置不支援 3D 顯示',true);return;}
   await homesScore();let HR=null;try{HR=await loadHero(THREE);}catch(e){}closeCity();
   const el=document.createElement('div');el.id='city';el.setAttribute('role','dialog');el.setAttribute('aria-label','我的物件小城');
   el.innerHTML=`<canvas id="cityCv" aria-label="3D 小城：搖桿或方向鍵走路，拖曳轉視角，點一棟樓看詳細"></canvas><div id="cityPins" aria-hidden="true"></div>
     <div class="city-top"><div class="city-h"><span id="cityStat"></span><div class="city-bar"><i id="cityBarI"></i></div></div>
-      <button type="button" id="cityHelp" class="city-x" aria-label="圖例" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5v.4M12 16.6v.1"/></svg></button>
+      <button type="button" id="cityMus" class="city-x city-mus" aria-pressed="false" aria-label="播放音樂"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.8" cy="17.5" r="2.3"/><circle cx="16.8" cy="15.5" r="2.3"/><path class="mus-off" d="M4 4l16 16"/></svg></button><button type="button" id="cityHelp" class="city-x" aria-label="圖例" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.4 2.2c-.6.3-1 .8-1 1.5v.4M12 16.6v.1"/></svg></button>
       <button type="button" id="cityX" class="city-x" aria-label="關閉小城"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div>
     <div class="city-leg" id="cityLeg" hidden><span><i class="lg-todo"></i>鷹架＝未看房</span><span><i class="lg-seen"></i>蓋好插旗＝已看房</span><span><i class="lg-nego"></i>亮燈＝議價中</span><span>樓越高分數越高</span></div>
     <div class="city-joy" id="cityJoy" aria-label="搖桿：拖曳讓主角走路，也可以用方向鍵"><i></i></div>
@@ -2250,11 +2251,41 @@ async function openCity(){const homes=loadHomes();if(!homes.length){toast('先�
     <div class="city-mapbig" id="cityMapBig" role="dialog" aria-label="小城地圖" hidden><div class="cmb-in"><div class="cmb-h"><b>小城地圖</b><button type="button" class="city-x" id="cityMapX" aria-label="關閉地圖"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div><canvas id="cityMapBigCv" width="680" height="680"></canvas><div class="cmb-tip">點一間物件，直接走到它門口</div></div></div><div class="city-hint" id="cityHint">搖桿走路・拖曳轉視角・點樓看詳細</div>
     <div class="city-card" id="cityCard" hidden></div>`;
   document.body.appendChild(el);document.body.classList.add('city-on');$('cityX').onclick=closeCity;
+  $('cityMus').onclick=()=>setCityMus($('cityMus').getAttribute('aria-pressed')!=='true');if(cityMusPref().on)setCityMus(true);
   $('cityHelp').onclick=()=>{const l=$('cityLeg'),o=l.hidden;l.hidden=!o;$('cityHelp').setAttribute('aria-expanded',String(o));};
   $('cityX').focus();
   buildCity(el,HR);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('city')){e.stopPropagation();const mb2=$('cityMapBig');if(mb2&&!mb2.hidden){mb2.hidden=true;return;}closeCity();}},true);
-function closeCity(){const el=$('city');if(CITY3D){cancelAnimationFrame(CITY3D.raf);CITY3D.off&&CITY3D.off();CITY3D.ro&&CITY3D.ro.disconnect();CITY3D.renderer.dispose();CITY3D.scene.traverse(o=>{o.geometry&&o.geometry.dispose();const m=o.material;(Array.isArray(m)?m:m?[m]:[]).forEach(x=>{x.map&&x.map.dispose();x.dispose();});});CITY3D=null;}
+// ---------- 3D 小城背景音樂：Web Audio 即時生成（沒有音檔、沒有版權問題）----------
+// 72 BPM 的 Lo-fi／Ambient：柔和和弦墊底（Cmaj7→Am7→Fmaj7→G6，每 2 小節換）、低音、五聲音階的撥弦旋律隨機漫步、偶爾的鈴聲，加上自己算的殘響
+function musicEngine(ac,out,rnd){rnd=rnd||Math.random;const f=m=>440*2**((m-69)/12),BEAT=60/72,ST=BEAT/2;
+  const CH=[[48,55,59,64],[45,52,55,60],[41,48,52,57],[43,50,55,59]],SC=[60,62,64,67,69,72,74,76,79,81];
+  const ir=ac.createBuffer(2,Math.floor(ac.sampleRate*3.2),ac.sampleRate);for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*(1-i/d.length)**2.6;}
+  const rev=ac.createConvolver();rev.buffer=ir;const rg=ac.createGain();rg.gain.value=.55;rev.connect(rg).connect(out);
+  const voice=(t,{freq,type,dur,a,r,lvl,lp,wet,det})=>{const o=ac.createOscillator(),g=ac.createGain(),fl=ac.createBiquadFilter();o.type=type;o.frequency.value=freq;if(det)o.detune.value=det;fl.type='lowpass';fl.frequency.value=lp;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(lvl,t+a);g.gain.setValueAtTime(lvl,t+Math.max(a,dur-r));g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(fl).connect(g);g.connect(out);if(wet){const w=ac.createGain();w.gain.value=wet;g.connect(w).connect(rev);}o.start(t);o.stop(t+dur+.05);};
+  let step=0,mel=4,next=0;
+  function play(t){const ci=Math.floor(step/16)%4,ch=CH[ci];
+    if(step%16===0){ch.forEach((m,k)=>[-6,6].forEach(d=>voice(t,{freq:f(m),type:'triangle',dur:BEAT*8+1.5,a:1.6,r:2.2,lvl:.028,lp:1100,wet:.6,det:d})));voice(t,{freq:f(ch[0]-12),type:'sine',dur:BEAT*7.5,a:.08,r:2,lvl:.11,lp:400,wet:.1});}
+    if(step%16===8)voice(t,{freq:f(ch[0]-12+7),type:'sine',dur:BEAT*3.5,a:.08,r:1.5,lvl:.07,lp:400,wet:.1});
+    if(step%2===0||rnd()<.25){if(rnd()<.42){mel=Math.max(0,Math.min(SC.length-1,mel+Math.round((rnd()-.5)*4)));const m=SC[mel];voice(t+(rnd()-.5)*.03,{freq:f(m),type:'sine',dur:1.8,a:.006,r:1.7,lvl:.06+rnd()*.03,lp:3200,wet:.5});voice(t,{freq:f(m+12),type:'sine',dur:.6,a:.004,r:.55,lvl:.012,lp:5000,wet:.4});}}
+    if(rnd()<.03)voice(t,{freq:f(SC[SC.length-1-Math.floor(rnd()*3)]+12),type:'sine',dur:3,a:.01,r:2.9,lvl:.02,lp:8000,wet:.9});
+    step++;}
+  return {sched(until){if(!next)next=ac.currentTime+.08;while(next<until){play(next);next+=ST;}},get step(){return step;}};}
+const CITY_MUS={ac:null,master:null,eng:null,timer:null,on:false,vol:.7,
+  // iOS 要在使用者點擊的當下建立／喚醒 AudioContext，所以打開小城時先 prime
+  prime(){try{if(!this.ac){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;this.ac=new AC();this.master=this.ac.createGain();this.master.gain.value=0;this.master.connect(this.ac.destination);this.eng=musicEngine(this.ac,this.master);}this.ac.resume();}catch(e){}},
+  start(){try{if(!this.ac){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ac=new AC();this.master=this.ac.createGain();this.master.gain.value=0;this.master.connect(this.ac.destination);this.eng=musicEngine(this.ac,this.master);}
+    this.ac.resume();const t=this.ac.currentTime,g=this.master.gain;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.linearRampToValueAtTime(this.vol,t+2.5);
+    clearTimeout(this.offT);if(!this.timer)this.timer=setInterval(()=>this.eng.sched(this.ac.currentTime+.4),100);this.eng.sched(this.ac.currentTime+.4);this.on=true;return true;}catch(e){return false;}},
+  stop(fast){if(!this.ac)return;this.on=false;const t=this.ac.currentTime,g=this.master.gain;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.linearRampToValueAtTime(0,t+(fast?.3:1.2));
+    clearTimeout(this.offT);this.offT=setTimeout(()=>{clearInterval(this.timer);this.timer=null;this.ac&&this.ac.suspend();},fast?350:1300);},
+  setVol(v){this.vol=v;if(this.on&&this.ac){const t=this.ac.currentTime;this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(v,t,.1);}}};
+function cityMusPref(){try{return JSON.parse(localStorage.getItem('tlm.cityMusic'))||{on:true,vol:.7};}catch(e){return {on:true,vol:.7};}}
+document.addEventListener('visibilitychange',()=>{if(!CITY_MUS.ac||!CITY_MUS.on)return;document.hidden?CITY_MUS.ac.suspend():CITY_MUS.ac.resume();});
+function setCityMus(on){const p=cityMusPref();p.on=on;try{localStorage.setItem('tlm.cityMusic',JSON.stringify(p));}catch(e){}const b=$('cityMus');if(on){CITY_MUS.vol=p.vol;if(!CITY_MUS.start()){toast('這個瀏覽器不能播放音樂',true);on=false;}}else CITY_MUS.stop();if(b){b.setAttribute('aria-pressed',String(on));b.setAttribute('aria-label',on?'關閉音樂':'播放音樂');}}
+function closeCity(){const el=$('city');CITY_MUS.stop(true);if(CITY3D){cancelAnimationFrame(CITY3D.raf);CITY3D.off&&CITY3D.off();CITY3D.ro&&CITY3D.ro.disconnect();CITY3D.renderer.dispose();CITY3D.scene.traverse(o=>{o.geometry&&o.geometry.dispose();const m=o.material;(Array.isArray(m)?m:m?[m]:[]).forEach(x=>{x.map&&x.map.dispose();x.dispose();});});CITY3D=null;}
   if(el){el.remove();document.body.classList.remove('city-on');if(state.view.type==='homes')renderHomes();}}
 // 3D 小城（散步版）：主角（AI 生成的公仔，assets/hero.glb）在依物件排出的臺北小島上走；搖桿／方向鍵走路，走近物件按「看這間」
 // 物件增減不用重新建模：每次打開依當下物件的真實座標縮放排版（最遠的物件離中心 15 單位），地標只放落在島上的，路網用最短樹重連
