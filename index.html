@@ -428,6 +428,7 @@ body.placing #map{cursor:crosshair}
 .cdt-chips{display:flex;flex-wrap:wrap;gap:8px}.cpl{min-height:44px;border:0;background:#fff;border-radius:24px;padding:4px 16px;font-size:14px;font-weight:700;color:var(--cb);display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 0 var(--cs);font-family:inherit}
 .cpl small{font-size:12px;font-weight:600;opacity:.75}.cpl.on{background:var(--co);color:#fff;box-shadow:0 3px 0 var(--cod)}.cpl.risk.on{background:#E06C5F;box-shadow:0 3px 0 #B4473C}.cpl i{font-style:normal;font-size:16px}.cpl:active,.cdt-btn:active{transform:translateY(2px);box-shadow:none}
 .cdt-more{display:block;margin:10px 0 0;border:0;background:none;color:#B3661A;font-size:14px;font-weight:800;min-height:44px;padding:0 4px}
+.cdt-trip{margin:14px 0 0;padding:8px 12px;border-radius:12px;background:#FCE9CF;color:#5A3A1A;font-size:14px;font-weight:800;line-height:1.5}
 .cdt-add{display:flex;gap:8px;margin-top:10px}.cdt-add input{flex:1;min-width:0;height:44px;border:2px solid #EADBBE;background:#fff;border-radius:16px;padding:0 12px;font-size:16px;color:var(--cb);font-family:inherit}
 .cdet textarea{width:100%;box-sizing:border-box;border:2px solid #EADBBE;background:#fff;border-radius:18px;padding:12px;font-size:16px;line-height:1.55;font-family:inherit;color:var(--cb);resize:vertical}
 .cdt-btn{display:block;width:100%;min-height:50px;border:0;background:#fff;color:var(--cb);border-radius:24px;font-size:16px;font-weight:800;margin-top:12px;box-shadow:0 4px 0 var(--cs);font-family:inherit}.cdt-btn.line{background:#06C755;color:#fff;box-shadow:0 4px 0 #04963F}.cdt-btn.cal{background:var(--co);color:#fff;box-shadow:0 4px 0 var(--cod)}.cdt-btn:disabled{opacity:.5}
@@ -2358,6 +2359,17 @@ function lineSend(co,text){try{navigator.clipboard&&navigator.clipboard.writeTex
 // 加到 Google 日曆：之後接上 Google 登入就直接建活動並寄邀請；還沒設定時打開預填好的 Google 日曆新增活動頁（同行者已列在邀請名單）
 function gcalUrl(ev){const f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z'),e=new Date(ev.start.getTime()+(ev.min||60)*60e3);
   const q=new URLSearchParams({action:'TEMPLATE',text:ev.title,dates:f(ev.start)+'/'+f(e),ctz:'Asia/Taipei',details:ev.desc||'',location:ev.loc||''});if(ev.who&&ev.who.length)q.set('add',ev.who.join(','));return 'https://calendar.google.com/calendar/render?'+q;}
+// 把物件依地理位置分趟：每趟最多 n 間，近的排在一起，趟內依最近鄰順序
+function tripsOf(hs,n=5){const P=h=>h.pt||[0,0],dd=(a,b)=>{const p=P(a),q=P(b);return Math.hypot(p[0]-q[0],(p[1]-q[1])*.9);};
+  const chain=seed=>{const ord=[seed];let left=hs.filter(h=>h!==seed);while(left.length){const l=ord[ord.length-1];left.sort((a,b)=>dd(l,a)-dd(l,b));ord.push(left.shift());}return ord;};
+  if(hs.length<=n)return hs.length?[chain(hs[0])]:[];
+  // 超過 n 間：從最外圍的一間串成最近鄰路線，再切成最少趟數，切點選在距離最大的地方
+  const cy=hs.reduce((s,h)=>s+P(h)[0],0)/hs.length,cx=hs.reduce((s,h)=>s+P(h)[1],0)/hs.length;
+  const path=chain(hs.reduce((b,h)=>Math.hypot(P(h)[0]-cy,P(h)[1]-cx)>Math.hypot(P(b)[0]-cy,P(b)[1]-cx)?h:b,hs[0])),N=path.length,K=Math.ceil(N/n);
+  const gap=i=>dd(path[i-1],path[i]);// 在 i 之前切
+  const best=Array.from({length:K+1},()=>Array(N+1).fill(-1)),from=Array.from({length:K+1},()=>Array(N+1).fill(0));best[0][0]=0;
+  for(let k=1;k<=K;k++)for(let j=1;j<=N;j++)for(let l=1;l<=n&&l<=j;l++){const i=j-l;if(best[k-1][i]<0)continue;const v=best[k-1][i]+(j<N?gap(j):0);if(v>best[k][j]){best[k][j]=v;from[k][j]=i;}}
+  const out=[];let j=N;for(let k=K;k>0;k--){const i=from[k][j];out.unshift(path.slice(i,j));j=i;}return out;}
 function calAdd(ev){const u=gcalUrl(ev);window.__calAdded=(window.__calAdded||[]).concat([u]);window.open(u,'_blank','noopener');return 'link';}
 const HERO_URL='assets/hero.glb';let HERO=null;
 const GLBS={};async function loadHero(T){return HERO||(HERO=await loadGLB(T,HERO_URL));}
@@ -2715,25 +2727,29 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     const sat=new Date();sat.setDate(sat.getDate()+((6-sat.getDay()+7)%7||7));const mk2=(d,hh)=>{const x=new Date(d);x.setHours(hh,0,0,0);return x;};
     const S={ids:[id],slots:[mk2(sat,10),mk2(sat,14)],who:new Set(),pick:0,msgs:{},more:false};
     const coOf=h=>homeCo(h)||'其他',sel=()=>{const a=loadHomes();return S.ids.map(i=>a.find(x=>x.id===i)).filter(Boolean);};
-    const groups=()=>{const g={};sel().forEach(h=>{(g[coOf(h)]=g[coOf(h)]||[]).push(h);});return g;};
+    // 一趟最多 5 間：地理位置近的排在一起（從最外圍的一間開始，取離它最近的 4 間，趟內依最近鄰順序）
+    const trips=()=>tripsOf(sel());
+    const groups=hs=>{const g={};hs.forEach(h=>{(g[coOf(h)]=g[coOf(h)]||[]).push(h);});return g;};
     // 給仲介的訊息：不寒暄，只放物件網址（他們網站那間的頁面）和時間安排
     const msgFor=(c,hs)=>{const w=companions().filter(x=>S.who.has(x.e));
-      return `想約看房：\n${hs.map(h=>homeUrl(h,c)||h.name).join('\n')}\n可以的時間：${S.slots.map(twDate).join('、')}${w.length?`\n同行 ${w.length+1} 人`:''}`;};
-    const draw=()=>{const cs=companions(),all=loadHomes(),mine=all.filter(h=>coOf(h)===co0),oth=all.filter(h=>coOf(h)!==co0),G=groups(),n=S.ids.length;
+      return `想約看房：\n${hs.map((h,i)=>`${i+1}. ${homeUrl(h,c)||h.name}`).join('\n')}\n可以的時間：${S.slots.map(twDate).join('、')}${w.length?`\n同行 ${w.length+1} 人`:''}`;};
+    const draw=()=>{const cs=companions(),all=loadHomes(),mine=all.filter(h=>coOf(h)===co0),oth=all.filter(h=>coOf(h)!==co0),T=trips(),n=S.ids.length,MT=T.length>1;
+      const cos=[...new Set(T.flat().map(coOf))];
       const hc=h=>`<button type="button" class="cpl${S.ids.includes(h.id)?' on':''}" data-hid="${h.id}" aria-pressed="${S.ids.includes(h.id)}">${esc(h.name)}<small>${stName(h.st||'todo')}</small></button>`;
-      sheet(n>1?`約看房・${n} 間`:'約看房',`${esc(Object.keys(G).map(coName).join('、'))}`,`
+      sheet(n>1?`約看房・${n} 間${MT?`・${T.length} 趟`:''}`:'約看房',`${esc(cos.map(coName).join('、'))}`,`
       <div class="cdt-k">要看的物件（可以一次約多間）</div><div class="cdt-chips">${mine.map(hc).join('')}</div>
       ${oth.length?`<button type="button" class="cdt-more" id="cdMore" aria-expanded="${S.more}">${S.more?'收起':'加入'}其他公司的物件（${oth.length}）</button>${S.more?`<div class="cdt-chips">${oth.map(hc).join('')}</div>`:''}`:''}
       <div class="cdt-k">我方便的時段（傳給仲介挑）</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="cpl on" data-rm="${i}" aria-label="移除 ${twDate(d)}">${twDate(d)}<i aria-hidden="true">×</i></button>`).join('')}</div>
       <div class="cdt-add"><input type="date" id="cdD" aria-label="日期" value="${sat.toISOString().slice(0,10)}"><input type="time" id="cdT" aria-label="時間" value="19:00" step="1800"><button type="button" class="cpl" id="cdAdd">＋ 加入</button></div>
       <div class="cdt-k">一起去的人（日曆邀請）</div><div class="cdt-chips">${cs.map(c=>`<button type="button" class="cpl${S.who.has(c.e)?' on':''}" data-who="${esc(c.e)}" aria-pressed="${S.who.has(c.e)}">${esc(c.n)}</button>`).join('')}</div>
       <div class="cdt-add"><input id="cwN" placeholder="名字" aria-label="同行者名字"><input id="cwE" type="email" placeholder="email" aria-label="同行者 email"><button type="button" class="cpl" id="cwAdd">＋ 新增</button></div>
-      ${Object.entries(G).map(([c,hs])=>`<div class="cdt-k">傳給${esc(coName(c))}的訊息${hs.length>1?`（${hs.length} 間）`:''}</div><textarea class="cdMsg" data-co="${esc(c)}" rows="4" aria-label="傳給${esc(coName(c))}的訊息">${esc(S.msgs[c]!=null?S.msgs[c]:msgFor(c,hs))}</textarea>
-        <button type="button" class="cdt-btn line" data-line="${esc(c)}">傳到 Line（${esc(coName(c))}）</button>`).join('')}
+      ${MT?`<div class="cdt-tip">超過 5 間，依地理位置分成 ${T.length} 趟，近的排在一起（每趟最多 5 間）</div>`:''}
+      ${T.map((th,ti)=>`${MT?`<div class="cdt-trip">第 ${ti+1} 趟・${th.length} 間：${th.map((h,i)=>`${i+1}. ${esc(h.name)}`).join('　')}</div>`:''}${Object.entries(groups(th)).map(([c,hs])=>{const k=ti+'|'+c;return `<div class="cdt-k">傳給${esc(coName(c))}的訊息${hs.length>1?`（${hs.length} 間）`:''}</div><textarea class="cdMsg" data-k="${esc(k)}" rows="${Math.min(9,hs.length+3)}" aria-label="傳給${esc(coName(c))}的訊息${MT?`（第 ${ti+1} 趟）`:''}">${esc(S.msgs[k]!=null?S.msgs[k]:msgFor(c,hs))}</textarea>
+        <button type="button" class="cdt-btn line" data-line="${esc(k)}">傳到 Line（${esc(coName(c))}${MT?`・第 ${ti+1} 趟`:''}）</button>`;}).join('')}`).join('')}
       <div class="cdt-k">仲介回覆後，選定的時段</div><div class="cdt-chips">${S.slots.map((d,i)=>`<button type="button" class="cpl${S.pick===i?' on':''}" data-pick="${i}" aria-pressed="${S.pick===i}">${twDate(d)}</button>`).join('')}</div>
-      <button type="button" class="cdt-btn cal" id="cdCal" ${S.slots.length&&n?'':'disabled'}>加到 Google 日曆${n>1?`（${n} 間一趟）`:''}${S.who.size?`・邀請 ${S.who.size} 人`:''}</button>
-      <div class="cdt-tip">${n>1?'多間會依上面的順序，每間間隔 1 小時記上看房時間；':''}加到日曆後，行程會出現在每間的物件細節裡</div>`);
-      det.querySelectorAll('.cdMsg').forEach(t=>t.oninput=()=>{S.msgs[t.dataset.co]=t.value;});
+      ${T.map((th,ti)=>`<button type="button" class="cdt-btn cal" data-cal="${ti}" ${S.slots.length&&n?'':'disabled'}>加到 Google 日曆${MT?`：第 ${ti+1} 趟（${th.length} 間）`:th.length>1?`（${th.length} 間一趟）`:''}${S.who.size?`・邀請 ${S.who.size} 人`:''}</button>`).join('')}
+      <div class="cdt-tip">${n>1?'依上面的編號順序，每間間隔 1 小時記上看房時間；':''}加到日曆後，行程會出現在每間的物件細節裡</div>`);
+      det.querySelectorAll('.cdMsg').forEach(t=>t.oninput=()=>{S.msgs[t.dataset.k]=t.value;});
       det.querySelectorAll('[data-hid]').forEach(b=>b.onclick=()=>{const k=b.dataset.hid;if(S.ids.includes(k)){if(S.ids.length>1)S.ids=S.ids.filter(x=>x!==k);}else S.ids.push(k);S.msgs={};draw();});
       const mo=$('cdMore');if(mo)mo.onclick=()=>{S.more=!S.more;draw();};
       det.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{S.slots.splice(+b.dataset.rm,1);S.pick=0;S.msgs={};draw();});
@@ -2741,13 +2757,13 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
       det.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{const e=b.dataset.who;S.who.has(e)?S.who.delete(e):S.who.add(e);S.msgs={};draw();});
       $('cwAdd').onclick=()=>{const n2=$('cwN').value.trim(),e=$('cwE').value.trim();if(!n2||!/^\S+@\S+\.\S+$/.test(e)){toast('請填名字和正確的 email',true);return;}saveCompanions(companions().filter(c=>c.e!==e).concat([{n:n2,e}]));S.who.add(e);S.msgs={};draw();};
       det.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{S.pick=+b.dataset.pick;draw();});
-      det.querySelectorAll('[data-line]').forEach(b=>b.onclick=()=>{const c=b.dataset.line,ta=det.querySelector(`.cdMsg[data-co="${CSS.escape(c)}"]`),t=ta.value.trim();if(!t)return;lineSend(c,t);
-        (G[c]||[]).forEach(h=>addLog(h.id,{t:'ask',via:'line',co:c,slots:S.slots.map(d=>d.toISOString())}));toast(`訊息已帶到 Line（也複製好了），選${coName(c)}的群組送出`);});
-      $('cdCal').onclick=()=>{const at=S.slots[S.pick],hs=sel();if(!at||!hs.length)return;const w=companions().filter(c=>S.who.has(c.e));
+      det.querySelectorAll('[data-line]').forEach(b=>b.onclick=()=>{const k=b.dataset.line,ti=+k.split('|')[0],c=k.slice(k.indexOf('|')+1),ta=det.querySelector(`.cdMsg[data-k="${CSS.escape(k)}"]`),t=ta.value.trim();if(!t)return;lineSend(c,t);
+        (groups(T[ti]||[])[c]||[]).forEach(h=>addLog(h.id,{t:'ask',via:'line',co:c,slots:S.slots.map(d=>d.toISOString())}));toast(`訊息已帶到 Line（也複製好了），選${coName(c)}的群組送出`);});
+      det.querySelectorAll('[data-cal]').forEach(b=>b.onclick=()=>{const at=S.slots[S.pick],hs=T[+b.dataset.cal]||[];if(!at||!hs.length)return;const w=companions().filter(c=>S.who.has(c.e));
         calAdd({title:`看房：${hs.length>2?hs[0].name+' 等 '+hs.length+' 間':hs.map(h=>h.name).join('、')}`,start:at,min:60*hs.length,loc:`${hs[0].name}（${hs[0].dist||''}）`,who:w.map(c=>c.e),
-          desc:hs.map((h,i)=>`${twDate(new Date(+at+i*3600e3))} ${h.name}（${coName(coOf(h))}）\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`).join('\n\n')});
+          desc:hs.map((h,i)=>`${i+1}. ${twDate(new Date(+at+i*3600e3))} ${h.name}（${coName(coOf(h))}）\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`).join('\n\n')});
         hs.forEach((h,i)=>{const t2=new Date(+at+i*3600e3).toISOString();setHome(h.id,x=>{x.visit={at:t2,who:w.map(c=>c.n),co:coOf(h)};});addLog(h.id,{t:'visit',at:t2,who:w.map(c=>c.n),co:coOf(h),trip:hs.length>1?hs.length:undefined});});
-        toast(hs.length>1?`已約 ${twDate(at)} 起看 ${hs.length} 間`:`已約 ${twDate(at)} 看「${hs[0].name}」`);openDet(hs[0].id,'log');};};
+        toast(hs.length>1?`已約 ${twDate(at)} 起看 ${hs.length} 間`:`已約 ${twDate(at)} 看「${hs[0].name}」`);if(!MT)openDet(hs[0].id,'log');});};
     draw();}
   // 議價：出價（預設談判價或合理出價，可用保守／合理／積極快選）＋自動寫好的訊息
   function openOffer(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,nm=coName(co||homeCo(h)||'其他');
