@@ -440,6 +440,9 @@ body.placing #map{cursor:crosshair}
 .city-card{background:#FFF8E7!important;color:#5A4630;border-radius:32px!important;box-shadow:0 6px 0 #E8D9B5,0 14px 28px rgba(0,0,0,.2)!important;padding:18px 18px 16px!important}.city-card .cc-h b{color:#5A4630}.city-card .cc-x svg{stroke:#5A4630}
 .city-card .cc-st button{border:0!important;background:#fff!important;color:#5A4630!important;border-radius:20px!important;box-shadow:0 3px 0 #E8D9B5}.city-card .cc-st button[aria-pressed=true]{background:#F2A541!important;color:#fff!important;box-shadow:0 3px 0 #C9802A}.city-card .cc-st small{color:inherit;opacity:.8}
 .city-card .cc-next{border-radius:24px;background:#F2A541;box-shadow:0 4px 0 #C9802A}.city-card .cc-open{border-radius:24px;background:#fff;color:#5A4630;box-shadow:0 4px 0 #E8D9B5}.city-card .cc-done{color:#B3661A}
+.co-lg{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--cc);overflow:hidden;box-shadow:0 0 0 2px #fff}.co-lg b{font-size:11px;font-weight:800;color:#fff;line-height:1}.co-lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:1px;box-sizing:border-box}
+.city-fade{position:absolute;inset:0;background:#2B2420;opacity:0;pointer-events:none;transition:opacity .25s;z-index:9}.city-fade.on{opacity:1}
+#city.inside .city-map,#city.inside #cityPins .cp{display:none!important}
 .city-mus .mus-off{display:none}.city-mus[aria-pressed=false] .mus-off{display:inline}.city-mus[aria-pressed=true] svg{stroke:var(--D)}
 .city-x{pointer-events:auto;flex:none;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center}.city-x svg{width:20px;height:20px;fill:none;stroke:#3C4043;stroke-width:2.2;stroke-linecap:round}.city-x[aria-expanded=true]{background:#FFF3E0}
 .city-bar{flex:1;height:8px;border-radius:8px;background:#EDE5D6;overflow:hidden}.city-bar i{display:block;height:100%;border-radius:8px;background:#F7931E;transition:width .4s}
@@ -2287,7 +2290,7 @@ async function openCity(){const homes=loadHomes();if(!homes.length){toast('先�
     <div class="city-mapbig" id="cityMapBig" role="dialog" aria-label="小城地圖" hidden><div class="cmb-in"><div class="cmb-h"><b>小城地圖</b><button type="button" class="city-x" id="cityMapX" aria-label="關閉地圖"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button></div><canvas id="cityMapBigCv" width="680" height="680"></canvas><div class="cmb-tip">點一間物件，直接走到它門口</div></div></div><div class="city-hint" id="cityHint">搖桿走路・拖曳轉視角・點樓看詳細</div>
     <div class="city-card" id="cityCard" hidden></div>
     <div class="cdlg" id="cityDlg" role="dialog" aria-label="和仲介說話" hidden><div class="cd-ch" id="cdCh"></div><div class="cd-box" role="button" tabindex="0" aria-label="下一句"><div class="cd-name" id="cdName"></div><div class="cd-txt" id="cdTxt" aria-live="polite"></div><i class="cd-next" aria-hidden="true"></i></div></div>
-    <div class="cdet" id="cityDet" role="dialog" aria-label="物件細節" hidden></div>`;
+    <div class="cdet" id="cityDet" role="dialog" aria-label="物件細節" hidden></div><div class="city-fade" id="cityFade" aria-hidden="true"></div>`;
   document.body.appendChild(el);document.body.classList.add('city-on');$('cityX').onclick=closeCity;
   $('cityMus').onclick=()=>setCityMus($('cityMus').getAttribute('aria-pressed')!=='true');if(cityMusPref().on)setCityMus(true);
   $('cityHelp').onclick=()=>{const l=$('cityLeg'),o=l.hidden;l.hidden=!o;$('cityHelp').setAttribute('aria-expanded',String(o));};
@@ -2330,9 +2333,19 @@ function closeCity(){const el=$('city');CITY_MUS.stop(true);if(CITY3D){cancelAni
 const hashStr=t=>{let h=7;for(const c of String(t))h=(h*31+c.charCodeAt(0))>>>0;return h%2147483646+1;};
 // ---------- 3D 小城：仲介角色、RPG 對話（溫暖泡泡風）、約看房／議價、小城內的物件細節（不跳回原頁）----------
 // 仲介依「物件連結的平台」自動產生：同一家公司一個角色（同公司的仲介都能帶看），591 等非仲介網站歸「其他仲介」
-const AGENT_CO={'信義':'#1B7F4B','永慶':'#C62828','住商':'#E0A100','中信':'#1565C0','台灣房屋':'#6A1B9A','樂屋':'#EF6C00','其他':'#546E7A'};
-function homeCo(h){const ps=(h.links||[]).map(l=>l.p||platformOf(l.u||''));return ps.find(p=>AGENT_CO[p]&&p!=='其他')||(ps.length?'其他':null);}
-const coName=c=>c==='其他'?'仲介':c+'仲介';
+const AGENT_CO={'信義':'#1B7F4B','永慶':'#C62828','住商':'#E0A100','中信':'#1565C0','台灣房屋':'#6A1B9A','樂屋':'#EF6C00','591':'#E8590C'};
+// 各家網域（拿各家網站自己的小圖示當 logo；沒對到的公司用網址的網域區分）
+const CO_DOM={'信義':'sinyi.com.tw','永慶':'yungching.com.tw','住商':'hbhousing.com.tw','中信':'cthouse.com.tw','台灣房屋':'twhg.com.tw','樂屋':'rakuya.com.tw','591':'591.com.tw'};
+const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return '';}};
+function homeCo(h){const ls=h.links||[];for(const l of ls){const p=l.p&&AGENT_CO[l.p]?l.p:platformOf(l.u||'');if(AGENT_CO[p]&&p!=='591')return p;}
+  for(const l of ls){const p=platformOf(l.u||'');if(p==='591')continue;const ho=hostOf(l.u||'');if(ho)return ho;}return ls.some(l=>platformOf(l.u||'')==='591')?'591':null;}
+const coName=c=>!c?'仲介':AGENT_CO[c]?(c==='591'?'591 刊登者':c+'仲介'):c.split('.')[0]+' 仲介';
+const coColor=c=>AGENT_CO[c]||['#5E7CE2','#3E9E8F','#B5657A','#8A6FD1','#C28A3A'][hashStr(c||'x')%5];
+const coDom=c=>CO_DOM[c]||c;
+// 公司 logo：<img> 載入各家網站的小圖示，載不到就顯示公司色圓底＋第一個字
+// 這間在某家公司網站的頁面（優先用那家公司的連結）
+const homeUrl=(h,c)=>{const ls=h.links||[];const m=ls.find(l=>(l.p&&l.p===c)||platformOf(l.u||'')===c||hostOf(l.u||'')===c)||ls[0];return m?m.u:'';};
+const coLogo=(c,sz=20)=>c?`<span class="co-lg" style="--cc:${coColor(c)};width:${sz}px;height:${sz}px" aria-hidden="true"><b>${esc((AGENT_CO[c]?c:c.split('.')[0]).slice(0,1).toUpperCase())}</b><img alt="" src="https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(coDom(c))}" onerror="this.remove()" loading="lazy"></span>`:'';
 // 同行的人（日曆邀請）：[{n:名字,e:email}]，雲端同步
 function companions(){try{return JSON.parse(localStorage.getItem('tlm.companions')||'[]');}catch(e){return [];}}
 function saveCompanions(a){try{localStorage.setItem('tlm.companions',JSON.stringify(a));}catch(e){}}
@@ -2499,15 +2512,22 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
   const WM={0:new T.MeshToonMaterial({map:winT(false),gradientMap:TG}),1:new T.MeshToonMaterial({map:winT(true),gradientMap:TG,emissive:'#FFB238',emissiveIntensity:.35}),d:toon('#2B2D31')};
   const PAL=[['#F3D9C8','#6FBF73'],['#E3ECF6','#4A7FD0'],['#F7EBC4','#D98C6A'],['#DCEBE0','#C9A27E'],['#E9E3F2','#9D7FC9'],['#F6E7D7','#E85D5D']];
   const bld=[];
-  function makeB(h){const g=new T.Group(),sc2=(HSC&&HSC[h.id])||{total:50,rank:'-'},st=h.st||'todo',tags=h.tags||[],dark=tags.includes('凶宅'),lit=st==='nego'&&!dark,[wall,acc]=PAL[hashStr(h.id)%PAL.length];
-    const [x,z]=POS[h.id];g.position.set(x,0,z);const fl=Math.round(5+sc2.total/100*7),fh=.95,Wd=3.4,Dp=3.2,base=1.4,top=base+.3+fl*fh,built=st==='todo'?Math.max(2,Math.ceil(fl*.4)):fl,b=bucket();
+  function makeB(h){const g=new T.Group(),sc2=(HSC&&HSC[h.id])||{total:50,rank:'-'},st=h.st||'todo',tags=h.tags||[],dark=tags.includes('凶宅'),lit=st==='nego'&&!dark;let [wall,acc]=PAL[hashStr(h.id)%PAL.length];
+    // 依型態蓋不同的樓：公寓（4–5 樓、沒電梯、整排鐵窗、磁磚牆）、華廈（6–10 樓、陽台、頂樓電梯機房）、大樓（11 樓以上、玻璃帶窗、挑高大廳、頂冠）、透天（窄、3–4 樓、鐵捲門）
+    const f0=h.form||{},tt=String(f0.t||''),tot=+f0.tot||0,ty=/透天/.test(tt)?'town':/公寓/.test(tt)?'apt':/華廈/.test(tt)?'man':/大樓/.test(tt)?'tow':tot&&tot<=5?'apt':tot>=11?'tow':'man';
+    const [x,z]=POS[h.id];g.position.set(x,0,z);const fl=ty==='town'?Math.min(4,Math.max(3,tot||3)):ty==='apt'?Math.min(5,Math.max(4,tot||4)):ty==='man'?Math.min(10,Math.max(6,tot||7)):Math.min(15,Math.max(11,tot||12)),fh=.95,Wd=ty==='town'?2.4:ty==='tow'?4.2:ty==='man'?3.8:3.4,Dp=ty==='tow'?3.8:ty==='man'?3.4:3.2,base=ty==='tow'?2.1:1.4,top=base+.3+fl*fh,built=st==='todo'?Math.max(2,Math.ceil(fl*.4)):fl,b=bucket();if(ty==='apt')wall=['#E2C4A8','#D7B49A','#E8D6BC','#CFA58A'][hashStr(h.id)%4];else if(ty==='tow')wall='#DDE3E8';else if(ty==='town')wall=['#F0DCC4','#E7CDB0'][hashStr(h.id)%2];
     b.add(new T.CylinderGeometry(3.6,3.8,.3,40),'#EFE7D8',0,.15,0);b.add(G.box,'#D9CBB3',0,.16,2.9,0,0,0,1.2,.31,2.2);
     [[-2.6,1.8],[2.6,1.8],[-2.6,-2],[2.6,-2]].forEach(([a,c])=>{b.add(G.cyl,'#B98B5E',a,.5,c,0,0,0,.33,.4,.33);b.add(G.sph,'#5DBB63',a,1,c,0,0,0,.42,.36,.42);});
-    b.add(G.box,'#E8E2D6',0,base/2+.3,0,0,0,0,Wd,base,Dp);b.add(G.box,'#7FB3D5',0,base*.45+.3,Dp/2+.01,0,0,0,Wd*.82,base*.62,.06);
-    for(let k=0;k<6;k++)b.add(G.box,k%2?'#FFFFFF':acc,-Wd/2+Wd/12+k*Wd/6,base+.12,Dp/2+.3,.35,0,0,Wd/6,.12,.7);b.add(G.box,acc,0,base+.48,Dp/2+.06,0,0,0,1.1,.32,.08);
+    b.add(G.box,ty==='tow'?'#C9D3DC':'#E8E2D6',0,base/2+.3,0,0,0,0,Wd,base,Dp);
+    if(ty==='tow'){b.add(G.box,'#8FC1E3',0,base*.48+.3,Dp/2+.01,0,0,0,Wd*.9,base*.8,.06);for(let k=0;k<5;k++)b.add(G.box,'#9AA5AE',-Wd*.45+k*Wd*.225,base*.48+.3,Dp/2+.05,0,0,0,.06,base*.8,.06);b.add(G.box,'#5F6B76',0,base+.28,Dp/2+.6,0,0,0,Wd*.6,.1,1.2);}
+    else if(ty==='man'){b.add(G.box,'#9CC9E6',0,base*.42+.3,Dp/2+.01,0,0,0,1.2,base*.75,.06);b.add(G.box,'#7A8691',0,base*.85+.3,Dp/2+.45,0,0,0,1.8,.08,.9);[-1.25,1.25].forEach(a=>b.add(G.box,'#C9BCA8',a,base*.45+.3,Dp/2+.02,0,0,0,.9,base*.55,.05));}
+    else if(ty==='town'){b.add(G.box,'#9AA0A6',0,base*.42+.3,Dp/2+.01,0,0,0,Wd*.8,base*.75,.06);for(let k=0;k<7;k++)b.add(G.box,'#80868B',0,.42+k*.15,Dp/2+.05,0,0,0,Wd*.8,.025,.03);}
+    else{b.add(G.box,'#7FB3D5',0,base*.45+.3,Dp/2+.01,0,0,0,Wd*.82,base*.62,.06);for(let k=0;k<6;k++)b.add(G.box,k%2?'#FFFFFF':acc,-Wd/2+Wd/12+k*Wd/6,base+.12,Dp/2+.3,.35,0,0,Wd/6,.12,.7);b.add(G.box,acc,0,base+.48,Dp/2+.06,0,0,0,1.1,.32,.08);}
     for(let f=0;f<built;f++){const y=base+.3+f*fh;b.add(G.box,dark?'#7C7F86':wall,0,y+fh/2,0,0,0,0,Wd,fh,Dp);b.add(G.box,'#FFFFFF',0,y+fh,0,0,0,0,Wd+.06,.08,Dp+.06);
-      [-1.1,0,1.1].forEach((wx,i)=>{const on=dark?'d':(lit||(f*3+i)%5===0)?1:0;b.add(G.plane,WM[on],wx,y+fh*.52,Dp/2+.02,0,0,0,.62,.55,1);b.add(G.box,'#F4F1EA',wx,y+fh*.2,Dp/2+.06,0,0,0,.72,.06,.12);
-        if(i!==1){for(let k=0;k<4;k++)b.add(G.box,'#6B7075',wx-.27+k*.18,y+fh*.52,Dp/2+.1,0,0,0,.03,.58,.03);b.add(G.box,'#6B7075',wx,y+fh*.8,Dp/2+.1,0,0,0,.66,.03,.03);}
+      if(ty==='tow'){const on=dark?'d':(lit||f%3===0)?1:0;b.add(G.plane,WM[on],0,y+fh*.5,Dp/2+.02,0,0,0,Wd*.92,fh*.62,1);for(let k=0;k<7;k++)b.add(G.box,'#A7B2BC',-Wd*.46+k*Wd*.153,y+fh*.5,Dp/2+.05,0,0,0,.05,fh*.66,.05);}
+      else (ty==='town'?[-.55,.55]:[-1.1,0,1.1]).forEach((wx,i)=>{const on=dark?'d':(lit||(f*3+i)%5===0)?1:0;const grill=ty==='apt'||ty==='town';b.add(G.plane,WM[on],wx,y+fh*.52,Dp/2+.02,0,0,0,.62,.55,1);b.add(G.box,'#F4F1EA',wx,y+fh*.2,Dp/2+.06,0,0,0,.72,.06,.12);
+        if(grill){for(let k=0;k<5;k++)b.add(G.box,'#5F656B',wx-.3+k*.15,y+fh*.52,Dp/2+.22,0,0,0,.03,.62,.03);[.22,.52,.82].forEach(q=>b.add(G.box,'#5F656B',wx,y+fh*q,Dp/2+.22,0,0,0,.66,.03,.03));b.add(G.box,'#5F656B',wx,y+fh*.86,Dp/2+.12,0,0,0,.7,.03,.24);}
+        else if(i!==1){for(let k=0;k<4;k++)b.add(G.box,'#6B7075',wx-.27+k*.18,y+fh*.52,Dp/2+.1,0,0,0,.03,.58,.03);b.add(G.box,'#6B7075',wx,y+fh*.8,Dp/2+.1,0,0,0,.66,.03,.03);}
         else{b.add(G.box,'#E8E2D6',0,y+.08,Dp/2+.25,0,0,0,.9,.06,.5);for(let k=0;k<7;k++)b.add(G.box,'#9AA0A6',-.42+k*.14,y+.27,Dp/2+.48,0,0,0,.03,.32,.03);b.add(G.box,'#9AA0A6',0,y+.44,Dp/2+.48,0,0,0,.92,.04,.04);
           if(f%3===1){b.add(G.cyl,'#C9734F',.3,y+.18,Dp/2+.32,0,0,0,.08,.14,.08);b.add(G.sph,'#5DBB63',.3,y+.33,Dp/2+.32,0,0,0,.13,.13,.13);}}});
       [-.8,.8].forEach(wz=>b.add(G.plane,WM[dark?'d':lit?1:0],Wd/2+.02,y+fh*.52,wz,0,Math.PI/2,0,.55,.5,1));if(f%2===0){b.add(G.box,'#F1F3F4',Wd/2+.17,y+.22,0,0,0,0,.3,.26,.46);}}
@@ -2519,7 +2539,9 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
       const mast=new T.Group();mast.position.set(-Wd/2-1.4,0,-.6);g.add(mast);const mb=bucket(),n=Math.ceil(top/1.2)+2;for(let k=0;k<n;k++){mb.add(G.box,'#F2B33D',0,k*1.2+.6,0,0,0,0,.36,1.2,.36);}mb.build(mast);
       const jib=new T.Group();jib.position.y=n*1.2+.2;mast.add(jib);const jb=bucket();jb.add(G.box,'#F2B33D',1.8,0,0,0,0,0,6,.3,.3);jb.add(G.box,'#5F6368',-1,-.1,0,0,0,0,.8,.5,.5);jb.add(G.cyl,'#3C4043',4.2,-1,0,0,0,0,.015,2,.015);jb.add(G.box,'#E85D5D',4.2,-2.1,0,0,0,0,.3,.3,.3);jb.build(jib);parts.jib=jib;}
     else{const ry=top;b.add(G.box,'#D9D3C7',0,ry+.06,0,0,0,0,Wd+.1,.12,Dp+.1);[[0,Dp/2,Wd+.1,.08],[0,-Dp/2,Wd+.1,.08]].forEach(([a,c,w,d])=>b.add(G.box,dark?'#4A4D52':acc,a,ry+.25,c,0,0,0,w,.3,d));[[Wd/2,0],[-Wd/2,0]].forEach(([a,c])=>b.add(G.box,dark?'#4A4D52':acc,a,ry+.25,c,0,0,0,.08,.3,Dp+.1));
-      b.add(G.box,'#E8E2D6',.8,ry+.55,-.6,0,0,0,1.1,.9,1);b.add(G.box,acc,.8,ry+1.05,-.6,0,0,0,1.2,.1,1.1);[[-1,-.8],[-.4,-.8],[-1,-.2],[-.4,-.2]].forEach(([a,c])=>b.add(G.cyl6,'#8A8F96',a,ry+.4,c,0,0,0,.03,.6,.03));
+      if(ty==='man'||ty==='tow'){b.add(G.box,'#E8E2D6',.8,ry+.55,-.6,0,0,0,1.1,.9,1);b.add(G.box,acc,.8,ry+1.05,-.6,0,0,0,1.2,.1,1.1);}
+      if(ty==='tow'){[0,1].forEach(k=>{b.add(G.box,'#9AA5AE',0,ry+1.5+k*.5,Dp/2-.05,0,0,0,Wd,.08,.08);b.add(G.box,'#9AA5AE',0,ry+1.5+k*.5,-Dp/2+.05,0,0,0,Wd,.08,.08);});[[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([a,c])=>b.add(G.box,'#9AA5AE',a*(Wd/2-.05),ry+1.3,c*(Dp/2-.05),0,0,0,.08,1.2,.08));}
+      if(ty==='apt'&&hashStr(h.id)%2===0&&!tags.some(t=>['頂樓加蓋','違建'].includes(t))){b.add(G.box,'#B0A08A',.4,ry+.5,-.5,0,0,0,1.6,.8,1.4);b.add(G.box,'#8FA3B0',.4,ry+.95,-.5,.06,0,0,1.8,.06,1.6);}[[-1,-.8],[-.4,-.8],[-1,-.2],[-.4,-.2]].forEach(([a,c])=>b.add(G.cyl6,'#8A8F96',a,ry+.4,c,0,0,0,.03,.6,.03));
       b.add(G.cyl,'#E8EAED',-.7,ry+1.05,-.5,0,0,0,.45,.75,.45);b.add(G.cyl,'#BDC1C6',-.7,ry+1.45,-.5,0,0,0,.47,.06,.47);b.add(G.cyl6,'#5F6368',1.2,ry+1.6,.8,0,0,0,.02,1.1,.02);b.add(G.box,'#5F6368',1.2,ry+1.9,.8,0,0,0,.5,.03,.03);
       if(tags.some(t=>['頂樓加蓋','違建'].includes(t))){b.add(G.box,'#A1887F',-.2,ry+.7,.7,0,0,0,1.8,1,1.2);b.add(G.box,'#8D6E63',-.2,ry+1.25,.7,.1,0,0,2,.1,1.4);}
       if(st==='seen'){b.add(G.cyl6,'#5F6368',-1.4,ry+.95,1.2,0,0,0,.025,1.3,.025);const fg=new T.Mesh(new T.PlaneGeometry(.6,.36),toon(acc,{side:T.DoubleSide}));fg.position.set(-1.1,ry+1.4,1.2);g.add(fg);parts.flag=fg;}
@@ -2527,7 +2549,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     if(tags.some(t=>['海砂屋','輻射屋','地震受損','壁癌'].includes(t))){const sg=new T.Mesh(new T.BoxGeometry(.9,.7,.06),[toon('#D93025'),toon('#D93025'),toon('#D93025'),toon('#D93025'),new T.MeshBasicMaterial({map:cityTex((c,w,hh)=>{c.fillStyle='#D93025';c.fillRect(0,0,w,hh);c.fillStyle='#fff';c.font='900 52px system-ui,sans-serif';c.textAlign='center';c.fillText('!',w/2,hh/2+18);},64,64)}),toon('#D93025')]);
       sg.position.set(2.9,1.35,3);sg.userData.warn=true;sg.castShadow=true;g.add(sg);b.add(G.cyl6,'#8A8F96',2.9,.6,3,0,0,0,.04,1.2,.04);}
     if(tags.includes('漏水')){for(let i=0;i<3;i++){const d=new T.Mesh(G.sph,toon('#4FA3F7',{emissive:'#1A56DB',emissiveIntensity:.35}));d.scale.set(.12,.17,.12);d.position.set((i-1)*.9,top*.8,Dp/2+.3);d.userData.ph=i/3;g.add(d);parts.drops.push(d);}}
-    b.build(g);g.userData={id:h.id,H:top,st,drops:parts.drops,jib:parts.jib,flag:parts.flag,bulbs:parts.bulbs,born:performance.now()};if(!reduce)g.scale.y=.01;return g;}
+    b.build(g);g.userData={id:h.id,ty,W:Wd,D:Dp,H:top,st,drops:parts.drops,jib:parts.jib,flag:parts.flag,bulbs:parts.bulbs,born:performance.now()};if(!reduce)g.scale.y=.01;return g;}
   homes.forEach(h=>{const g=makeB(h);scene.add(g);bld.push(g);});
   // ── 主角
   const hero=new T.Group();scene.add(hero);const HS=1.9;let talking=null;
@@ -2562,21 +2584,21 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
   const ray=new T.Raycaster();
   function pick(cx,cy){const r=cv.getBoundingClientRect();ray.setFromCamera(new T.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1),cam);const nh=CITY3D&&CITY3D.npcs.length?ray.intersectObjects(CITY3D.npcs.map(n=>n.g),true)[0]:null;if(nh){let g2=nh.object;while(g2&&!CITY3D.npcs.some(n=>n.g===g2))g2=g2.parent;const n=CITY3D.npcs.find(x=>x.g===g2);if(n){CITY3D.talk(n);return;}}const hit=ray.intersectObjects(bld,true)[0];let g=hit&&hit.object;while(g&&!bld.includes(g))g=g.parent;select(g?g.userData.id:null);}
   // 物件標籤（HTML）：最近的一間顯示名稱＋分數，其他只顯示分數
-  const pins=$('cityPins');pins.innerHTML=homes.map(h=>`<div class="cp" data-cp="${h.id}"><i></i><b>${esc(h.name)}</b><em></em></div>`).join('');
+  const pins=$('cityPins');pins.innerHTML=homes.map(h=>`<div class="cp" data-cp="${h.id}">${coLogo(homeCo(h),18)||'<i></i>'}<b>${esc(h.name)}</b><em></em></div>`).join('');
   const STC={todo:'#9AA0A6',seen:'#1A73E8',nego:'#F7931E'};
-  const pinUpd=()=>{const a=loadHomes();pins.querySelectorAll('.cp').forEach(p=>{const h=a.find(x=>x.id===p.dataset.cp),s=HSC&&HSC[p.dataset.cp];if(!h)return;p.querySelector('i').style.background=STC[h.st||'todo'];p.querySelector('em').textContent=s?Math.round(s.total)+(p.classList.contains('near')?' 分':''):'';});};
+  const pinUpd=()=>{const a=loadHomes();pins.querySelectorAll('.cp').forEach(p=>{const h=a.find(x=>x.id===p.dataset.cp),s=HSC&&HSC[p.dataset.cp];if(!h)return;const dot=p.querySelector(':scope>i');if(dot)dot.style.background=STC[h.st||'todo'];p.querySelector('em').textContent=s?Math.round(s.total)+(p.classList.contains('near')?' 分':''):'';});};
   let near=null;const act=$('cityAct');
-  act.onclick=()=>{if(CITY3D&&CITY3D.nearNpc){CITY3D.talk(CITY3D.nearNpc);return;}if(near)select(near);else toast('走近一棟樓再按「看這間」');};
+  act.onclick=()=>{const C=CITY3D;if(C&&C.nearNpc){C.nearNpc.co===null?C.talkRecep():C.talk(C.nearNpc);return;}if(C&&C.nearExit){C.leaveHome();return;}if(C&&C.nearDoor){C.enterHome(C.nearDoor);return;}if(near)select(near);else toast('走近一棟樓再按「看這間」');};
   function stat(){const a=loadHomes(),pc=cityProg(a);$('cityStat').textContent=`完成度 ${pc}%`;$('cityBarI').style.width=pc+'%';pinUpd();}
   function select(id){const card=$('cityCard'),h=id&&loadHomes().find(x=>x.id===id);CITY3D.sel=h?id:null;el.classList.toggle('card-on',!!h);if(!h){card.hidden=true;selRing.visible=false;return;}
     const g=bld.find(x=>x.userData.id===id);selRing.position.x=g.position.x;selRing.position.z=g.position.z;selRing.visible=true;g.userData.pop=performance.now();const sc2=HSC&&HSC[id],st=h.st||'todo',nx={todo:'seen',seen:'nego'}[st];
     card.innerHTML=`<button type="button" class="cc-x" id="ccX" aria-label="收起"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button><div class="cc-h"><b>${esc(h.name)}</b>${sc2?`<span class="cc-sc">${Math.round(sc2.total)}<small> 分・第 ${sc2.rank} 名</small></span>`:''}</div>
       ${(h.tags||[]).length?`<div class="htags">${h.tags.map(t=>`<em class="tg${TAG_RISK.includes(t)?' risk':''}">${esc(t)}</em>`).join('')}</div>`:''}
       <div class="cc-st" role="group" aria-label="看房進度">${HOME_ST.map(([k,n])=>`<button type="button" data-cst="${k}" aria-pressed="${st===k}">${n}<small>${CITY_ST[k][1]}</small></button>`).join('')}</div>
-      <div class="cc-act">${nx?`<button type="button" class="cc-next" data-cst="${nx}">${nx==='seen'?'看完房了：把樓蓋好':'開始議價：點亮這棟'}</button>`:'<span class="cc-done">這棟已經亮燈，議價加油</span>'}<button type="button" class="cc-open" id="ccOpen">看細節</button></div>`;
+      <div class="cc-act">${nx?`<button type="button" class="cc-next" data-cst="${nx}">${nx==='seen'?'看完房了：把樓蓋好':'開始議價：點亮這棟'}</button>`:'<span class="cc-done">這棟已經亮燈，議價加油</span>'}<button type="button" class="cc-open" id="ccOpen">走進去</button></div>`;
     card.hidden=false;$('ccX').onclick=()=>select(null);card.querySelectorAll('[data-cst]').forEach(b=>b.onclick=()=>{const v=b.dataset.cst;if(v===(h.st||'todo'))return;setHome(id,x=>x.st=v);rebuildB(id);select(id);
       toast(v==='seen'?'「'+h.name+'」蓋好了':v==='nego'?'「'+h.name+'」亮燈了，議價中':'「'+h.name+'」回到鷹架');});
-    $('ccOpen').onclick=()=>openDet(id,'sum');}
+    $('ccOpen').onclick=()=>enterHome(id);}
   // ── 仲介角色：每間有連結的物件門口站一位（同公司同一個人設），走近或點他就能說話
   const NPCS=[];
   const ATM={},atoon=c=>ATM[c]||(ATM[c]=new T.MeshToonMaterial({color:c,gradientMap:TG3}));
@@ -2608,16 +2630,47 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
   P(new T.SphereGeometry(.248,28,16,0,Math.PI*2,0,Math.PI*.5),hair,0,hy+.02,-.015,1,1.06,1,-.32);
   P(new T.SphereGeometry(.245,24,14,Math.PI,Math.PI,Math.PI*.25,Math.PI*.42),hair,0,hy,-.005,1.02,1,1.02);
   P(S(.14),hair,-.06,hy+.16,.11,1.25,.42,.7,.35,0,.22);P(S(.1),hair,.11,hy+.175,.09,1,.4,.75,.35,0,-.3);
-  return g;})(T,atoon,col));
-    const mk=new T.Mesh(new T.OctahedronGeometry(.16,0),new T.MeshBasicMaterial({color:col}));mk.position.y=HS+.35;mk.userData.mk=1;g.add(mk);return g;}
-  // 同一家公司只有一位仲介（使用者：同公司的仲介都能帶看），站在離該公司所有物件中心最近的那間門口
+  return g;})(T,atoon,col));return g;}
+  // ── 房仲中心：一棟有招牌的兩層樓，所有公司的仲介都在門口排成一排（同公司一位）；和他說話後，他會走出來帶你到那間門口
+  const ACZ=(()=>{let best=[0,0],bs=-1;for(let r=0;r<IR*.7;r+=2)for(let k=0;k<24;k++){const a=k/24*Math.PI*2,x=Math.sin(a)*r,z=Math.cos(a)*r;if(!inIsle(x,z,9))continue;let m=1e9;bld.forEach(o=>m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z)));LMS.forEach(l=>m=Math.min(m,Math.hypot(l.x-x,l.z-z)));const sc=Math.min(m,16)-r*.05;if(sc>bs){bs=sc;best=[x,z];}}return {x:best[0],z:best[1]};})();
+  {const cg=new T.Group();cg.position.set(ACZ.x,0,ACZ.z);const cb=bucket();
+    cb.add(new T.CylinderGeometry(5.6,5.8,.25,40),'#EFE7D8',0,.13,0);cb.add(G.box,'#F6EFE2',0,1.6,-.6,0,0,0,7,3,3.6);cb.add(G.box,'#F2A541',0,3.25,-.6,0,0,0,7.4,.3,4);
+    cb.add(G.box,'#9CC9E6',0,1.2,1.21,0,0,0,5.6,2,.06);for(let k=0;k<5;k++)cb.add(G.box,'#C9BCA8',-2.8+k*1.4,1.2,1.25,0,0,0,.08,2,.08);cb.add(G.box,'#E8DCC6',0,3.9,.2,0,0,0,4.2,1,.18);
+    for(let k=0;k<8;k++)cb.add(G.box,k%2?'#FFFFFF':'#F2A541',-3.5+k,2.45,1.75,.4,0,0,1,.12,1.3);
+    [[-3.2,2.4],[3.2,2.4]].forEach(([a2,c2])=>{cb.add(G.cyl,'#B98B5E',a2,.5,c2,0,0,0,.33,.4,.33);cb.add(G.sph,'#5DBB63',a2,1,c2,0,0,0,.45,.4,.45);});cb.build(cg);
+    // 招牌：房子＋握手的圖示（自己畫的，沒有文字）
+    const sg=new T.Mesh(new T.PlaneGeometry(3.6,.86),new T.MeshBasicMaterial({map:cityTex((c,w,hh)=>{c.fillStyle='#FFF8E7';c.fillRect(0,0,w,hh);c.strokeStyle='#C9802A';c.lineWidth=10;c.lineJoin='round';c.lineCap='round';const cx=w/2,cy=hh/2;
+      c.beginPath();c.moveTo(cx-70,cy+20);c.lineTo(cx-70,cy-12);c.lineTo(cx-30,cy-44);c.lineTo(cx+10,cy-12);c.lineTo(cx+10,cy+20);c.stroke();c.fillStyle='#F2A541';c.fillRect(cx-42,cy-4,24,24);
+      c.beginPath();c.moveTo(cx+30,cy+10);c.quadraticCurveTo(cx+55,cy-12,cx+80,cy+10);c.stroke();c.beginPath();c.arc(cx+44,cy-22,9,0,7);c.arc(cx+68,cy-22,9,0,7);c.fillStyle='#C9802A';c.fill();},512,124)}));
+    sg.position.set(0,3.9,.3);cg.add(sg);scene.add(cg);ACZ.g=cg;}
   const COS={};homes.forEach(h=>{const co=homeCo(h);if(co&&bld.some(x=>x.userData.id===h.id))(COS[co]=COS[co]||[]).push(h);});
-  Object.entries(COS).map(([co,hs])=>{const P2=hs.map(h=>bld.find(x=>x.userData.id===h.id).position),cx=P2.reduce((a,p)=>a+p.x,0)/P2.length,cz=P2.reduce((a,p)=>a+p.z,0)/P2.length;let k=0,bd=1e9;P2.forEach((p,i)=>{const d=Math.hypot(p.x-cx,p.z-cz);if(d<bd){bd=d;k=i;}});return hs[k];}).forEach(h=>{const co=homeCo(h),b=bld.find(x=>x.userData.id===h.id);if(!co||!b)return;let best=null,bs=-1e9;
-    for(let k=0;k<16;k++){const a=k/16*Math.PI*2,x=b.position.x+Math.sin(a)*5.6,z=b.position.z+Math.cos(a)*5.6;if(!inIsle(x,z,2))continue;let m=1e9;bld.forEach(o=>{if(o!==b)m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z));});NPCS.forEach(n=>m=Math.min(m,Math.hypot(n.g.position.x-x,n.g.position.z-z)*2));if(m>bs){bs=m;best=a;}}
-    if(best==null)return;const a=best+.32,g=makeAgent(AGENT_CO[co]);g.position.set(b.position.x+Math.sin(a)*5.6,0,b.position.z+Math.cos(a)*5.6);g.rotation.y=best;g.userData={co,homeId:h.id,base:best};scene.add(g);NPCS.push({co,homeId:h.id,g});});
-  pins.insertAdjacentHTML('beforeend',NPCS.map((n,i)=>`<div class="cp cnp" data-np="${i}"><i style="background:${AGENT_CO[n.co]}"></i><b>${esc(coName(n.co))}</b></div>`).join(''));
+  Object.keys(COS).forEach((co,i,arr)=>{const n=arr.length,off=(i-(n-1)/2)*1.7,g=makeAgent(coColor(co)),hx=ACZ.x+off,hz=ACZ.z+3.6;g.position.set(hx,0,hz);g.rotation.y=0;
+    g.userData={co,homeId:COS[co][0].id,base:0,home:[hx,hz]};scene.add(g);NPCS.push({co,homeId:COS[co][0].id,g});});
+  pins.insertAdjacentHTML('beforeend',NPCS.map((n,i)=>`<div class="cp cnp" data-np="${i}">${coLogo(n.co,18)}<b>${esc(coName(n.co))}</b></div>`).join(''));
+  // ── 帶路：仲介從房仲中心走到那間門口，主角跟在後面（不用推搖桿）；走路時避開大樓
+  let escort=null;const doorOf=g=>({x:g.position.x,z:g.position.z+g.userData.D/2+2.4});
+  function stepTo(o,tx,tz,sp,dt,avoid){const dx=tx-o.position.x,dz=tz-o.position.z,d=Math.hypot(dx,dz);if(d<.05)return d;const k=Math.min(1,sp*dt/d);let nx=o.position.x+dx*k,nz=o.position.z+dz*k;
+    if(avoid)bld.forEach(g=>{if(avoid===g)return;const ex=nx-g.position.x,ez=nz-g.position.z,e=Math.hypot(ex,ez),R2=Math.max(g.userData.W,g.userData.D)*.75+1.6;if(e<R2){nx=g.position.x+ex/(e||1)*R2;nz=g.position.z+ez/(e||1)*R2;}});
+    const ex=nx-ACZ.x,ez=nz-(ACZ.z-.6),e=Math.hypot(ex,ez);if(avoid&&e<4.6&&Math.hypot(tx-ACZ.x,tz-ACZ.z)>6){nx=ACZ.x+ex/(e||1)*4.6;nz=ACZ.z-.6+ez/(e||1)*4.6;}
+    o.rotation.y=Math.atan2(nx-o.position.x,nz-o.position.z);o.position.x=nx;o.position.z=nz;return d;}
+  function startEscort(n,id){const g=bld.find(x=>x.userData.id===id);if(!g)return;const t=doorOf(g);escort={n,id,t,t0:performance.now(),stuck:0};toast(`${coName(n.co)}帶你去「${(loadHomes().find(x=>x.id===id)||{}).name||''}」`);}
+  // ── 走進房子：每間都有一樓大廳，接待人員可以看這間的資料（大廳蓋在島外很遠的地方，進去就把主角搬過去）
+  const LOB={x:0,z:-IR*6-40},lob=new T.Group();lob.position.set(LOB.x,0,LOB.z);scene.add(lob);let inside=null,outPos=null;
+  {const lb=bucket();lb.add(G.box,'#E9DCC6',0,-.05,0,0,0,0,14,.1,10);for(let i=0;i<7;i++)for(let j=0;j<5;j++)if((i+j)%2)lb.add(G.box,'#E2D2B8',-6+i*2,.005,-4+j*2,0,0,0,2,.01,2);
+    lb.add(G.box,'#F4EDE2',0,2.5,-5,0,0,0,14,5,.2);lb.add(G.box,'#EFE6D6',-7,2.5,0,0,0,0,.2,5,10);lb.add(G.box,'#EFE6D6',7,2.5,0,0,0,0,.2,5,10);
+    lb.add(G.box,'#C9A27A',0,.55,-2.6,0,0,0,4.2,1.1,1);lb.add(G.box,'#F7F1E6',0,1.13,-2.6,0,0,0,4.4,.08,1.15);
+    [[-5.6,-3.8],[5.6,-3.8],[-5.8,3.6]].forEach(([a2,c2])=>{lb.add(G.cyl,'#C9734F',a2,.35,c2,0,0,0,.35,.35,.35);lb.add(G.sph,'#5DBB63',a2,1.05,c2,0,0,0,.55,.6,.55);});
+    lb.add(G.box,'#B7C7D6',4.8,.45,2.2,0,0,0,2.6,.5,1);lb.add(G.box,'#B7C7D6',4.8,.85,1.8,0,0,0,2.6,.5,.3);lb.add(G.box,'#E8B54A',0,.02,4.6,0,0,0,2.4,.02,1.2);
+    lb.add(G.box,'#9CC9E6',-3.5,2.6,-4.88,0,0,0,2.4,1.6,.04);lb.add(G.box,'#9CC9E6',3.5,2.6,-4.88,0,0,0,2.4,1.6,.04);lb.build(lob);}
+  const lobSign=new T.Mesh(new T.PlaneGeometry(4.2,.8),new T.MeshBasicMaterial({color:'#FFFFFF'}));lobSign.position.set(0,3.6,-4.88);lob.add(lobSign);
+  const recep=makeAgent('#3F5A8A');recep.position.set(LOB.x,0,LOB.z-3.5);recep.userData.base=0;scene.add(recep);const RECEP={g:recep,co:null};
+  const setLobSign=name=>{lobSign.material.map&&lobSign.material.map.dispose();lobSign.material.map=cityTex((c,w,hh)=>{c.fillStyle='#FFF8E7';c.fillRect(0,0,w,hh);c.fillStyle='#5A4630';c.font='bold 64px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(name.slice(0,14),w/2,hh/2+4);},800,152);lobSign.material.needsUpdate=true;};
+  const fade=(fn)=>{const f=$('cityFade');if(reduce||window.__fastType){fn();return;}f.classList.add('on');setTimeout(()=>{fn();requestAnimationFrame(()=>f.classList.remove('on'));},260);};
+  function enterHome(id){const h=loadHomes().find(x=>x.id===id),g=bld.find(x=>x.userData.id===id);if(!h||!g)return;select(null);closeDet();endTalk();escort=null;
+    fade(()=>{inside=id;outPos=doorOf(g);setLobSign(h.name);hero.position.set(LOB.x,0,LOB.z+3.6);hero.rotation.y=Math.PI;th=0;savedR=R;R=13;el.classList.add('inside');const zc=$('cityZone');zc.textContent=h.name;zc.classList.add('on');});}
+  function leaveHome(){if(!inside)return;endTalk();closeDet();fade(()=>{hero.position.set(outPos.x,0,outPos.z);hero.rotation.y=0;th=Math.PI;R=savedR;inside=null;el.classList.remove('inside');zone=undefined;});}
   // ── RPG 對話（溫暖泡泡）：字一個一個跑出來，點一下顯示整句；選項是右側小泡泡；對話時搖桿、小地圖收起，鏡頭拉近
-  const dlg=$('cityDlg'),dTxt=$('cdTxt'),dName=$('cdName'),dCh=$('cdCh');let typing=null,savedR=R,nearNpc=null;
+  const dlg=$('cityDlg'),dTxt=$('cdTxt'),dName=$('cdName'),dCh=$('cdCh');let typing=null,savedR=R,nearNpc=null,nearDoor=null,nearExit=false;
   const blip=()=>{const A=CITY_MUS;if(!A.on||!A.ac)return;try{const t=A.ac.currentTime,o=A.ac.createOscillator(),gg=A.ac.createGain();o.type='sine';o.frequency.value=720+Math.random()*120;gg.gain.setValueAtTime(.025,t);gg.gain.exponentialRampToValueAtTime(.0001,t+.06);o.connect(gg).connect(A.ac.destination);o.start(t);o.stop(t+.07);}catch(e){}};
   function say(name,text,choices){return new Promise(res=>{clearInterval(typing);el.classList.add('dlg-on');dlg.hidden=false;dName.textContent=name;dCh.innerHTML='';dlg.classList.remove('more');dTxt.textContent='';let i=0;
     const showCh=()=>{if(!choices){dlg.classList.add('more');return;}dCh.innerHTML=choices.map((c,k)=>`<button type="button" data-k="${k}">${esc(c)}</button>`).join('');dCh.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();dCh.innerHTML='';res(+b.dataset.k);});const f=dCh.querySelector('button');f&&f.focus();};
@@ -2633,9 +2686,22 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     const [line,opts]=st==='nego'?[`「${h.name}」屋主還在考慮你${h.offer?' '+num(h.offer)+' 萬':''}的出價，要調整一下嗎？`,[['offer','再出一次價'],['det','看這間的細節'],['bye','先不用']]]
       :st==='seen'?[`看完「${h.name}」覺得怎麼樣？喜歡的話我們來談價格吧！`,[['offer','開始議價'],['sched','再約一次看房'],['det','看這間的細節'],['bye','先不用']]]
       :[vis?`「${h.name}」已經約好 ${twDate(new Date(vis.at))} 看房囉！要改時間嗎？`:`「${h.name}」屋主說最近都可以看，要幫你約時間嗎？`,[['sched',vis?'改看房時間':'約看房'],['offer','直接出價'],['det','看這間的細節'],['bye','先不用']]];
+    if(n.at!==h.id&&bld.some(x=>x.userData.id===h.id))opts.unshift(['go','帶我去看這間']);
     const k=await say(nm,line,opts.map(o=>o[1])),a=k<0?'bye':opts[k][0];
     if(a==='bye'){await say(nm,'好的！有需要隨時來找我。');return endTalk();}
-    endTalk();if(a==='det')openDet(h.id,'sum');else if(a==='sched')openSched(h.id,n.co);else openOffer(h.id,n.co);}
+    endTalk();if(a==='go')startEscort(n,h.id);else if(a==='det')openDet(h.id,'sum');else if(a==='sched')openSched(h.id,n.co);else openOffer(h.id,n.co);}
+  // 帶到門口：仲介介紹這間，可以直接走進去
+  async function arrive(n,id){const h=loadHomes().find(x=>x.id===id);if(!h)return;n.at=id;talking=n;savedR=R;R=Math.min(R,15);const nm=coName(n.co);
+    const dx=n.g.position.x-hero.position.x,dz=n.g.position.z-hero.position.z;hero.rotation.y=Math.atan2(dx,dz);th=hero.rotation.y+Math.PI;n.g.rotation.y=Math.atan2(-dx,-dz);
+    const opts=[['in','走進去看看'],['sched','約看房'],['offer','出價'],['bye','謝謝，先這樣']];
+    const k=await say(nm,`到了！這就是「${h.name}」。要進去看看嗎？`,opts.map(o=>o[1])),a=k<0?'bye':opts[k][0];endTalk();
+    if(a==='in')enterHome(id);else if(a==='sched')openSched(id,n.co);else if(a==='offer')openOffer(id,n.co);n.ret=true;n.at=null;}
+  // 大廳的接待人員：看這間的資料
+  async function talkRecep(){if(talking||!inside)return;const id=inside,h=loadHomes().find(x=>x.id===id);if(!h)return;talking=RECEP;savedR2=R;R=Math.min(R,11);
+    const opts=[['sum','總覽（開價、合理出價、分數）'],['val','估價和房貸'],['log','看房和議價紀錄'],['info','進度、標籤、連結'],['env','周遭環境和都更'],['sched','幫我約仲介看房'],['bye','先不用']];
+    const k=await say('接待人員',`歡迎來到「${h.name}」！想看這間的什麼資料呢？`,opts.map(o=>o[1])),a=k<0?'bye':opts[k][0];
+    if(a==='bye'){await say('接待人員','好的，慢慢參觀！出口在您身後。');endTalk();R=savedR2;return;}endTalk();R=savedR2;if(a==='sched')openSched(id,homeCo(h));else openDet(id,a);}
+  let savedR2=13;
   // ── 小城裡的面板（約看房、議價、物件細節），不離開小城
   const det=$('cityDet');let detId=null;
   function closeDet(){det.hidden=true;el.classList.remove('det-on');detId=null;det.innerHTML='';}
@@ -2650,8 +2716,9 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     const S={ids:[id],slots:[mk2(sat,10),mk2(sat,14)],who:new Set(),pick:0,msgs:{},more:false};
     const coOf=h=>homeCo(h)||'其他',sel=()=>{const a=loadHomes();return S.ids.map(i=>a.find(x=>x.id===i)).filter(Boolean);};
     const groups=()=>{const g={};sel().forEach(h=>{(g[coOf(h)]=g[coOf(h)]||[]).push(h);});return g;};
-    const msgFor=(c,hs)=>{const w=companions().filter(x=>S.who.has(x.e)),nm=coName(c),L=hs.map(h=>`「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}`).join('、');
-      return `${nm}您好，想預約看${hs.length>1?`這 ${hs.length} 間，可以排在同一天一起看：`:''}${L}。我${S.slots.map(twDate).join('、')}${S.slots.length>1?'都':''}方便${w.length?`，會有 ${w.length} 位同行`:''}，請問哪個時段可以？謝謝！`;};
+    // 給仲介的訊息：不寒暄，只放物件網址（他們網站那間的頁面）和時間安排
+    const msgFor=(c,hs)=>{const w=companions().filter(x=>S.who.has(x.e));
+      return `想約看房：\n${hs.map(h=>homeUrl(h,c)||h.name).join('\n')}\n可以的時間：${S.slots.map(twDate).join('、')}${w.length?`\n同行 ${w.length+1} 人`:''}`;};
     const draw=()=>{const cs=companions(),all=loadHomes(),mine=all.filter(h=>coOf(h)===co0),oth=all.filter(h=>coOf(h)!==co0),G=groups(),n=S.ids.length;
       const hc=h=>`<button type="button" class="cpl${S.ids.includes(h.id)?' on':''}" data-hid="${h.id}" aria-pressed="${S.ids.includes(h.id)}">${esc(h.name)}<small>${stName(h.st||'todo')}</small></button>`;
       sheet(n>1?`約看房・${n} 間`:'約看房',`${esc(Object.keys(G).map(coName).join('、'))}`,`
@@ -2685,7 +2752,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
   // 議價：出價（預設談判價或合理出價，可用保守／合理／積極快選）＋自動寫好的訊息
   function openOffer(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,nm=coName(co||homeCo(h)||'其他');
     let p=Math.round(h.offer||(V&&dealOf(V))||(o?o.out[1]:+h.form.ask||0)),edited=false;
-    const msg=()=>`${nm}您好，關於「${h.name}」${+h.form.ask>0?`（開價 ${num(h.form.ask)} 萬）`:''}，我們評估後想出價 ${num(p)} 萬，麻煩幫忙跟屋主談談，謝謝！`;
+    const msg=()=>`想出價 ${num(p)} 萬：\n${homeUrl(h,co||homeCo(h))||h.name}`;
     const draw=()=>{sheet(h.st==='nego'?'再出一次價':'開始議價',`${esc(h.name)}・${esc(nm)}`,`
       ${o?`<div class="cdt-k">快選（估價模型）</div><div class="cdt-chips">${[['保守',o.out[0]],['合理',o.out[1]],['積極',o.out[2]]].concat(+h.form.ask>0?[['開價',+h.form.ask]]:[]).map(([n2,v])=>`<button type="button" class="cpl${Math.round(v)===p?' on':''}" data-op="${Math.round(v)}">${n2} ${num(v)}</button>`).join('')}</div>`:''}
       <label class="cdt-k" for="cdP">出價（萬）</label><div class="cdt-add"><button type="button" class="cpl" data-step="-10">−10</button><input type="number" id="cdP" inputmode="numeric" value="${p}"><button type="button" class="cpl" data-step="10">＋10</button></div>
@@ -2749,6 +2816,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     if(rv.length>1){c.lineCap=c.lineJoin='round';c.strokeStyle='#5AB8E6';c.lineWidth=4.6*u2px;c.beginPath();rv.forEach((p,i)=>{const [x,y]=toM(p.x,p.z);i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();}
     c.strokeStyle='#8E8F92';c.lineWidth=3.4*u2px;c.lineCap='round';RD.forEach(cv2=>{c.beginPath();cv2.getSpacedPoints(30).forEach((p,i)=>{const [x,y]=toM(p.x,p.z);i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();});
     LMS.forEach(l=>{const [x,y]=toM(l.x,l.z);c.save();c.translate(x,y);c.rotate(Math.PI/4);c.fillStyle='#5B4FC9';c.strokeStyle='#fff';c.lineWidth=4;c.fillRect(-11,-11,22,22);c.strokeRect(-11,-11,22,22);c.restore();});
+    {const [x,y]=toM(ACZ.x,ACZ.z);c.fillStyle='#F2A541';c.strokeStyle='#fff';c.lineWidth=5;c.beginPath();c.moveTo(x-20,y+14);c.lineTo(x-20,y-4);c.lineTo(x,y-22);c.lineTo(x+20,y-4);c.lineTo(x+20,y+14);c.closePath();c.fill();c.stroke();}
     c.textAlign='center';c.textBaseline='middle';c.font='700 26px system-ui,sans-serif';REGS.forEach(r=>{const [x,y]=toM(r.c[0],r.c[1]-r.r+3.2);c.lineWidth=6;c.strokeStyle='rgba(255,255,255,.9)';c.strokeText(r.name,x,y);c.fillStyle='#2D5A2A';c.fillText(r.name,x,y);});}
   const mcv=$('cityMapCv'),mctx=mcv.getContext('2d'),bcv=$('cityMapBigCv'),bctx=bcv.getContext('2d'),STC2={todo:'#9AA0A6',seen:'#1A73E8',nego:'#F7931E'};
   const homesOnMap=(c)=>{const a=loadHomes();bld.forEach(g=>{const h=a.find(x=>x.id===g.userData.id);if(!h)return;const [x,y]=toM(g.position.x,g.position.z);c.beginPath();c.arc(x,y,13,0,7);c.fillStyle=STC2[h.st||'todo'];c.fill();c.lineWidth=5;c.strokeStyle='#fff';c.stroke();});};
@@ -2762,30 +2830,42 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
   $('cityMap').onclick=()=>{drawBig();mapBig.hidden=false;$('cityMapX').focus();};$('cityMapX').onclick=()=>{mapBig.hidden=true;};mapBig.onclick=e=>{if(e.target===mapBig)mapBig.hidden=true;};
   const goTo=id=>{const g=bld.find(x=>x.userData.id===id);if(!g)return;let px=g.position.x,pz=g.position.z+6.5,bs=-1e9;for(let k=0;k<12;k++){const a=k/12*Math.PI*2,x=g.position.x+Math.sin(a)*6.5,z=g.position.z+Math.cos(a)*6.5;if(!inIsle(x,z,3))continue;let m=1e9;bld.forEach(o=>{if(o!==g)m=Math.min(m,Math.hypot(o.position.x-x,o.position.z-z));});const sc=Math.min(m,30)-(k?0.5:0);if(sc>bs){bs=sc;px=x;pz=z;}}hero.position.set(px,0,pz);hero.rotation.y=Math.atan2(g.position.x-px,g.position.z-pz);th=hero.rotation.y+Math.PI;mapBig.hidden=true;toast('走到「'+((loadHomes().find(x=>x.id===id)||{}).name||'')+'」門口');};
   bcv.onclick=e=>{const r=bcv.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*MS,my=(e.clientY-r.top)/r.height*MS;let best=null,bd=1e9;bld.forEach(g=>{const [x,y]=toM(g.position.x,g.position.z),d=Math.hypot(x-mx,y-my);if(d<bd){bd=d;best=g;}});if(best&&bd<40)goTo(best.userData.id);};
-  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,ANI,goTo,npcs:NPCS,talk,endTalk,openDet,openSched,openOffer,closeDet,get talking(){return talking;},get nearNpc(){return nearNpc;},get detId(){return detId;},mapPx:id=>{const g=bld.find(x=>x.userData.id===id);return toM(g.position.x,g.position.z).map(v=>v/MS);},get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
+  let zone=null;CITY3D={renderer,scene,cam,bld,hero,REGS,LMS,ANI,goTo,npcs:NPCS,talk,endTalk,openDet,openSched,openOffer,closeDet,talkRecep,enterHome,leaveHome,startEscort,ACZ,LOB,get inside(){return inside;},get escort(){return escort;},get nearDoor(){return nearDoor;},get nearExit(){return nearExit;},get talking(){return talking;},get nearNpc(){return nearNpc;},get detId(){return detId;},mapPx:id=>{const g=bld.find(x=>x.userData.id===id);return toM(g.position.x,g.position.z).map(v=>v/MS);},get zone(){return zone;},zoom:(v,p)=>{R=v;if(p)ph=p;},sel:null,select,pick,POS,IR,get R(){return R;},get near(){return near;},raf:0,off:()=>{document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}};
   resize();setCam();stat();const ro=new ResizeObserver(resize);ro.observe(el);CITY3D.ro=ro;
   const v3=new T.Vector3();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;
     // 走路
-    let ix=mv.x+(keys.has('r')?1:0)-(keys.has('l')?1:0),iy=mv.y+(keys.has('d')?1:0)-(keys.has('u')?1:0);const il=Math.hypot(ix,iy);if(il>1){ix/=il;iy/=il;}
+    let ix=mv.x+(keys.has('r')?1:0)-(keys.has('l')?1:0),iy=mv.y+(keys.has('d')?1:0)-(keys.has('u')?1:0);if(escort||talking){ix=0;iy=0;}const il=Math.hypot(ix,iy);if(il>1){ix/=il;iy/=il;}
+    // 帶路中：仲介走向門口，主角跟在他後面 2 單位；卡住超過 3 秒就直接到
+    if(escort){const n=escort.n,g=n.g,d=stepTo(g,escort.t.x,escort.t.z,5.5,dt,true);const bx=g.position.x-Math.sin(g.rotation.y)*2,bz=g.position.z-Math.cos(g.rotation.y)*2;if(Math.hypot(bx-hero.position.x,bz-hero.position.z)>.3){stepTo(hero,bx,bz,6.5,dt,true);walkT+=dt;}
+      const now=performance.now();if(escort.best==null||d<escort.best-.5){escort.best=d;escort.bt=now;}escort.stuck=(now-escort.bt)/1000;if(now-escort.t0>15000)escort.stuck=9;
+      if(escort.stuck>3){g.position.set(escort.t.x,0,escort.t.z);hero.position.set(escort.t.x,0,escort.t.z+2);}
+      th=hero.rotation.y+Math.PI;if(d<.3||escort.stuck>3){const e=escort;escort=null;arrive(e.n,e.id);}}
+    NPCS.forEach(n=>{if(!n.ret||escort&&escort.n===n||talking===n)return;const hm2=n.g.userData.home;if(stepTo(n.g,hm2[0],hm2[1],5,dt,true)<.2){n.ret=false;n.g.rotation.y=0;}});
     const moving=il>.08;if(moving){const fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th),sp=7*Math.min(1,il);let nx=hero.position.x+(fx*-iy+rx*ix)*sp*dt,nz=hero.position.z+(fz*-iy+rz*ix)*sp*dt;
-      if(!inIsle(nx,nz,2.5)){const d=Math.hypot(nx,nz/1.08),k=(IR-2.5)/d;nx*=k;nz*=k;}
-      bld.forEach(g=>{const dx=nx-g.position.x,dz=nz-g.position.z,d=Math.hypot(dx,dz);if(d<4.1){nx=g.position.x+dx/(d||1)*4.1;nz=g.position.z+dz/(d||1)*4.1;}});
+      if(inside){nx=Math.min(LOB.x+6.3,Math.max(LOB.x-6.3,nx));nz=Math.min(LOB.z+6,Math.max(LOB.z-4.3,nz));if(Math.abs(nx-LOB.x)<2.6&&nz<LOB.z-1.7)nz=LOB.z-1.7;}
+      else{if(!inIsle(nx,nz,2.5)){const d=Math.hypot(nx,nz/1.08),k=(IR-2.5)/d;nx*=k;nz*=k;}
+      bld.forEach(g=>{const r2=Math.max(4.1,Math.max(g.userData.W,g.userData.D)*.8+1.6),dx=nx-g.position.x,dz=nz-g.position.z,d=Math.hypot(dx,dz);if(d<r2){nx=g.position.x+dx/(d||1)*r2;nz=g.position.z+dz/(d||1)*r2;}});
+      {const dx=nx-ACZ.x,dz=nz-(ACZ.z-.6),d=Math.hypot(dx,dz);if(d<4.6){nx=ACZ.x+dx/(d||1)*4.6;nz=ACZ.z-.6+dz/(d||1)*4.6;}}}
       NPCS.forEach(n=>{const g=n.g,dx=nx-g.position.x,dz=nz-g.position.z,d=Math.hypot(dx,dz);if(d<1.1){nx=g.position.x+dx/(d||1)*1.1;nz=g.position.z+dz/(d||1)*1.1;}});
       const want=Math.atan2(nx-hero.position.x,nz-hero.position.z);let dr=want-hero.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));hero.rotation.y+=dr*Math.min(1,dt*10);hero.position.x=nx;hero.position.z=nz;walkT+=dt*il;}
     const hm=hero.userData.mesh;if(hm){hm.position.y=(hm.userData.y0??(hm.userData.y0=hm.position.y))+(moving&&!reduce?Math.abs(Math.sin(walkT*9))*.18:0);hm.rotation.z=moving&&!reduce?Math.sin(walkT*9)*.06:0;}
+    if(inside&&hero.position.z>LOB.z+5.8&&!talking)leaveHome();
     setCam();
-    drawMini();
+    if(!inside)drawMini();
     // 走進哪一區：上方淡入區名
-    const zr=inReg(hero.position.x,hero.position.z);if((zr&&zr.name)!==zone){zone=zr?zr.name:null;const zc=$('cityZone');if(zone)zc.textContent=zone;zc.classList.toggle('on',!!zone);}
+    const zr=inside?{name:(loadHomes().find(x=>x.id===inside)||{}).name}:inReg(hero.position.x,hero.position.z);if((zr&&zr.name)!==zone){zone=zr?zr.name:null;const zc=$('cityZone');if(zone)zc.textContent=zone;zc.classList.toggle('on',!!zone);}
     // 仲介：走近（3.5 內）右下按鈕變「和○○仲介說話」；8 單位內轉頭看主角；頭上菱形慢慢轉
     let nb=null,nd=1e9;NPCS.forEach(n=>{const g=n.g,d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<nd){nd=d;nb=n;}
-      if(!talking){const want=d<8?Math.atan2(hero.position.x-g.position.x,hero.position.z-g.position.z):g.userData.base;let dr=want-g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));g.rotation.y+=dr*Math.min(1,dt*4);}
+      if(!talking&&!n.ret&&!(escort&&escort.n===n)){const want=d<8?Math.atan2(hero.position.x-g.position.x,hero.position.z-g.position.z):g.userData.base;let dr=want-g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));g.rotation.y+=dr*Math.min(1,dt*4);}
       if(!reduce)g.children.forEach(c=>{if(c.userData.mk){c.rotation.y+=dt*1.5;c.position.y=HS+.35+Math.sin(now/400+n.g.position.x)*.08;}});});
-    const nn2=nb&&nd<3.5&&!talking?nb:null;if(nn2!==nearNpc){nearNpc=nn2;near=undefined;}
+    let nn2=nb&&nd<3.5&&!talking&&!escort&&!inside&&!nb.ret?nb:null;if(inside&&!talking)nn2=Math.hypot(recep.position.x-hero.position.x,recep.position.z-hero.position.z)<3.6?RECEP:null;if(nn2!==nearNpc){nearNpc=nn2;near=undefined;}
+    // 門口：走到某間門前 2.8 內，右下按鈕變「進去」；大廳裡靠近出口變「出去」
+    let dr2=null;if(!inside&&!escort)bld.forEach(g=>{const t=doorOf(g);if(Math.hypot(t.x-hero.position.x,t.z-hero.position.z)<2.8)dr2=g.userData.id;});const ex2=inside&&hero.position.z>LOB.z+3.4;
+    if(dr2!==nearDoor||ex2!==nearExit){nearDoor=dr2;nearExit=ex2;near=undefined;}
     // 最近的物件
-    let best=null,bd=1e9;bld.forEach(g=>{const d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<bd){bd=d;best=g;}});const nn=best&&bd<10?best.userData.id:null;
-    if(nn!==near){near=nn;act.classList.toggle('on',!!near||!!nearNpc);act.querySelector('span').textContent=nearNpc?'說話':near?'看這間':'走近一棟樓';act.setAttribute('aria-label',nearNpc?'和'+coName(nearNpc.co)+'說話':near?'看這間':'走近一棟樓');act.classList.toggle('talk',!!nearNpc);pins.querySelectorAll('.cp').forEach(p=>p.classList.toggle('near',p.dataset.cp===near));pinUpd();}
+    let best=null,bd=1e9;if(!inside)bld.forEach(g=>{const d=Math.hypot(g.position.x-hero.position.x,g.position.z-hero.position.z);if(d<bd){bd=d;best=g;}});const nn=best&&bd<10?best.userData.id:null;
+    if(nn!==near){near=nn;const lab=nearNpc?'說話':nearExit?'出去':nearDoor?'進去':near?'看這間':'走近一棟樓';act.classList.toggle('on',!!(near||nearNpc||nearDoor||nearExit));act.querySelector('span').textContent=lab;act.setAttribute('aria-label',nearNpc?(nearNpc===RECEP?'和接待人員說話':'和'+coName(nearNpc.co)+'說話'):nearExit?'走出大廳':nearDoor?'走進這間':lab);act.classList.toggle('talk',!!nearNpc);pins.querySelectorAll('.cp').forEach(p=>p.classList.toggle('near',p.dataset.cp===near));pinUpd();}
     const W=cv.clientWidth,H=cv.clientHeight;bld.forEach(g=>{const p=pins.querySelector(`[data-cp="${g.userData.id}"]`);if(!p)return;v3.set(g.position.x,g.userData.H+(g.userData.st==='todo'?3.2:2.2),g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.1&&v3.y>-1.1;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${Math.min(W-70,Math.max(70,(v3.x+1)/2*W))}px,${Math.max(176,(1-v3.y)/2*H)}px) translate(-50%,-100%)`;});
     NPCS.forEach((n,i)=>{const p=pins.querySelector(`[data-np="${i}"]`);if(!p)return;v3.set(n.g.position.x,HS+1.1,n.g.position.z).project(cam);const vis=v3.z<1&&Math.abs(v3.x)<1.05&&Math.abs(v3.y)<1.05&&Math.hypot(n.g.position.x-hero.position.x,n.g.position.z-hero.position.z)<26;p.style.display=vis?'':'none';if(vis)p.style.transform=`translate(${(v3.x+1)/2*W}px,${(1-v3.y)/2*H}px)`;});
     bld.forEach(g=>{const u=g.userData;if(g.scale.y<1)g.scale.y=reduce?1:Math.min(1,(now-u.born)/800);if(u.pop){const k=(now-u.pop)/500;if(k<1){const s=1+.06*Math.sin(k*Math.PI);g.scale.x=g.scale.z=s;}else{g.scale.x=g.scale.z=1;u.pop=0;}}
