@@ -1406,7 +1406,7 @@ async def baked_suite(b, errs):
     mh = await ev("({t:document.querySelector('#cityDet .cdt-h b').innerText,lines:[...document.querySelectorAll('#cityDet [data-line]')].map(b=>b.innerText),msgs:document.querySelectorAll('#cityDet .cdMsg').length,cal:document.querySelector('#cityDet [data-cal]').innerText})")
     check(mh['t'] == '約看房・2 間' and mh['lines'] == ['傳到 Line（信義仲介）', '傳到 Line（永慶仲介）'] and mh['msgs'] == 2 and '2 間一趟' in mh['cal'], f"一次約多間：可加入同公司或其他公司的物件，每家公司各一則訊息、各一顆傳到 Line，日曆是一趟行程 {mh}")
     await shot(page, '9c6_city_sched')
-    await page.click('#cityDet [data-line="0|信義"]'); await page.wait_for_timeout(150)
+    await page.click('#cityDet [data-line="信義"]'); await page.wait_for_timeout(150)
     ln = await ev("({sent:window.__lineSent,log:loadHomes().find(h=>h.links&&h.links[0].p==='信義').log,cmp:JSON.parse(localStorage.getItem('tlm.companions'))})")
     check(ln['sent'] and ln['sent'][-1]['co'] == '信義' and ln['sent'][-1]['text'].startswith('想約看房：') and '同行 2 人' in ln['sent'][-1]['text'] and 'sinyi.com.tw/buy/house/T1' in ln['sent'][-1]['text'] and '您好' not in ln['sent'][-1]['text'] and ln['log'][-1]['t'] == 'ask' and ln['cmp'][0]['e'] == 'mom@example.com', f"新增同行者、按「傳到 Line」：訊息不寒暄，只有物件網址、時段、同行人數，記下「問仲介看房時段」 {ln['sent'][-1]['text'][:60]}")
     check('\n1. https://www.sinyi.com.tw/buy/house/T1' in ln['sent'][-1]['text'], '訊息裡的物件連結有編號（1. 2. …）')
@@ -1417,6 +1417,18 @@ async def baked_suite(b, errs):
     cl = await ev("({u:(window.__calAdded||[]).slice(-1)[0]||'',h:loadHomes().find(h=>h.links&&h.links[0].p==='信義'),h2:loadHomes().find(h=>h.links&&h.links[0]&&h.links[0].p==='永慶'),t:document.getElementById('cityDet').innerText})")
     check(cl['h2']['visit'] and (__import__('datetime').datetime.fromisoformat(cl['h2']['visit']['at'].replace('Z','+00:00'))-__import__('datetime').datetime.fromisoformat(cl['h']['visit']['at'].replace('Z','+00:00'))).total_seconds() == 3600 and 'dates=' in cl['u'], '多間一趟：第二間的看房時間自動排在第一間後 1 小時')
     check('action=TEMPLATE' in cl['u'] and 'add=mom%40example.com' in cl['u'] and 'ctz=Asia%2FTaipei' in cl['u'] and cl['h']['visit'] and cl['h']['visit']['who'] == ['媽媽'] and '下一次看房' in cl['t'] and '媽媽 同行' in cl['t'], f"選定時段加到 Google 日曆（同行者在邀請名單）：記下看房時間，細節「行程」出現這筆 {cl['u'][:80]}")
+    # 一次約很多間：每家公司只有一則訊息，分天用文字寫在同一則；選物件時畫面不會跳回最上面；內容多時可以捲動
+    await ev("""(()=>{window.__homesBak=localStorage.getItem('tlm.homes');const a=loadHomes(),b=a.find(h=>h.links&&h.links[0].p==='信義');const add=[];for(let i=0;i<6;i++){const far=i>=3;add.push(Object.assign(JSON.parse(JSON.stringify(b)),{id:'zz'+i,name:'多間'+i,pt:[b.pt[0]+(far?.03:0)+i*.0005,b.pt[1]+(far?.04:0)],links:[{p:'信義',u:'https://www.sinyi.com.tw/buy/house/Z'+i}],visit:null,log:[]}));}
+      localStorage.setItem('tlm.homes',JSON.stringify(a.concat(add)));CITY3D.openSched(b.id);})()"""); await page.wait_for_timeout(250)
+    for i in range(6):
+        await ev("document.getElementById('cityDet').scrollTop=180")
+        await page.click(f'#cityDet [data-hid="zz{i}"]'); await page.wait_for_timeout(120)
+    mm = await ev("""(()=>{const d=document.getElementById('cityDet');return {st:d.scrollTop,ov:getComputedStyle(d).overflowY,msgs:[...d.querySelectorAll('.cdMsg')].map(t=>t.value),lines:d.querySelectorAll('[data-line]').length,cal:d.querySelectorAll('[data-cal]').length,t:d.querySelector('.cdt-h b').innerText,ch:getComputedStyle(document.getElementById('cdCh')).overflowY}})()""")
+    m0 = mm['msgs'][0] if mm['msgs'] else ''
+    check(mm['lines'] == 1 and len(mm['msgs']) == 1 and '第 1 天' in m0 and '第 2 天' in m0 and '\n7. ' in m0 and 'Z5' in m0 and mm['cal'] == 2 and '7 間・2 天' in mm['t'], f"一次約 7 間：同一家公司只有一則訊息、一顆傳到 Line，不同天用文字寫在同一則（編號連續），日曆每天一顆 {mm['t']} {m0[:200]}")
+    check(mm['st'] >= 150 and mm['ov'] == 'auto' and mm['ch'] == 'auto', f"連續選好幾間物件：畫面停在原處不會跳回最上面；面板與對話選項內容多時可以捲動 {mm['st']}")
+    await shot(page, '9c6b_city_sched_many')
+    await ev("CITY3D.closeDet();localStorage.setItem('tlm.homes',window.__homesBak)")
     await ev("CITY3D.closeDet();void CITY3D.talk(CITY3D.npcs.find(n=>n.co==='信義'))"); await page.wait_for_timeout(250)
     check('已經約好' in await ev("document.getElementById('cdTxt').innerText"), '再找仲介：他記得已經約好的看房時間')
     await page.click('#cdCh button >> text=直接出價'); await page.wait_for_timeout(300)
