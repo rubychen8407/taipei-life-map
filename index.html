@@ -2276,7 +2276,7 @@ const HOME_ST=[['todo','未看房'],['seen','已看房'],['nego','議價中']],s
 const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js';let THREE=null,CITY3D=null;
 const CITY_ST={todo:['未看房','鷹架'],seen:['已看房','蓋好了'],nego:['議價中','亮燈']};
 function cityProg(a){const n=a.length,v=a.reduce((t,h)=>t+({seen:1,nego:2}[h.st]||0),0);return n?Math.round(v/(n*2)*100):0;}
-async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}if(cityMusPref().on)CITY_MUS.prime();
+async function openCity(){const homes=loadHomes();if(!homes.length){toast('先加入物件才能蓋小城');return;}gsiLoad();if(cityMusPref().on)CITY_MUS.prime();
   try{THREE=THREE||await import(THREE_URL);}catch(e){toast('3D 小城載入失敗，請檢查網路後再試',true);return;}
   const tc=document.createElement('canvas');if(!(tc.getContext('webgl2')||tc.getContext('webgl'))){toast('這台裝置不支援 3D 顯示',true);return;}
   await homesScore();let HR=null,AR=null;try{HR=await loadHero(THREE);}catch(e){}closeCity();
@@ -2372,7 +2372,24 @@ function tripsOf(hs,n=5){const P=h=>h.pt||[0,0],dd=(a,b)=>{const p=P(a),q=P(b);r
   const best=Array.from({length:K+1},()=>Array(N+1).fill(-1)),from=Array.from({length:K+1},()=>Array(N+1).fill(0));best[0][0]=0;
   for(let k=1;k<=K;k++)for(let j=1;j<=N;j++)for(let l=1;l<=n&&l<=j;l++){const i=j-l;if(best[k-1][i]<0)continue;const v=best[k-1][i]+(j<N?gap(j):0);if(v>best[k][j]){best[k][j]=v;from[k][j]=i;}}
   const out=[];let j=N;for(let k=K;k>0;k--){const i=from[k][j];out.unshift(path.slice(i,j));j=i;}return out;}
-function calAdd(ev){const u=gcalUrl(ev);window.__calAdded=(window.__calAdded||[]).concat([u]);window.open(u,'_blank','noopener');return 'link';}
+function calLink(ev){const u=gcalUrl(ev);window.__calAdded=(window.__calAdded||[]).concat([u]);window.open(u,'_blank','noopener');return {mode:'link'};}
+// Google 日曆直接建活動：Google 登入（GIS token，只在記憶體，不存裝置），權限只有「日曆活動」。
+// OAuth client ID 是公開的（不是密鑰）；授權來源要設 https://rubychen8407.github.io
+const GC_ID='319232980917-9c7mvalaeju8gv1omgn8a4ioebtmsvi2.apps.googleusercontent.com',GC_SCOPE='https://www.googleapis.com/auth/calendar.events',GC_API='https://www.googleapis.com/calendar/v3/calendars/primary/events';
+let GTOK=null,GSI=null;
+const gsiReady=()=>!!(window.google&&google.accounts&&google.accounts.oauth2);
+function gsiLoad(){if(gsiReady())return Promise.resolve();if(GSI)return GSI;GSI=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=()=>gsiReady()?res():rej(new Error('gsi'));sc.onerror=()=>{GSI=null;rej(new Error('gsi'));};document.head.appendChild(sc);});GSI.catch(()=>{});return GSI;}
+// 要在點擊當下呼叫（彈出 Google 登入視窗需要使用者手勢）
+function gToken(){if(GTOK&&GTOK.exp>Date.now()+60e3)return Promise.resolve(GTOK.t);if(!gsiReady())return Promise.reject(new Error('gsi'));
+  return new Promise((res,rej)=>{try{const c=google.accounts.oauth2.initTokenClient({client_id:GC_ID,scope:GC_SCOPE,prompt:localStorage.getItem('tlm.gcalOk')?'':'consent',
+    callback:r=>{if(r&&r.access_token&&(!google.accounts.oauth2.hasGrantedAllScopes||google.accounts.oauth2.hasGrantedAllScopes(r,GC_SCOPE))){GTOK={t:r.access_token,exp:Date.now()+(+r.expires_in||3600)*1e3};try{localStorage.setItem('tlm.gcalOk','1');}catch(e){}res(GTOK.t);}else rej(new Error((r&&r.error)||'denied'));},
+    error_callback:e=>rej(new Error((e&&e.type)||'popup'))});c.requestAccessToken();}catch(e){rej(e);}});}
+async function gcalFetch(path,opt){const t=await gToken();const r=await fetch(GC_API+path,Object.assign({},opt,{headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'}}));if(r.status===401){GTOK=null;throw new Error('401');}if(!r.ok&&r.status!==410&&r.status!==404)throw new Error('http '+r.status);return r.status===204||r.status===410||r.status===404?null:r.json();}
+// 建活動：先試直接建（含邀請、寄通知），連不上就開預填好的 Google 日曆頁
+function calAdd(ev){if(!gsiReady()&&!(GTOK&&GTOK.exp>Date.now()))return Promise.resolve(calLink(ev));
+  const e=new Date(ev.start.getTime()+(ev.min||60)*60e3),body={summary:ev.title,description:ev.desc||'',location:ev.loc||'',start:{dateTime:ev.start.toISOString(),timeZone:'Asia/Taipei'},end:{dateTime:e.toISOString(),timeZone:'Asia/Taipei'},attendees:(ev.who||[]).map(x=>({email:x}))};
+  return gcalFetch('?sendUpdates=all',{method:'POST',body:JSON.stringify(body)}).then(j=>({mode:'api',id:j.id,link:j.htmlLink})).catch(()=>calLink(ev));}
+function calDel(id){return gcalFetch('/'+encodeURIComponent(id)+'?sendUpdates=all',{method:'DELETE'}).then(()=>true).catch(()=>false);}
 const HERO_URL='assets/hero.glb';let HERO=null;
 const GLBS={};async function loadHero(T){return HERO||(HERO=await loadGLB(T,HERO_URL));}
 async function loadGLB(T,url){if(GLBS[url])return GLBS[url];const rs=await fetch(url);if(!rs.ok)throw new Error(url+' '+rs.status);const ab=await rs.arrayBuffer(),dv=new DataView(ab),jl=dv.getUint32(12,true),j=JSON.parse(new TextDecoder().decode(new Uint8Array(ab,20,jl))),bo=20+jl+8;
@@ -2764,10 +2781,12 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
       det.querySelectorAll('[data-line]').forEach(b=>b.onclick=()=>{const k=b.dataset.line,c=k,ta=det.querySelector(`.cdMsg[data-k="${CSS.escape(k)}"]`),t=ta.value.trim();if(!t)return;lineSend(c,t);
         (groups(T.flat())[c]||[]).forEach(h=>addLog(h.id,{t:'ask',via:'line',co:c,slots:S.slots.map(d=>d.toISOString())}));toast(`訊息已帶到 Line（也複製好了），選${coName(c)}的群組送出`);});
       det.querySelectorAll('[data-cal]').forEach(b=>b.onclick=()=>{const at=S.slots[S.pick],hs=T[+b.dataset.cal]||[];if(!at||!hs.length)return;const w=companions().filter(c=>S.who.has(c.e));
-        calAdd({title:`看房：${hs.length>2?hs[0].name+' 等 '+hs.length+' 間':hs.map(h=>h.name).join('、')}`,start:at,min:60*hs.length,loc:`${hs[0].name}（${hs[0].dist||''}）`,who:w.map(c=>c.e),
+        const done=calAdd({title:`看房：${hs.length>2?hs[0].name+' 等 '+hs.length+' 間':hs.map(h=>h.name).join('、')}`,start:at,min:60*hs.length,loc:`${hs[0].name}（${hs[0].dist||''}）`,who:w.map(c=>c.e),
           desc:hs.map((h,i)=>`${i+1}. ${twDate(new Date(+at+i*3600e3))} ${h.name}（${coName(coOf(h))}）\n地圖：https://maps.google.com/?q=${h.pt[0]},${h.pt[1]}${(h.links||[]).length?'\n物件：'+h.links[0].u:''}`).join('\n\n')});
         hs.forEach((h,i)=>{const t2=new Date(+at+i*3600e3).toISOString();setHome(h.id,x=>{x.visit={at:t2,who:w.map(c=>c.n),co:coOf(h)};});addLog(h.id,{t:'visit',at:t2,who:w.map(c=>c.n),co:coOf(h),trip:hs.length>1?hs.length:undefined});});
-        toast(hs.length>1?`已約 ${twDate(at)} 起看 ${hs.length} 間`:`已約 ${twDate(at)} 看「${hs[0].name}」`);if(!MT)openDet(hs[0].id,'log');});};
+        const msg=hs.length>1?`已約 ${twDate(at)} 起看 ${hs.length} 間`:`已約 ${twDate(at)} 看「${hs[0].name}」`;toast(msg);if(!MT)openDet(hs[0].id,'log');
+        done.then(r=>{if(r.mode!=='api')return;hs.forEach((h,i)=>{const t2=new Date(+at+i*3600e3).toISOString();setHome(h.id,x=>{if(x.visit&&x.visit.at===t2)x.visit.ev=r.id;(x.log||[]).forEach(e=>{if(e.t==='visit'&&e.at===t2)e.ev=r.id;});});});
+          toast(msg+`，已加到 Google 日曆${w.length?`並邀請 ${w.length} 人`:''}`);if(!MT&&detId===hs[0].id)openDet(hs[0].id,'log');});});};
     draw();}
   // 議價：出價（預設談判價或合理出價，可用保守／合理／積極快選）＋自動寫好的訊息
   function openOffer(id,co){const h=loadHomes().find(x=>x.id===id);if(!h)return;let V=null;try{V=homeVal(h);}catch(e){}const o=V&&V.off,nm=coName(co||homeCo(h)||'其他');
@@ -2820,7 +2839,13 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     const lk=$('cdLkOk');if(lk)lk.onclick=()=>{const u=$('cdLk').value.trim();if(!/^https?:\/\//.test(u)){toast('請貼上 http 開頭的網址',true);return;}setHome(id,x=>{const a=x.links||[];if(!a.some(l=>l.u===u)&&a.length<8)x.links=a.concat([{p:platformOf(u),u}]);});openDet(id,'info');};
     // 刪除行程：點一下變「確定刪除」再點才刪；刪掉看房會一起清掉「下一次看房」，並提醒到 Google 日曆刪活動
     const calDay=at=>{const d=new Date(at);return `https://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;};
-    const dropVisit=(at,msg)=>{setHome(id,x=>{x.log=(x.log||[]).filter(e=>!(e.t==='visit'&&e.at===at));if(x.visit&&x.visit.at===at)x.visit=null;});window.__calDay=calDay(at);openDet(id,'log');toast(msg+'；記得到 Google 日曆刪掉這個活動');};
+    const dropVisit=(at,msg)=>{const e0=(h.log||[]).find(e=>e.t==='visit'&&e.at===at),evId=(h.visit&&h.visit.at===at&&h.visit.ev)||(e0&&e0.ev);
+      setHome(id,x=>{x.log=(x.log||[]).filter(e=>!(e.t==='visit'&&e.at===at));if(x.visit&&x.visit.at===at)x.visit=null;});openDet(id,'log');
+      // 同一趟還有其他間用這個活動：保留活動，只取消這間
+      const shared=evId&&loadHomes().some(x=>x.visit&&x.visit.ev===evId);
+      if(evId&&!shared){toast(msg+'，正在從 Google 日曆刪除…');calDel(evId).then(ok=>{if(ok)toast(msg+'，Google 日曆的活動也刪了（已通知同行的人）');else{window.__calDay=calDay(at);toast(msg+'；Google 日曆沒刪成功，請到日曆那天刪掉',true);}});}
+      else if(shared)toast(msg+'；同一趟還有其他間，Google 日曆的活動保留');
+      else{window.__calDay=calDay(at);toast(msg+'；記得到 Google 日曆刪掉這個活動');}};
     const vd=$('cdVisDel');if(vd)vd.onclick=()=>{if(!vd.classList.contains('arm')){vd.classList.add('arm');vd.textContent='確定取消？';return;}dropVisit(h.visit.at,`已取消 ${twDate(new Date(h.visit.at))} 的看房`);};
     det.querySelectorAll('[data-dlog]').forEach(b=>b.onclick=()=>{if(!b.classList.contains('arm')){det.querySelectorAll('.cdt-del.arm').forEach(x=>{x.classList.remove('arm');});b.classList.add('arm');b.setAttribute('aria-label','確定刪除這筆紀錄');return;}
       const e=(h.log||[]).find(x=>x.ts===b.dataset.dlog);if(!e)return;if(e.t==='visit'){dropVisit(e.at,'已刪除這次看房');return;}setHome(id,x=>{x.log=(x.log||[]).filter(y=>y.ts!==e.ts);if(e.t==='offer'&&x.offer===e.p)x.offer=null;});openDet(id,'log');toast('已刪除這筆紀錄');});
