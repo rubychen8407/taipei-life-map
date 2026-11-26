@@ -2653,7 +2653,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     if(avoid)bld.forEach(g=>{if(avoid===g)return;const ex=nx-g.position.x,ez=nz-g.position.z,e=Math.hypot(ex,ez),R2=Math.max(g.userData.W,g.userData.D)*.75+1.6;if(e<R2){nx=g.position.x+ex/(e||1)*R2;nz=g.position.z+ez/(e||1)*R2;}});
     const ex=nx-ACZ.x,ez=nz-(ACZ.z-.6),e=Math.hypot(ex,ez);if(avoid&&e<4.6&&Math.hypot(tx-ACZ.x,tz-ACZ.z)>6){nx=ACZ.x+ex/(e||1)*4.6;nz=ACZ.z-.6+ez/(e||1)*4.6;}
     o.rotation.y=Math.atan2(nx-o.position.x,nz-o.position.z);o.position.x=nx;o.position.z=nz;return d;}
-  function startEscort(n,id){const g=bld.find(x=>x.userData.id===id);if(!g)return;const t=doorOf(g);escort={n,id,t,walk:0,stuck:0,last:[n.g.position.x,n.g.position.z]};toast(`${coName(n.co)}帶你去「${(loadHomes().find(x=>x.id===id)||{}).name||''}」`);}
+  function startEscort(n,id){const g=bld.find(x=>x.userData.id===id);if(!g)return;const t=doorOf(g);escort={n,id,t,t0:performance.now(),stuck:0};toast(`${coName(n.co)}帶你去「${(loadHomes().find(x=>x.id===id)||{}).name||''}」`);}
   // ── 走進房子：每間都有一樓大廳，接待人員可以看這間的資料（大廳蓋在島外很遠的地方，進去就把主角搬過去）
   const LOB={x:0,z:-IR*6-40},lob=new T.Group();lob.position.set(LOB.x,0,LOB.z);scene.add(lob);let inside=null,outPos=null;
   {const lb=bucket();lb.add(G.box,'#E9DCC6',0,-.05,0,0,0,0,14,.1,10);for(let i=0;i<7;i++)for(let j=0;j<5;j++)if((i+j)%2)lb.add(G.box,'#E2D2B8',-6+i*2,.005,-4+j*2,0,0,0,2,.01,2);
@@ -2838,7 +2838,7 @@ function buildCity(el,HR,AR){const T=THREE,cv=$('cityCv'),homes=loadHomes(),redu
     let ix=mv.x+(keys.has('r')?1:0)-(keys.has('l')?1:0),iy=mv.y+(keys.has('d')?1:0)-(keys.has('u')?1:0);if(escort||talking){ix=0;iy=0;}const il=Math.hypot(ix,iy);if(il>1){ix/=il;iy/=il;}
     // 帶路中：仲介走向門口，主角跟在他後面 2 單位；卡住超過 3 秒就直接到
     if(escort){const n=escort.n,g=n.g,d=stepTo(g,escort.t.x,escort.t.z,5.5,dt,true);const bx=g.position.x-Math.sin(g.rotation.y)*2,bz=g.position.z-Math.cos(g.rotation.y)*2;if(Math.hypot(bx-hero.position.x,bz-hero.position.z)>.3){stepTo(hero,bx,bz,6.5,dt,true);walkT+=dt;}
-      const mvd=Math.hypot(g.position.x-escort.last[0],g.position.z-escort.last[1]);escort.last=[g.position.x,g.position.z];escort.stuck=mvd<.01?escort.stuck+dt:0;
+      const now=performance.now();if(escort.best==null||d<escort.best-.5){escort.best=d;escort.bt=now;}escort.stuck=(now-escort.bt)/1000;if(now-escort.t0>15000)escort.stuck=9;
       if(escort.stuck>3){g.position.set(escort.t.x,0,escort.t.z);hero.position.set(escort.t.x,0,escort.t.z+2);}
       th=hero.rotation.y+Math.PI;if(d<.3||escort.stuck>3){const e=escort;escort=null;arrive(e.n,e.id);}}
     NPCS.forEach(n=>{if(!n.ret||escort&&escort.n===n||talking===n)return;const hm2=n.g.userData.home;if(stepTo(n.g,hm2[0],hm2[1],5,dt,true)<.2){n.ret=false;n.g.rotation.y=0;}});
