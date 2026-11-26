@@ -20,6 +20,7 @@ GEO = {'臺北市忠孝東路五段790巷59弄37號': [{'lat': '25.0412', 'lon':
        '台北市松山區八德路三段': [{'lat': '25.0480', 'lon': '121.5560', 'addresstype': 'road', 'type': 'secondary'}],
        '臺北市南京東路五段100號': [{'lat': '25.0510', 'lon': '121.5600', 'addresstype': 'house', 'type': 'house'}]}
 GMAPS = []
+GCAL = []   # 送到 Google 日曆 API 的請求
 GH = {'files': {}, 'calls': [], 'token': 'tok_ok', 'write': True}  # 模擬 GitHub contents API（私人房源 repo）
 GH_CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Authorization, Accept, Content-Type, X-GitHub-Api-Version', 'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'}
 SB = {'otp': [], 'rows': {}, 'calls': [], 'refresh_ok': True}  # 模擬 Supabase（登入＋user_data 資料表，每個 email 一份）
@@ -109,11 +110,22 @@ async def route(r):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query).get('q', [''])[0]
         geo_calls.append(q)
         return await r.fulfill(body=json.dumps(GEO.get(q, [])), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
+    if u.startswith('https://accounts.google.com/gsi/client'):   # 模擬 Google 登入（GIS）：window.__gsiOk 決定同意或關掉視窗
+        js = ("window.google=window.google||{};google.accounts={oauth2:{hasGrantedAllScopes:()=>true,initTokenClient(o){return {requestAccessToken(){(window.__gsiReq=window.__gsiReq||[]).push({prompt:o.prompt,scope:o.scope,id:o.client_id});"
+              "setTimeout(()=>{if(window.__gsiOk)o.callback({access_token:'TOKEN_X',expires_in:3600});else o.error_callback({type:'popup_closed'});},10);}};}}};")
+        return await r.fulfill(body=js, content_type='text/javascript')
+    if u.startswith('https://www.googleapis.com/calendar/v3/'):   # 模擬 Google 日曆 API
+        h = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,PATCH'}
+        m = r.request.method
+        if m == 'OPTIONS': return await r.fulfill(status=204, headers=h)
+        GCAL.append({'m': m, 'u': u, 'auth': r.request.headers.get('authorization', ''), 'body': json.loads(r.request.post_data) if r.request.post_data else None})
+        if m == 'DELETE': return await r.fulfill(status=204, headers=h)
+        return await r.fulfill(status=200, body=json.dumps({'id': 'ev%d' % len(GCAL), 'htmlLink': 'https://calendar.google.com/x'}), content_type='application/json', headers=h)
     if u.startswith('https://maps.googleapis.com/maps/api/js'):   # 模擬 Google Maps JS（街景服務）
         q = urllib.parse.parse_qs(urllib.parse.urlparse(u).query)
         GMAPS.append(q.get('key', [''])[0])
-        js = ("window.google={maps:{StreetViewSource:{OUTDOOR:'outdoor'},StreetViewPreference:{NEAREST:'nearest'},StreetViewService:class{async getPanorama(o){(window.__svq=window.__svq||[]).push(o);"
-              "if(o.location.lat<24.99)throw new Error('ZERO_RESULTS');return {data:{location:{pano:'PANO_'+o.location.lat.toFixed(4),latLng:{lat:()=>o.location.lat+0.0003,lng:()=>o.location.lng}}}};}}}};"
+        js = ("window.google=Object.assign(window.google||{},{maps:{StreetViewSource:{OUTDOOR:'outdoor'},StreetViewPreference:{NEAREST:'nearest'},StreetViewService:class{async getPanorama(o){(window.__svq=window.__svq||[]).push(o);"
+              "if(o.location.lat<24.99)throw new Error('ZERO_RESULTS');return {data:{location:{pano:'PANO_'+o.location.lat.toFixed(4),latLng:{lat:()=>o.location.lat+0.0003,lng:()=>o.location.lng}}}};}}}});"
               f"window['{q.get('callback', ['__gmcb'])[0]}']&&window['{q.get('callback', ['__gmcb'])[0]}']();")
         return await r.fulfill(body=js, content_type='text/javascript')
     if u.startswith('https://router.project-osrm.org/nearest/'):   # 模擬 OSRM：最近的道路在南邊約 30 公尺
@@ -1417,6 +1429,30 @@ async def baked_suite(b, errs):
     cl = await ev("({u:(window.__calAdded||[]).slice(-1)[0]||'',h:loadHomes().find(h=>h.links&&h.links[0].p==='信義'),h2:loadHomes().find(h=>h.links&&h.links[0]&&h.links[0].p==='永慶'),t:document.getElementById('cityDet').innerText})")
     check(cl['h2']['visit'] and (__import__('datetime').datetime.fromisoformat(cl['h2']['visit']['at'].replace('Z','+00:00'))-__import__('datetime').datetime.fromisoformat(cl['h']['visit']['at'].replace('Z','+00:00'))).total_seconds() == 3600 and 'dates=' in cl['u'], '多間一趟：第二間的看房時間自動排在第一間後 1 小時')
     check('action=TEMPLATE' in cl['u'] and 'add=mom%40example.com' in cl['u'] and 'ctz=Asia%2FTaipei' in cl['u'] and cl['h']['visit'] and cl['h']['visit']['who'] == ['媽媽'] and '下一次看房' in cl['t'] and '媽媽 同行' in cl['t'], f"選定時段加到 Google 日曆（同行者在邀請名單）：記下看房時間，細節「行程」出現這筆 {cl['u'][:80]}")
+    # 已連上 Google 日曆：直接建活動（含邀請、寄通知），取消看房時一起刪掉日曆活動
+    await ev("window.__gsiOk=true;CITY3D.closeDet();CITY3D.openSched(loadHomes().find(h=>h.links&&h.links[0].p==='信義').id)"); await page.wait_for_timeout(200)
+    await page.click('#cityDet [data-who="mom@example.com"]'); await page.wait_for_timeout(100)
+    n0 = len(GCAL); nl = await ev("(window.__calAdded||[]).length")
+    await page.click('#cityDet [data-cal="0"]')
+    for _ in range(30):
+        if len(GCAL) > n0: break
+        await page.wait_for_timeout(100)
+    await page.wait_for_function("document.getElementById('toast').innerText.includes('已加到 Google 日曆')", timeout=5000)
+    gc = await ev("({h:loadHomes().find(h=>h.links&&h.links[0].p==='信義'),req:window.__gsiReq,nl:(window.__calAdded||[]).length,toast:document.getElementById('toast').innerText})")
+    post = GCAL[n0] if len(GCAL) > n0 else {}
+    check(post.get('m') == 'POST' and 'sendUpdates=all' in post.get('u', '') and post.get('auth') == 'Bearer TOKEN_X' and post['body']['attendees'] == [{'email': 'mom@example.com'}] and post['body']['start']['timeZone'] == 'Asia/Taipei'
+          and gc['h']['visit'].get('ev') == 'ev%d' % (n0 + 1) and gc['nl'] == nl and gc['req'][-1]['scope'].endswith('calendar.events') and gc['req'][-1]['id'].startswith('319232980917-') and '已加到 Google 日曆' in gc['toast'],
+          f"連上 Google 日曆：直接建活動（同行者在邀請名單、寄通知），不再開預填頁，記下活動編號 {post.get('u','')[:90]} {gc['toast']}")
+    await ev("CITY3D.openDet(loadHomes().find(h=>h.links&&h.links[0].p==='信義').id,'log')"); await page.wait_for_timeout(200)
+    await page.click('#cdVisDel'); await page.click('#cdVisDel')
+    for _ in range(30):
+        if len(GCAL) > n0 + 1: break
+        await page.wait_for_timeout(100)
+    await page.wait_for_timeout(200)
+    dl = GCAL[n0 + 1] if len(GCAL) > n0 + 1 else {}
+    check(dl.get('m') == 'DELETE' and ('/ev%d?' % (n0 + 1)) in dl.get('u', '') and 'sendUpdates=all' in dl['u'] and '也刪了' in await ev("document.getElementById('toast').innerText"), f"取消看房：Google 日曆的活動一起刪掉（通知同行的人） {dl.get('u','')[:100]}")
+    await ev("CITY3D.openSched(loadHomes().find(h=>h.links&&h.links[0].p==='信義').id)"); await page.wait_for_timeout(200)
+    await page.click('#cityDet [data-cal="0"]'); await page.wait_for_timeout(500)
     # 一次約很多間：每家公司只有一則訊息，分天用文字寫在同一則；選物件時畫面不會跳回最上面；內容多時可以捲動
     await ev("""(()=>{window.__homesBak=localStorage.getItem('tlm.homes');const a=loadHomes(),b=a.find(h=>h.links&&h.links[0].p==='信義');const add=[];for(let i=0;i<6;i++){const far=i>=3;add.push(Object.assign(JSON.parse(JSON.stringify(b)),{id:'zz'+i,name:'多間'+i,pt:[b.pt[0]+(far?.03:0)+i*.0005,b.pt[1]+(far?.04:0)],links:[{p:'信義',u:'https://www.sinyi.com.tw/buy/house/Z'+i}],visit:null,log:[]}));}
       localStorage.setItem('tlm.homes',JSON.stringify(a.concat(add)));CITY3D.openSched(b.id);})()"""); await page.wait_for_timeout(250)
@@ -1441,9 +1477,9 @@ async def baked_suite(b, errs):
     await page.wait_for_selector('#cdVisDel', timeout=5000)
     await page.click('#cdVisDel'); await page.wait_for_timeout(100)
     v1 = await ev("({t:document.getElementById('cdVisDel').innerText,v:!!loadHomes().find(h=>h.links&&h.links[0].p==='信義').visit})")
-    await page.click('#cdVisDel'); await page.wait_for_timeout(200)
+    await page.click('#cdVisDel'); await page.wait_for_timeout(700)
     v2 = await ev("(()=>{const h=loadHomes().find(h=>h.links&&h.links[0].p==='信義');return {v:h.visit,vis:h.log.filter(e=>e.t==='visit').length,next:!!document.querySelector('#cityDet .cdt-next'),toast:document.getElementById('toast').innerText,day:window.__calDay||''}})()")
-    check(v1['t'] == '確定取消？' and v1['v'] and v2['v'] is None and v2['vis'] == 0 and not v2['next'] and 'Google 日曆' in v2['toast'] and 'calendar/r/day/' in v2['day'], f"取消預約看房：第一下要再確認，第二下才刪；下一次看房與看房紀錄都清掉，提醒到 Google 日曆刪活動 {v1} {v2}")
+    check(v1['t'] == '確定取消？' and v1['v'] and v2['v'] is None and v2['vis'] == 0 and not v2['next'] and 'Google 日曆' in v2['toast'] and ('calendar/r/day/' in v2['day'] or '也刪了' in v2['toast']), f"取消預約看房：第一下要再確認，第二下才刪；下一次看房與看房紀錄都清掉，提醒到 Google 日曆刪活動 {v1} {v2}")
     n0l = await ev("loadHomes().find(h=>h.links&&h.links[0].p==='信義').log.length")
     await page.click('#cityDet .t-ask [data-dlog]'); await page.wait_for_timeout(100); await page.click('#cityDet .t-ask [data-dlog]'); await page.wait_for_timeout(200)
     check(await ev(f"(()=>{{const h=loadHomes().find(h=>h.links&&h.links[0].p==='信義');return h.log.length==={n0l}-1&&!h.log.some(e=>e.t==='ask')}})()"), '行程裡每一筆紀錄都可以刪除（點兩下確認）')
